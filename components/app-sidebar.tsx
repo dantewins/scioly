@@ -9,15 +9,18 @@ import {
   IconFileAi,
   IconFileDescription,
   IconFileWord,
-  IconFolder,
+  IconFileCheck,
   IconHelp,
+  IconCalendarWeek,
   IconListDetails,
   IconReport,
   IconSearch,
   IconSettings,
   IconUsers,
+  IconUser
 } from "@tabler/icons-react"
-import { FlaskIcon, ChartBarIcon, GaugeIcon, UsersIcon, BankIcon, HourglassHighIcon } from "@phosphor-icons/react"
+
+import { Command } from "lucide-react"
 
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
@@ -42,28 +45,28 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
-      icon: GaugeIcon,
+      url: "",
+      icon: IconDashboard,
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: ChartBarIcon,
+      title: "Events",
+      url: "/events",
+      icon: IconCalendarWeek,
     },
     {
       title: "Teams",
-      url: "#",
-      icon: UsersIcon,
+      url: "/teams",
+      icon: IconUsers,
     },
     {
-      title: "Finances",
-      url: "#",
-      icon: BankIcon,
+      title: "Members",
+      url: "/members",
+      icon: IconUser,
     },
     {
-      title: "Hours",
-      url: "#",
-      icon: HourglassHighIcon,
+      title: "Applications",
+      url: "/applications",
+      icon: IconFileCheck,
     },
   ],
   navClouds: [
@@ -156,13 +159,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-            >
+            <SidebarMenuButton size="lg" asChild>
               <a href="#">
-                <FlaskIcon className="size-5!" />
-                <span className="text-base font-semibold">PPCHS Science Olympiad</span>
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <Command className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">Acme Inc</span>
+                  <span className="truncate text-xs">Enterprise</span>
+                </div>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -171,9 +176,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="!px-0 !pt-0">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "name": "Daniel Kim",
+    "grade": "10th",
+    "school": "Pembroke Pines Charter High School",
+    "email": "daniel.kim@example.com",
+    "phone": "(954) 555-1021",
+    "appliedFor": "Robotics",
+    "status": "Pending"
+  },
+  {
+    "id": 2,
+    "name": "Sophia Lee",
+    "grade": "11th",
+    "school": "West Broward High School",
+    "email": "sophia.lee@example.com",
+    "phone": "(954) 555-2048",
+    "appliedFor": "Programming",
+    "status": "Accepted"
+  },
+  {
+    "id": 3,
+    "name": "Ethan Park",
+    "grade": "9th",
+    "school": "Cypress Bay High School",
+    "email": "ethan.park@example.com",
+    "phone": "(754) 555-3190",
+    "appliedFor": "Build Team",
+    "status": "Pending"
+  },
+  {
+    "id": 4,
+    "name": "Olivia Chen",
+    "grade": "12th",
+    "school": "American Heritage School",
+    "email": "olivia.chen@example.com",
+    "phone": "(954) 555-4472",
+    "appliedFor": "Outreach",
+    "status": "Rejected"
+  },
+  {
+    "id": 5,
+    "name": "Noah Martinez",
+    "grade": "10th",
+    "school": "Flanagan High School",
+    "email": "noah.martinez@example.com",
+    "phone": "(954) 555-5834",
+    "appliedFor": "Design",
+    "status": "Pending"
+  },
+  {
+    "id": 6,
+    "name": "Ava Johnson",
+    "grade": "11th",
+    "school": "Miramar High School",
+    "email": "ava.johnson@example.com",
+    "phone": "(754) 555-6217",
+    "appliedFor": "Media",
+    "status": "Accepted"
+  },
+  {
+    "id": 7,
+    "name": "Liam Nguyen",
+    "grade": "12th",
+    "school": "Charles W. Flanagan High School",
+    "email": "liam.nguyen@example.com",
+    "phone": "(954) 555-7341",
+    "appliedFor": "Programming",
+    "status": "Pending"
+  },
+  {
+    "id": 8,
+    "name": "Mia Rodriguez",
+    "grade": "9th",
+    "school": "Cooper City High School",
+    "email": "mia.rodriguez@example.com",
+    "phone": "(954) 555-8189",
+    "appliedFor": "Robotics",
+    "status": "Rejected"
+  },
+  {
+    "id": 9,
+    "name": "James Patel",
+    "grade": "10th",
+    "school": "West Broward High School",
+    "email": "james.patel@example.com",
+    "phone": "(754) 555-9026",
+    "appliedFor": "Logistics",
+    "status": "Accepted"
+  },
+  {
+    "id": 10,
+    "name": "Emily Garcia",
+    "grade": "11th",
+    "school": "Pembroke Pines Charter High School",
+    "email": "emily.garcia@example.com",
+    "phone": "(954) 555-1135",
+    "appliedFor": "Build Team",
+    "status": "Pending"
+  },
+  {
+    "id": 11,
+    "name": "Benjamin Scott",
+    "grade": "12th",
+    "school": "Southwest Ranches Prep",
+    "email": "benjamin.scott@example.com",
+    "phone": "(754) 555-2274",
+    "appliedFor": "Programming",
+    "status": "Accepted"
+  },
+  {
+    "id": 12,
+    "name": "Charlotte Adams",
+    "grade": "10th",
+    "school": "Cypress Bay High School",
+    "email": "charlotte.adams@example.com",
+    "phone": "(954) 555-3388",
+    "appliedFor": "Design",
+    "status": "Pending"
+  }
+]
