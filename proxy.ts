@@ -5,7 +5,7 @@ import { jwtVerify } from "jose";
 const SESSION_COOKIE = "app_session";
 const secret = new TextEncoder().encode(process.env.APP_JWT_SECRET!);
 
-const PUBLIC_PAGES = ["/", "/login"];
+const PUBLIC_PAGES = ["/login"];
 const PUBLIC_API_PREFIXES = [
     "/api/auth/login",
     "/api/auth/logout",
@@ -28,7 +28,7 @@ function isStaticAsset(pathname: string) {
     );
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     if (isStaticAsset(pathname)) {
