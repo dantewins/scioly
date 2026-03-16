@@ -4,9 +4,10 @@ import * as React from "react"
 import {
   IconChevronLeft,
   IconChevronRight,
+  IconCopy,
   IconDotsVertical,
-  IconCheck,
-  IconX,
+  IconMail,
+  IconPhone,
 } from "@tabler/icons-react"
 import {
   flexRender,
@@ -32,13 +33,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Table,
   TableBody,
   TableCell,
@@ -48,36 +42,27 @@ import {
 } from "@/components/ui/table"
 
 export const schema = z.object({
-  id: z.number(),
+  id: z.string(),
   name: z.string(),
-  grade: z.string(),
-  school: z.string(),
   email: z.string(),
+  grade: z.string(),
   phone: z.string(),
-  appliedFor: z.string(),
-  status: z.enum(["Pending", "Accepted", "Rejected"]),
+  returning: z.enum(["Returning", "New"]),
 })
 
 type Applicant = z.infer<typeof schema>
 
-function StatusBadge({ status }: { status: Applicant["status"] }) {
-  if (status === "Accepted") {
-    return <Badge className="bg-green-600 hover:bg-green-600">Accepted</Badge>
+function ReturningBadge({ value }: { value: Applicant["returning"] }) {
+  if (value === "Returning") {
+    return <Badge variant="outline">Returning</Badge>
   }
 
-  if (status === "Rejected") {
-    return <Badge variant="destructive">Rejected</Badge>
-  }
-
-  return <Badge variant="secondary">Pending</Badge>
+  return <Badge variant="secondary">New</Badge>
 }
 
-export function ApplicantsTable({
-  data: initialData,
-}: {
-  data: Applicant[]
-}) {
-  const [data, setData] = React.useState<Applicant[]>(initialData)
+export function ApplicantsTable() {
+  const [data, setData] = React.useState<Applicant[]>([])
+  const [loading, setLoading] = React.useState(true)
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
@@ -86,33 +71,73 @@ export function ApplicantsTable({
     pageSize: 10,
   })
 
-  const updateApplicantStatus = React.useCallback(
-    (id: number, status: Applicant["status"]) => {
-      setData((prev) =>
-        prev.map((applicant) =>
-          applicant.id === id ? { ...applicant, status } : applicant
-        )
-      )
-
-      const applicant = data.find((item) => item.id === id)
-      toast.success(
-        `${applicant?.name ?? "Applicant"} was ${status.toLowerCase()}.`
-      )
+  const copyToClipboard = React.useCallback(
+    async (value: string, label: string) => {
+      try {
+        await navigator.clipboard.writeText(value)
+        toast.success(`${label} copied.`)
+      } catch {
+        toast.error(`Failed to copy ${label.toLowerCase()}.`)
+      }
     },
-    [data]
+    []
   )
+
+  const loadApplicants = React.useCallback(async () => {
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/admin/applicants", {
+        method: "GET",
+        cache: "no-store",
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch applicants.")
+      }
+
+      const json = await res.json()
+      const parsed = z.array(schema).parse(json)
+
+      setData(parsed)
+    } catch (error) {
+      console.error(error)
+      toast.error("Failed to load applicants.")
+      setData([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    void loadApplicants()
+  }, [loadApplicants])
 
   const columns = React.useMemo<ColumnDef<Applicant>[]>(
     () => [
       {
         accessorKey: "name",
         header: "Name",
+        filterFn: (row, _columnId, filterValue) => {
+          const search = String(filterValue ?? "").toLowerCase().trim()
+
+          if (!search) return true
+
+          return (
+            row.original.name.toLowerCase().includes(search) ||
+            row.original.email.toLowerCase().includes(search)
+          )
+        },
         cell: ({ row }) => (
-          <div className="min-w-[180px]">
-            <div className="font-medium">{row.original.name}</div>
-            <div className="text-sm text-muted-foreground">
-              {row.original.email}
-            </div>
+          <div className="min-w-[180px] font-medium">{row.original.name}</div>
+        ),
+      },
+      {
+        accessorKey: "email",
+        header: "Email",
+        cell: ({ row }) => (
+          <div className="max-w-[240px] truncate text-sm">
+            {row.original.email}
           </div>
         ),
       },
@@ -122,64 +147,64 @@ export function ApplicantsTable({
         cell: ({ row }) => <div>{row.original.grade}</div>,
       },
       {
-        accessorKey: "school",
-        header: "School",
-        cell: ({ row }) => (
-          <div className="max-w-[180px] truncate">{row.original.school}</div>
-        ),
-      },
-      {
         accessorKey: "phone",
         header: "Phone",
-        cell: ({ row }) => <div>{row.original.phone}</div>,
+        cell: ({ row }) => <div>{row.original.phone || "—"}</div>,
       },
       {
-        accessorKey: "appliedFor",
-        header: "Applied For",
-        cell: ({ row }) => (
-          <Badge variant="outline">{row.original.appliedFor}</Badge>
-        ),
-      },
-      {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+        accessorKey: "returning",
+        header: "Returning / New",
+        cell: ({ row }) => <ReturningBadge value={row.original.returning} />,
       },
       {
         id: "actions",
-        header: "Actions",
+        header: () => <div className="text-center">Actions</div>,
+        enableSorting: false,
+        enableHiding: false,
         cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8">
-                <IconDotsVertical className="size-4" />
-                <span className="sr-only">Open actions</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => updateApplicantStatus(row.original.id, "Accepted")}
-              >
-                <IconCheck className="mr-2 size-4" />
-                Accept
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => updateApplicantStatus(row.original.id, "Rejected")}
-              >
-                <IconX className="mr-2 size-4" />
-                Reject
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => updateApplicantStatus(row.original.id, "Pending")}
-              >
-                Set to Pending
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex justify-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8">
+                  <IconDotsVertical className="size-4" />
+                  <span className="sr-only">Open actions</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() =>
+                    copyToClipboard(row.original.email, "Email address")
+                  }
+                >
+                  <IconCopy className="mr-2 size-4" />
+                  Copy email
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() =>
+                    copyToClipboard(row.original.phone || "", "Phone number")
+                  }
+                  disabled={!row.original.phone}
+                >
+                  <IconPhone className="mr-2 size-4" />
+                  Copy phone
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => {
+                    window.location.href = `mailto:${row.original.email}`
+                  }}
+                >
+                  <IconMail className="mr-2 size-4" />
+                  Email applicant
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         ),
       },
     ],
-    [updateApplicantStatus]
+    [copyToClipboard]
   )
 
   const table = useReactTable({
@@ -196,46 +221,28 @@ export function ApplicantsTable({
     getPaginationRowModel: getPaginationRowModel(),
   })
 
+  const pageCount = table.getPageCount()
+  const currentPage = pageCount === 0 ? 0 : table.getState().pagination.pageIndex + 1
+
   return (
     <div className="space-y-4 px-4 lg:px-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="w-full sm:w-[260px]">
-            <Label htmlFor="search-applicants" className="sr-only">
-              Search applicants
-            </Label>
-            <Input
-              id="search-applicants"
-              placeholder="Search by name..."
-              value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-              onChange={(e) =>
-                table.getColumn("name")?.setFilterValue(e.target.value)
-              }
-            />
-          </div>
-
-          <Select
-            value={(table.getColumn("status")?.getFilterValue() as string) || "all"}
-            onValueChange={(value) =>
-              table
-                .getColumn("status")
-                ?.setFilterValue(value === "all" ? "" : value)
+        <div className="w-full sm:w-[320px]">
+          <Label htmlFor="search-applicants" className="sr-only">
+            Search applicants
+          </Label>
+          <Input
+            id="search-applicants"
+            placeholder="Search by name or email..."
+            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+            onChange={(e) =>
+              table.getColumn("name")?.setFilterValue(e.target.value)
             }
-          >
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filter status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Accepted">Accepted</SelectItem>
-              <SelectItem value="Rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
+          />
         </div>
 
         <div className="text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} applicant(s)
+          {loading ? "Loading applicants..." : `${table.getFilteredRowModel().rows.length} applicant(s)`}
         </div>
       </div>
 
@@ -259,7 +266,16 @@ export function ApplicantsTable({
           </TableHeader>
 
           <TableBody>
-            {table.getRowModel().rows.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Loading applicants...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
@@ -285,8 +301,7 @@ export function ApplicantsTable({
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
+          Page {currentPage} of {pageCount}
         </div>
 
         <div className="flex items-center gap-2">
@@ -299,6 +314,7 @@ export function ApplicantsTable({
             <IconChevronLeft className="size-4" />
             <span className="sr-only">Previous page</span>
           </Button>
+
           <Button
             variant="outline"
             size="icon"

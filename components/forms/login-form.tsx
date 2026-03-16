@@ -52,8 +52,8 @@ export function LoginForm({
         return;
       }
 
-      router.push("/dashboard");
       setUser(data.user);
+      router.push("/dashboard");
     } catch (err) {
       console.error(err);
       toast.error(
