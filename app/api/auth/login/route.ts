@@ -49,6 +49,13 @@ export async function POST(req: Request) {
             );
         }
 
+        if (user.role === "APPLICANT") {
+            return NextResponse.json(
+                { error: "Your account is pending approval." },
+                { status: 403 }
+            );
+        }
+
         const token = await new SignJWT({
             role: user.role,
             email: user.email,

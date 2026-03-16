@@ -11,6 +11,7 @@ enum UserRole {
   ADMIN
   BOARD_MEMBER
   MEMBER
+  APPLICANT
 }
 
 enum MembershipStatus {
@@ -119,6 +120,12 @@ enum AnnouncementAudience {
   TEAM_ONLY
 }
 
+enum PartnerPreference {
+  NA
+  RECOMMENDED
+  MANDATORY
+}
+
 model Club {
   id          String   @id @default(cuid())
   name        String
@@ -163,7 +170,7 @@ model User {
   id              String    @id @default(cuid())
   clubId          String
   email           String    @unique
-  passwordHash    String
+  passwordHash    String?
   role            UserRole  @default(MEMBER)
   clerkId         String?   @unique
   firstName       String
@@ -200,6 +207,17 @@ model MemberSeason {
   canTravel        Boolean          @default(false)
   shirtSize        String?
   notes            String?
+
+  whyJoin             String?
+  contributionIdeas   String?
+  awards              String?
+  previousEvents      String?
+  scienceClasses      String?
+  mathClasses         String?
+  questions           String?
+  focusPageFileUrl    String?
+  applicationSubmittedAt DateTime?
+
   expectedHours    Decimal?         @db.Decimal(5, 2)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -305,16 +323,20 @@ model TeamAssignment {
 }
 
 model EventEnrollment {
-  id             String                @id @default(cuid())
-  memberSeasonId String
-  eventId        String
-  status         EventEnrollmentStatus @default(INTERESTED)
-  preferenceRank Int?
-  tryoutScore    Decimal?              @db.Decimal(6, 2)
-  skillRating    Int?
-  notes          String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
+  id                    String                @id @default(cuid())
+  memberSeasonId        String
+  eventId               String
+  status                EventEnrollmentStatus @default(INTERESTED)
+  preferenceRank        Int?
+  tryoutScore           Decimal?              @db.Decimal(6, 2)
+  skillRating           Int?
+  notes                 String?
+
+  partnerPreference     PartnerPreference     @default(NA)
+  partnerNames          String?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
 
   memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)

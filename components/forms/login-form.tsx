@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GalleryVerticalEnd } from "lucide-react";
+import { IconAtom, IconLoader2 } from "@tabler/icons-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,21 +14,22 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
+  const { setUser } = useAuth();
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     try {
@@ -47,15 +48,19 @@ export function LoginForm({
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setError(data?.error ?? "Login failed.");
+        toast.error(data?.error ?? "Login failed.");
         return;
       }
 
       router.push("/dashboard");
-      router.refresh();
+      setUser(data.user);
     } catch (err) {
       console.error(err);
-      setError("Something went wrong. Please try again.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -71,7 +76,7 @@ export function LoginForm({
               className="flex flex-col items-center gap-2 font-medium"
             >
               <div className="flex size-8 items-center justify-center rounded-md">
-                <GalleryVerticalEnd className="size-6" />
+                <IconAtom className="size-7" />
               </div>
               <span className="sr-only">Science Olympiad.</span>
             </Link>
@@ -79,7 +84,7 @@ export function LoginForm({
             <h1 className="text-xl font-bold">Welcome to Science Olympiad.</h1>
 
             <FieldDescription>
-              Don&apos;t have an account? <Link href="/signup">Sign up</Link>
+              Don&apos;t have an account? <Link href="/apply">Apply here</Link>
             </FieldDescription>
           </div>
 
@@ -111,13 +116,9 @@ export function LoginForm({
             />
           </Field>
 
-          {error ? (
-            <p className="text-sm text-destructive">{error}</p>
-          ) : null}
-
           <Field>
             <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Logging in..." : "Login"}
+              Login {loading ? <IconLoader2 className="size-4 animate-spin" /> : null}
             </Button>
           </Field>
         </FieldGroup>

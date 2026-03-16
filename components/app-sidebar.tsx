@@ -1,9 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   IconCamera,
-  IconChartBar,
   IconDashboard,
   IconDatabase,
   IconFileAi,
@@ -12,20 +11,17 @@ import {
   IconFileCheck,
   IconHelp,
   IconCalendarWeek,
-  IconListDetails,
   IconReport,
   IconSearch,
   IconSettings,
   IconUsers,
-  IconUser
-} from "@tabler/icons-react"
+  IconUser,
+} from "@tabler/icons-react";
+import { Command } from "lucide-react";
 
-import { Command } from "lucide-react"
-
-import { NavDocuments } from "@/components/nav-documents"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import { NavDocuments } from "@/components/nav-documents";
+import { NavMain } from "@/components/nav-main";
+import { NavUser, type NavUserData } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -34,14 +30,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import { useAuth } from "@/context/AuthContext";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -76,14 +68,8 @@ const data = {
       isActive: true,
       url: "#",
       items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
+        { title: "Active Proposals", url: "#" },
+        { title: "Archived", url: "#" },
       ],
     },
     {
@@ -91,14 +77,8 @@ const data = {
       icon: IconFileDescription,
       url: "#",
       items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
+        { title: "Active Proposals", url: "#" },
+        { title: "Archived", url: "#" },
       ],
     },
     {
@@ -106,14 +86,8 @@ const data = {
       icon: IconFileAi,
       url: "#",
       items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
+        { title: "Active Proposals", url: "#" },
+        { title: "Archived", url: "#" },
       ],
     },
   ],
@@ -151,16 +125,45 @@ const data = {
       icon: IconFileWord,
     },
   ],
+};
+
+function buildSidebarUser(
+  user: {
+    email: string;
+    displayName: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl?: string | null;
+  } | null
+): NavUserData | null {
+  if (!user) return null;
+
+  const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+
+  return {
+    name: user.displayName || fullName || user.email,
+    email: user.email,
+    avatarUrl: user.avatarUrl ?? null,
+  };
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
+  const { user, signOut, loading } = useAuth();
+
+  const sidebarUser = React.useMemo(
+    () => buildSidebarUser(user),
+    [user]
+  );
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <a href="/">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <Command className="size-4" />
                 </div>
@@ -173,13 +176,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavDocuments items={data.documents} />
       </SidebarContent>
+
       <SidebarFooter className="!px-0 !pt-0">
-        <NavUser user={data.user} />
+        {sidebarUser ? (
+          <NavUser
+            user={sidebarUser}
+            onSignOut={signOut}
+            signingOut={loading}
+          />
+        ) : null}
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

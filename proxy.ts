@@ -8,7 +8,7 @@ const secret = new TextEncoder().encode(process.env.APP_JWT_SECRET!);
 const PUBLIC_PAGES = ["/login"];
 const PUBLIC_API_PREFIXES = [
     "/api/auth/login",
-    "/api/auth/logout",
+    "/api/public/",
 ];
 
 function isPublicPage(pathname: string) {
