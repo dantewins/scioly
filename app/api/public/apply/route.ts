@@ -185,9 +185,7 @@ export async function POST(req: Request) {
         const activeSeason = await prisma.season.findFirst({
             where: { isActive: true },
             orderBy: { startsAt: "desc" },
-        })
-
-        console.log(activeSeason);
+        });
 
         if (!activeSeason) {
             return NextResponse.json(
