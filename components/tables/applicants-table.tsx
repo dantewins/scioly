@@ -393,9 +393,7 @@ export function ApplicantsTable() {
           <div className="space-y-2">
             <h1 className="text-xl font-semibold tracking-tight">
               {showingDetails
-                ? detailsLoading
-                  ? "Application details"
-                  : `${selectedApplicant?.name}'s application`
+                ? "Application details"
                 : "Applicants"}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -452,6 +450,7 @@ export function ApplicantsTable() {
           <div className="space-y-4">
             <DetailSection title="Basic information">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <DetailItem label="Name" value={selectedApplicant.name} />
                 <DetailItem label="Applicant ID" value={selectedApplicant.id} />
                 <DetailItem
                   label="Grade level"
