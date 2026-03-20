@@ -3,13 +3,13 @@
 import * as React from "react"
 import {
   IconArrowLeft,
-  IconCopy,
   IconDotsVertical,
   IconLoader2,
-  IconMail,
-  IconPhone,
   IconChevronLeft,
-  IconChevronRight
+  IconChevronRight,
+  IconEdit,
+  IconCircleCheck,
+  IconBan
 } from "@tabler/icons-react"
 import {
   flexRender,
@@ -332,8 +332,8 @@ export function ApplicantsTable() {
                     copyToClipboard(row.original.email, "Email address")
                   }
                 >
-                  <IconCopy className="size-4" />
-                  Copy email
+                  <IconEdit className="size-4" />
+                  Edit
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -345,8 +345,8 @@ export function ApplicantsTable() {
                   }
                   disabled={!row.original.phone}
                 >
-                  <IconPhone className="size-4" />
-                  Copy phone
+                  <IconCircleCheck className="size-4" />
+                  Accept
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -354,8 +354,8 @@ export function ApplicantsTable() {
                     window.location.href = `mailto:${row.original.email}`
                   }}
                 >
-                  <IconMail className="size-4" />
-                  Email applicant
+                  <IconBan className="size-4" />
+                  Reject
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
