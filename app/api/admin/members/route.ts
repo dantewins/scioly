@@ -1,52 +1,22 @@
-import { NextResponse } from "next/server"
-import { MembershipStatus, UserRole } from "@prisma/client"
+import { MembershipStatus } from "@prisma/client"
+import type { User } from "@prisma/client"
 
 import { prisma } from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/auth"
+import { withAdminAuth, ok, err } from "@/lib/api"
+import { getActiveSeason } from "@/lib/db"
+import { formatDate } from "@/lib/format"
 
 export const dynamic = "force-dynamic"
 
-const ALLOWED_ROLES = new Set<UserRole>([
-  UserRole.WEBSITE_OWNER,
-  UserRole.ADMIN,
-  UserRole.BOARD_MEMBER,
-])
-
-function formatDate(value: Date | null) {
-  if (!value) return ""
-  return value.toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  })
-}
-
-async function getActiveSeason(clubId: string) {
-  return prisma.season.findFirst({
-    where: { clubId, isActive: true },
-    select: { id: true },
-    orderBy: { startsAt: "desc" },
-  })
-}
-
-export async function GET(request: Request) {
-  try {
-    const currentUser = await getCurrentUser()
-
-    if (!currentUser) {
-      return NextResponse.json({ message: "Unauthorized." }, { status: 401 })
-    }
-
-    if (!ALLOWED_ROLES.has(currentUser.role)) {
-      return NextResponse.json({ message: "Forbidden." }, { status: 403 })
-    }
-
+export const GET = withAdminAuth(
+  async (request: Request, _ctx: unknown, currentUser: User) => {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")?.trim()
 
     const activeSeason = await getActiveSeason(currentUser.clubId)
 
     if (!activeSeason) {
-      return NextResponse.json(id ? null : [])
+      return ok(id ? null : [])
     }
 
     if (id) {
@@ -106,10 +76,10 @@ export async function GET(request: Request) {
       })
 
       if (!member) {
-        return NextResponse.json({ message: "Member not found." }, { status: 404 })
+        return err("Member not found.", 404)
       }
 
-      return NextResponse.json({
+      return ok({
         id: member.id,
         userId: member.user.id,
         name: `${member.user.firstName} ${member.user.lastName}`.trim(),
@@ -185,7 +155,7 @@ export async function GET(request: Request) {
       orderBy: { joinedAt: "desc" },
     })
 
-    return NextResponse.json(
+    return ok(
       members.map(m => ({
         id: m.id,
         userId: m.user.id,
@@ -201,24 +171,12 @@ export async function GET(request: Request) {
         teamEvent: m.teamAssignments[0]?.team.event.name ?? null,
       }))
     )
-  } catch (error) {
-    console.error("Failed to fetch members:", error)
-    return NextResponse.json({ message: "Failed to fetch members." }, { status: 500 })
-  }
-}
+  },
+  "fetch members"
+)
 
-export async function PATCH(request: Request) {
-  try {
-    const currentUser = await getCurrentUser()
-
-    if (!currentUser) {
-      return NextResponse.json({ message: "Unauthorized." }, { status: 401 })
-    }
-
-    if (!ALLOWED_ROLES.has(currentUser.role)) {
-      return NextResponse.json({ message: "Forbidden." }, { status: 403 })
-    }
-
+export const PATCH = withAdminAuth(
+  async (request: Request, _ctx: unknown, currentUser: User) => {
     const body = await request.json() as {
       id: string
       action: "edit" | "deactivate" | "reactivate" | "assign-team"
@@ -237,13 +195,13 @@ export async function PATCH(request: Request) {
     const { id, action } = body
 
     if (!id || !action) {
-      return NextResponse.json({ message: "Missing id or action." }, { status: 400 })
+      return err("Missing id or action.", 400)
     }
 
     const activeSeason = await getActiveSeason(currentUser.clubId)
 
     if (!activeSeason) {
-      return NextResponse.json({ message: "No active season found." }, { status: 400 })
+      return err("No active season found.", 400)
     }
 
     const existing = await prisma.memberSeason.findFirst({
@@ -256,7 +214,7 @@ export async function PATCH(request: Request) {
     })
 
     if (!existing) {
-      return NextResponse.json({ message: "Member not found." }, { status: 404 })
+      return err("Member not found.", 404)
     }
 
     const now = new Date()
@@ -266,7 +224,7 @@ export async function PATCH(request: Request) {
         where: { id },
         data: { membershipStatus: MembershipStatus.INACTIVE, statusChangedAt: now },
       })
-      return NextResponse.json({ success: true, membershipStatus: "INACTIVE" })
+      return ok({ success: true, membershipStatus: "INACTIVE" })
     }
 
     if (action === "reactivate") {
@@ -274,7 +232,7 @@ export async function PATCH(request: Request) {
         where: { id },
         data: { membershipStatus: MembershipStatus.ACTIVE, statusChangedAt: now },
       })
-      return NextResponse.json({ success: true, membershipStatus: "ACTIVE" })
+      return ok({ success: true, membershipStatus: "ACTIVE" })
     }
 
     if (action === "edit") {
@@ -303,7 +261,7 @@ export async function PATCH(request: Request) {
         }),
       ])
 
-      return NextResponse.json({ success: true })
+      return ok({ success: true })
     }
 
     if (action === "assign-team") {
@@ -311,7 +269,7 @@ export async function PATCH(request: Request) {
 
       if (!teamId) {
         await prisma.teamAssignment.deleteMany({ where: { memberSeasonId: id } })
-        return NextResponse.json({ success: true })
+        return ok({ success: true })
       }
 
       const existingAssignment = await prisma.teamAssignment.findFirst({
@@ -337,12 +295,10 @@ export async function PATCH(request: Request) {
         })
       }
 
-      return NextResponse.json({ success: true })
+      return ok({ success: true })
     }
 
-    return NextResponse.json({ message: "Invalid action." }, { status: 400 })
-  } catch (error) {
-    console.error("Failed to update member:", error)
-    return NextResponse.json({ message: "Failed to update member." }, { status: 500 })
-  }
-}
+    return err("Invalid action.", 400)
+  },
+  "update member"
+)

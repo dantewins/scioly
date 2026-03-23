@@ -1,33 +1,15 @@
-import { NextResponse } from "next/server"
-import { UserRole } from "@prisma/client"
+import type { User } from "@prisma/client"
 
 import { prisma } from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/auth"
+import { withAdminAuth, ok, err } from "@/lib/api"
+import { getActiveSeason } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
-const ALLOWED_ROLES = new Set<UserRole>([
-  UserRole.WEBSITE_OWNER,
-  UserRole.ADMIN,
-  UserRole.BOARD_MEMBER,
-])
-
-async function getActiveSeason(clubId: string) {
-  return prisma.season.findFirst({
-    where: { clubId, isActive: true },
-    select: { id: true },
-    orderBy: { startsAt: "desc" },
-  })
-}
-
-export async function POST(request: Request) {
-  try {
-    const currentUser = await getCurrentUser()
-    if (!currentUser) return NextResponse.json({ message: "Unauthorized." }, { status: 401 })
-    if (!ALLOWED_ROLES.has(currentUser.role)) return NextResponse.json({ message: "Forbidden." }, { status: 403 })
-
+export const POST = withAdminAuth(
+  async (request: Request, _ctx: unknown, currentUser: User) => {
     const activeSeason = await getActiveSeason(currentUser.clubId)
-    if (!activeSeason) return NextResponse.json({ message: "No active season." }, { status: 400 })
+    if (!activeSeason) return err("No active season.", 400)
 
     const body = await request.json() as {
       action: "assign" | "unassign" | "create" | "auto-assign" | "delete"
@@ -45,7 +27,7 @@ export async function POST(request: Request) {
     if (action === "assign") {
       const { competitionId, eventId, memberSeasonId, role } = body
       if (!competitionId || !eventId || !memberSeasonId) {
-        return NextResponse.json({ message: "Missing required fields." }, { status: 400 })
+        return err("Missing required fields.", 400)
       }
 
       const event = await prisma.event.findUnique({
@@ -72,7 +54,7 @@ export async function POST(request: Request) {
       }
 
       if (event && team.assignments.length >= event.maxParticipants) {
-        return NextResponse.json({ message: "Team is already full." }, { status: 409 })
+        return err("Team is already full.", 409)
       }
 
       const conflictSlot = await prisma.eventSchedule.findUnique({
@@ -100,10 +82,7 @@ export async function POST(request: Request) {
         })
 
         if (conflictingAssignment) {
-          return NextResponse.json(
-            { message: "Member already assigned to another event in the same time slot." },
-            { status: 409 }
-          )
+          return err("Member already assigned to another event in the same time slot.", 409)
         }
       }
 
@@ -112,7 +91,7 @@ export async function POST(request: Request) {
       })
 
       if (existing) {
-        return NextResponse.json({ message: "Member already on this team." }, { status: 409 })
+        return err("Member already on this team.", 409)
       }
 
       const assignment = await prisma.teamAssignment.create({
@@ -124,20 +103,20 @@ export async function POST(request: Request) {
         select: { id: true, teamId: true },
       })
 
-      return NextResponse.json({ success: true, assignmentId: assignment.id, teamId: assignment.teamId })
+      return ok({ success: true, assignmentId: assignment.id, teamId: assignment.teamId })
     }
 
     if (action === "unassign") {
       const { assignmentId } = body
-      if (!assignmentId) return NextResponse.json({ message: "Missing assignmentId." }, { status: 400 })
+      if (!assignmentId) return err("Missing assignmentId.", 400)
 
       await prisma.teamAssignment.delete({ where: { id: assignmentId } })
-      return NextResponse.json({ success: true })
+      return ok({ success: true })
     }
 
     if (action === "create") {
       const { competitionId, eventId, label } = body
-      if (!competitionId || !eventId) return NextResponse.json({ message: "Missing fields." }, { status: 400 })
+      if (!competitionId || !eventId) return err("Missing fields.", 400)
 
       const team = await prisma.team.create({
         data: {
@@ -150,21 +129,21 @@ export async function POST(request: Request) {
         select: { id: true },
       })
 
-      return NextResponse.json({ success: true, teamId: team.id })
+      return ok({ success: true, teamId: team.id })
     }
 
     if (action === "delete") {
       const { teamId } = body
-      if (!teamId) return NextResponse.json({ message: "Missing teamId." }, { status: 400 })
+      if (!teamId) return err("Missing teamId.", 400)
 
       await prisma.teamAssignment.deleteMany({ where: { teamId } })
       await prisma.team.delete({ where: { id: teamId } })
-      return NextResponse.json({ success: true })
+      return ok({ success: true })
     }
 
     if (action === "auto-assign") {
       const { competitionId } = body
-      if (!competitionId) return NextResponse.json({ message: "Missing competitionId." }, { status: 400 })
+      if (!competitionId) return err("Missing competitionId.", 400)
 
       const schedules = await prisma.eventSchedule.findMany({
         where: { competitionId },
@@ -295,12 +274,10 @@ export async function POST(request: Request) {
         }
       }
 
-      return NextResponse.json({ success: true, teamsCreated, membersAssigned })
+      return ok({ success: true, teamsCreated, membersAssigned })
     }
 
-    return NextResponse.json({ message: "Invalid action." }, { status: 400 })
-  } catch (error) {
-    console.error("Failed to manage team:", error)
-    return NextResponse.json({ message: "Failed to manage team." }, { status: 500 })
-  }
-}
+    return err("Invalid action.", 400)
+  },
+  "manage team"
+)

@@ -1,58 +1,22 @@
-import { NextResponse } from "next/server"
 import { MembershipStatus, UserRole } from "@prisma/client"
+import type { User } from "@prisma/client"
 
 import { prisma } from "@/lib/prisma"
-import { getCurrentUser } from "@/lib/auth"
+import { withAdminAuth, ok, err } from "@/lib/api"
+import { getActiveSeason } from "@/lib/db"
+import { formatDate, extractUploadedFileName } from "@/lib/format"
 
 export const dynamic = "force-dynamic"
 
-const ALLOWED_ROLES = new Set<UserRole>([
-  UserRole.WEBSITE_OWNER,
-  UserRole.ADMIN,
-  UserRole.BOARD_MEMBER,
-])
-
-function formatDate(value: Date | null) {
-  if (!value) return ""
-  return value.toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  })
-}
-
-function extractUploadedFileName(notes: string | null | undefined) {
-  if (!notes) return ""
-  const match = notes.match(/^Uploaded file:\s(.+?)\s\(/)
-  return match?.[1] ?? ""
-}
-
-async function getActiveSeason(clubId: string) {
-  return prisma.season.findFirst({
-    where: { clubId, isActive: true },
-    select: { id: true },
-    orderBy: { startsAt: "desc" },
-  })
-}
-
-export async function GET(request: Request) {
-  try {
-    const currentUser = await getCurrentUser()
-
-    if (!currentUser) {
-      return NextResponse.json({ message: "Unauthorized." }, { status: 401 })
-    }
-
-    if (!ALLOWED_ROLES.has(currentUser.role)) {
-      return NextResponse.json({ message: "Forbidden." }, { status: 403 })
-    }
-
+export const GET = withAdminAuth(
+  async (request: Request, _ctx: unknown, currentUser: User) => {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")?.trim()
 
     const activeSeason = await getActiveSeason(currentUser.clubId)
 
     if (!activeSeason) {
-      return NextResponse.json(id ? null : [])
+      return ok(id ? null : [])
     }
 
     if (id) {
@@ -101,13 +65,10 @@ export async function GET(request: Request) {
       })
 
       if (!applicant) {
-        return NextResponse.json(
-          { message: "Applicant not found." },
-          { status: 404 }
-        )
+        return err("Applicant not found.", 404)
       }
 
-      return NextResponse.json({
+      return ok({
         id: applicant.id,
         userId: applicant.user.id,
         name: `${applicant.user.firstName} ${applicant.user.lastName}`.trim(),
@@ -165,7 +126,7 @@ export async function GET(request: Request) {
       orderBy: { applicationSubmittedAt: "desc" },
     })
 
-    return NextResponse.json(
+    return ok(
       applicants.map((applicant) => ({
         id: applicant.id,
         userId: applicant.user.id,
@@ -179,27 +140,12 @@ export async function GET(request: Request) {
         submittedAt: formatDate(applicant.applicationSubmittedAt),
       }))
     )
-  } catch (error) {
-    console.error("Failed to fetch applicants:", error)
-    return NextResponse.json(
-      { message: "Failed to fetch applicants." },
-      { status: 500 }
-    )
-  }
-}
+  },
+  "fetch applicants"
+)
 
-export async function PATCH(request: Request) {
-  try {
-    const currentUser = await getCurrentUser()
-
-    if (!currentUser) {
-      return NextResponse.json({ message: "Unauthorized." }, { status: 401 })
-    }
-
-    if (!ALLOWED_ROLES.has(currentUser.role)) {
-      return NextResponse.json({ message: "Forbidden." }, { status: 403 })
-    }
-
+export const PATCH = withAdminAuth(
+  async (request: Request, _ctx: unknown, currentUser: User) => {
     const body = await request.json() as {
       id: string
       action: "approve" | "reject" | "edit"
@@ -223,19 +169,13 @@ export async function PATCH(request: Request) {
     const { id, action, reason } = body
 
     if (!id || !action) {
-      return NextResponse.json(
-        { message: "Missing id or action." },
-        { status: 400 }
-      )
+      return err("Missing id or action.", 400)
     }
 
     const activeSeason = await getActiveSeason(currentUser.clubId)
 
     if (!activeSeason) {
-      return NextResponse.json(
-        { message: "No active season found." },
-        { status: 400 }
-      )
+      return err("No active season found.", 400)
     }
 
     const existing = await prisma.memberSeason.findFirst({
@@ -248,10 +188,7 @@ export async function PATCH(request: Request) {
     })
 
     if (!existing) {
-      return NextResponse.json(
-        { message: "Applicant not found." },
-        { status: 404 }
-      )
+      return err("Applicant not found.", 404)
     }
 
     const now = new Date()
@@ -272,7 +209,7 @@ export async function PATCH(request: Request) {
         }),
       ])
 
-      return NextResponse.json({ success: true, membershipStatus: "ACTIVE" })
+      return ok({ success: true, membershipStatus: "ACTIVE" })
     }
 
     if (action === "reject") {
@@ -285,7 +222,7 @@ export async function PATCH(request: Request) {
         },
       })
 
-      return NextResponse.json({ success: true, membershipStatus: "REMOVED" })
+      return ok({ success: true, membershipStatus: "REMOVED" })
     }
 
     if (action === "edit") {
@@ -335,15 +272,10 @@ export async function PATCH(request: Request) {
         }),
       ])
 
-      return NextResponse.json({ success: true })
+      return ok({ success: true })
     }
 
-    return NextResponse.json({ message: "Invalid action." }, { status: 400 })
-  } catch (error) {
-    console.error("Failed to update applicant:", error)
-    return NextResponse.json(
-      { message: "Failed to update applicant." },
-      { status: 500 }
-    )
-  }
-}
+    return err("Invalid action.", 400)
+  },
+  "update applicant"
+)
