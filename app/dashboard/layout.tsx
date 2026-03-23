@@ -17,7 +17,7 @@ export default function DashboardLayout({
         <SidebarProvider
             style={
                 {
-                    "--sidebar-width": "calc(var(--spacing) * 62)",
+                    "--sidebar-width": "calc(var(--spacing) * 64)",
                     "--header-height": "calc(var(--spacing) * 12)",
                 } as CSSProperties
             }

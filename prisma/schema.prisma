@@ -217,6 +217,8 @@ model MemberSeason {
   questions           String?
   focusPageFileUrl    String?
   applicationSubmittedAt DateTime?
+  statusChangedAt     DateTime?
+  statusReason        String?
 
   expectedHours    Decimal?         @db.Decimal(5, 2)
   createdAt        DateTime         @default(now())
@@ -248,11 +250,12 @@ model Event {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  season        Season             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  enrollments   EventEnrollment[]
-  teams         Team[]
-  resources     Resource[]
-  announcements Announcement[]
+  season         Season             @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  enrollments    EventEnrollment[]
+  teams          Team[]
+  resources      Resource[]
+  announcements  Announcement[]
+  eventSchedules EventSchedule[]
 
   @@unique([seasonId, name])
   @@index([seasonId, sortOrder])
@@ -271,13 +274,28 @@ model Competition {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  season        Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  teams         Team[]
-  resources     Resource[]
-  announcements Announcement[]
+  season         Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  teams          Team[]
+  resources      Resource[]
+  announcements  Announcement[]
+  eventSchedules EventSchedule[]
 
   @@unique([seasonId, name])
   @@index([seasonId, type])
+}
+
+model EventSchedule {
+  id            String      @id @default(cuid())
+  competitionId String
+  eventId       String
+  timeSlot      Int
+  slotLabel     String?
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, eventId])
+  @@index([competitionId])
 }
 
 model Team {

@@ -3,14 +3,21 @@
 import * as React from "react"
 import {
   IconArrowLeft,
-  IconDotsVertical,
+  IconDots,
   IconLoader2,
   IconChevronLeft,
   IconChevronRight,
   IconEdit,
   IconCircleCheck,
-  IconBan
+  IconBan,
 } from "@tabler/icons-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   flexRender,
   getCoreRowModel,
@@ -27,13 +34,26 @@ import { z } from "zod"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
+  Field,
+  FieldDescription,
+  FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Table,
   TableBody,
@@ -42,6 +62,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const summarySchema = z.object({
   id: z.string(),
@@ -50,6 +71,9 @@ const summarySchema = z.object({
   grade: z.string().optional().default(""),
   phone: z.string().optional().default(""),
   returning: z.enum(["Returning", "New"]).optional(),
+  membershipStatus: z.string().optional().default("PENDING"),
+  statusChangedAt: z.string().optional().default(""),
+  submittedAt: z.string().optional().default(""),
 })
 
 const eventChoiceSchema = z.object({
@@ -71,6 +95,8 @@ const detailSchema = z.object({
   shirtSize: z.string().optional().default(""),
   returning: z.enum(["Returning", "New"]).optional(),
   isReturning: z.union([z.boolean(), z.string()]).optional(),
+  membershipStatus: z.string().optional().default("PENDING"),
+  statusChangedAt: z.string().optional().default(""),
 
   whyJoin: z.string().optional().default(""),
   contributionIdeas: z.string().optional().default(""),
@@ -88,142 +114,145 @@ const detailSchema = z.object({
 
 type ApplicantSummary = z.infer<typeof summarySchema>
 type ApplicantDetail = z.infer<typeof detailSchema>
+type StatusFilter = "all" | "PENDING" | "ACTIVE" | "REMOVED"
 
-function ReturningBadge({
-  value,
-}: {
-  value: "Returning" | "New" | undefined
-}) {
-  if (value === "Returning") {
-    return <Badge variant="outline">Returning</Badge>
-  }
-
+function ReturningBadge({ value }: { value: "Returning" | "New" | undefined }) {
+  if (value === "Returning") return <Badge variant="outline">Returning</Badge>
   return <Badge variant="secondary">New</Badge>
 }
 
-function normalizeReturningStatus(applicant: ApplicantDetail | ApplicantSummary) {
-  if ("returning" in applicant && applicant.returning) return applicant.returning
-
-  if ("isReturning" in applicant) {
-    const value = applicant.isReturning
-
-    if (
-      value === true ||
-      value === "true" ||
-      value === "yes" ||
-      value === "Returning"
-    ) {
-      return "Returning" as const
-    }
+function StatusBadge({ value }: { value: string | undefined }) {
+  if (value === "ACTIVE") {
+    return (
+      <Badge className="bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">
+        Approved
+      </Badge>
+    )
   }
+  if (value === "REMOVED") return <Badge variant="destructive">Rejected</Badge>
+  return <Badge variant="secondary">Pending</Badge>
+}
 
+function normalizeReturning(applicant: ApplicantDetail | ApplicantSummary) {
+  if ("returning" in applicant && applicant.returning) return applicant.returning
+  if ("isReturning" in applicant) {
+    const v = applicant.isReturning
+    if (v === true || v === "true" || v === "yes" || v === "Returning")
+      return "Returning" as const
+  }
   return "New" as const
 }
 
 function getGradeLabel(applicant: ApplicantDetail | ApplicantSummary) {
-  if ("gradeLevel" in applicant && applicant.gradeLevel) {
-    return applicant.gradeLevel
-  }
-
+  if ("gradeLevel" in applicant && applicant.gradeLevel) return applicant.gradeLevel
   return applicant.grade || "—"
 }
 
-function formatPhoneNumber(phone: string) {
-  const digits = phone.replace(/\D/g, "")
-
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)})-${digits.slice(3, 6)}-${digits.slice(6)}`
-  }
-
+function formatPhone(phone: string) {
+  const d = phone.replace(/\D/g, "")
+  if (d.length === 10) return `(${d.slice(0, 3)})-${d.slice(3, 6)}-${d.slice(6)}`
   return phone || "—"
 }
 
 function formatPartnerPreference(value: string | undefined) {
-  if (!value) return "NA"
-  if (value.toUpperCase() === "NA") return "NA"
-
-  const lower = value.toLowerCase()
-  return lower.charAt(0).toUpperCase() + lower.slice(1)
+  if (!value || value.toUpperCase() === "NA") return "NA"
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
 }
 
-function DetailItem({
-  label,
-  value,
-}: {
-  label: string
-  value: React.ReactNode
-}) {
+function ResponseItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="text-sm font-medium whitespace-pre-wrap break-words">
-        {value || "—"}
+    <div className="space-y-1.5">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+        {value || <span className="text-muted-foreground">—</span>}
       </div>
     </div>
   )
 }
 
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <section className="space-y-3 rounded-lg border p-4">
-      <h3 className="text-lg font-semibold">{title}</h3>
-      {children}
-    </section>
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-sm text-muted-foreground shrink-0">{label}</span>
+      <span className="text-sm font-medium text-right">{value || "—"}</span>
+    </div>
   )
 }
+
+interface EditFormState {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  gradeLevel: string
+  shirtSize: string
+  isReturning: boolean
+  whyJoin: string
+  contributionIdeas: string
+  awards: string
+  previousEvents: string
+  scienceClasses: string
+  mathClasses: string
+  questions: string
+}
+
+function buildEditForm(a: ApplicantSummary | ApplicantDetail): EditFormState {
+  const parts = a.name.trim().split(" ")
+  return {
+    firstName: parts[0] ?? "",
+    lastName: parts.slice(1).join(" "),
+    email: a.email,
+    phone: a.phone ?? "",
+    gradeLevel: a.grade ?? "",
+    shirtSize: "shirtSize" in a ? (a.shirtSize ?? "") : "",
+    isReturning: normalizeReturning(a) === "Returning",
+    whyJoin: "whyJoin" in a ? (a.whyJoin ?? "") : "",
+    contributionIdeas: "contributionIdeas" in a ? (a.contributionIdeas ?? "") : "",
+    awards: "awards" in a ? (a.awards ?? "") : "",
+    previousEvents: "previousEvents" in a ? (a.previousEvents ?? "") : "",
+    scienceClasses: "scienceClasses" in a ? (a.scienceClasses ?? "") : "",
+    mathClasses: "mathClasses" in a ? (a.mathClasses ?? "") : "",
+    questions: "questions" in a ? (a.questions ?? "") : "",
+  }
+}
+
+const selectClassName =
+  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
+
+const textareaClassName =
+  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 resize-y"
 
 export function ApplicantsTable() {
   const [data, setData] = React.useState<ApplicantSummary[]>([])
   const [loading, setLoading] = React.useState(true)
   const [detailsLoading, setDetailsLoading] = React.useState(false)
-  const [selectedApplicant, setSelectedApplicant] =
-    React.useState<ApplicantDetail | null>(null)
+  const [selectedApplicant, setSelectedApplicant] = React.useState<ApplicantDetail | null>(null)
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all")
 
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  )
+  const [editTarget, setEditTarget] = React.useState<ApplicantSummary | ApplicantDetail | null>(null)
+  const [editForm, setEditForm] = React.useState<EditFormState | null>(null)
+  const [editSaving, setEditSaving] = React.useState(false)
+
+  const [actionTarget, setActionTarget] = React.useState<{ id: string; action: "approve" | "reject" } | null>(null)
+  const [actionReason, setActionReason] = React.useState("")
+  const [actionSaving, setActionSaving] = React.useState(false)
+
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   })
 
-  const copyToClipboard = React.useCallback(
-    async (value: string, label: string) => {
-      try {
-        await navigator.clipboard.writeText(value)
-        toast.success(`${label} copied.`)
-      } catch {
-        toast.error(`Failed to copy ${label.toLowerCase()}.`)
-      }
-    },
-    []
-  )
-
   const loadApplicants = React.useCallback(async () => {
     setLoading(true)
-
     try {
-      const res = await fetch("/api/admin/applicants", {
-        method: "GET",
-        cache: "no-store",
-      })
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch applicants.")
-      }
-
+      const res = await fetch("/api/admin/applicants", { method: "GET", cache: "no-store" })
+      if (!res.ok) throw new Error()
       const json = await res.json()
-      const parsed = z.array(summarySchema).parse(json)
-
-      setData(parsed)
-    } catch (error) {
-      console.error(error)
+      setData(z.array(summarySchema).parse(json))
+    } catch {
       toast.error("Failed to load applicants.")
       setData([])
     } finally {
@@ -233,23 +262,12 @@ export function ApplicantsTable() {
 
   const loadApplicantDetails = React.useCallback(async (id: string) => {
     setDetailsLoading(true)
-
     try {
-      const res = await fetch(`/api/admin/applicants?id=${id}`, {
-        method: "GET",
-        cache: "no-store",
-      })
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch applicant details.")
-      }
-
+      const res = await fetch(`/api/admin/applicants?id=${id}`, { method: "GET", cache: "no-store" })
+      if (!res.ok) throw new Error()
       const json = await res.json()
-      const parsed = detailSchema.parse(json)
-
-      setSelectedApplicant(parsed)
-    } catch (error) {
-      console.error(error)
+      setSelectedApplicant(detailSchema.parse(json))
+    } catch {
       toast.error("Failed to load applicant details.")
       setSelectedApplicant(null)
     } finally {
@@ -257,122 +275,156 @@ export function ApplicantsTable() {
     }
   }, [])
 
-  React.useEffect(() => {
-    void loadApplicants()
-  }, [loadApplicants])
+  React.useEffect(() => { void loadApplicants() }, [loadApplicants])
 
-  const columns = React.useMemo<ColumnDef<ApplicantSummary>[]>(
-    () => [
-      {
-        accessorKey: "name",
-        header: "Name",
-        filterFn: (row, _columnId, filterValue) => {
-          const search = String(filterValue ?? "").toLowerCase().trim()
+  const submitAction = React.useCallback(async () => {
+    if (!actionTarget) return
+    setActionSaving(true)
+    try {
+      const res = await fetch("/api/admin/applicants", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: actionTarget.id, action: actionTarget.action, reason: actionReason }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(actionTarget.action === "approve" ? "Applicant approved." : "Applicant rejected.")
+      setActionTarget(null)
+      setActionReason("")
+      await loadApplicants()
+      if (selectedApplicant?.id === actionTarget.id) await loadApplicantDetails(actionTarget.id)
+    } catch {
+      toast.error(actionTarget.action === "approve" ? "Failed to approve applicant." : "Failed to reject applicant.")
+    } finally {
+      setActionSaving(false)
+    }
+  }, [actionTarget, actionReason, loadApplicants, loadApplicantDetails, selectedApplicant])
 
-          if (!search) return true
+  const openEdit = React.useCallback((a: ApplicantSummary | ApplicantDetail) => {
+    setEditTarget(a)
+    setEditForm(buildEditForm(a))
+  }, [])
 
-          return (
-            row.original.name.toLowerCase().includes(search) ||
-            row.original.email.toLowerCase().includes(search)
-          )
-        },
-        cell: ({ row }) => (
-          <div className="min-w-[180px] font-medium">{row.original.name}</div>
-        ),
-      },
-      {
-        accessorKey: "email",
-        header: "Email",
-        cell: ({ row }) => (
-          <div className="max-w-[240px] truncate text-sm">
-            {row.original.email}
-          </div>
-        ),
-      },
-      {
-        accessorKey: "grade",
-        header: "Grade",
-        cell: ({ row }) => <div>{getGradeLabel(row.original)}</div>,
-      },
-      {
-        accessorKey: "phone",
-        header: "Phone number",
-        cell: ({ row }) => (
-          <div>{formatPhoneNumber(row.original.phone || "")}</div>
-        ),
-      },
-      {
-        accessorKey: "returning",
-        header: "Member status",
-        cell: ({ row }) => (
-          <ReturningBadge value={normalizeReturningStatus(row.original)} />
-        ),
-      },
-      {
-        id: "actions",
-        header: () => <div className="text-center">Actions</div>,
-        enableSorting: false,
-        enableHiding: false,
-        cell: ({ row }) => (
-          <div
-            className="flex justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8">
-                  <IconDotsVertical className="size-4" />
-                  <span className="sr-only">Open actions</span>
-                </Button>
-              </DropdownMenuTrigger>
+  const saveEdit = React.useCallback(async () => {
+    if (!editTarget || !editForm) return
+    setEditSaving(true)
+    try {
+      const res = await fetch("/api/admin/applicants", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: editTarget.id, action: "edit", ...editForm }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success("Applicant updated.")
+      setEditTarget(null)
+      setEditForm(null)
+      await loadApplicants()
+      if (selectedApplicant?.id === editTarget.id) await loadApplicantDetails(editTarget.id)
+    } catch {
+      toast.error("Failed to save changes.")
+    } finally {
+      setEditSaving(false)
+    }
+  }, [editTarget, editForm, loadApplicants, loadApplicantDetails, selectedApplicant])
 
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() =>
-                    copyToClipboard(row.original.email, "Email address")
-                  }
-                >
-                  <IconEdit className="size-4" />
-                  Edit
-                </DropdownMenuItem>
+  const counts = React.useMemo(() => ({
+    total: data.length,
+    pending: data.filter(d => d.membershipStatus === "PENDING").length,
+    approved: data.filter(d => d.membershipStatus === "ACTIVE").length,
+    rejected: data.filter(d => d.membershipStatus === "REMOVED").length,
+  }), [data])
 
-                <DropdownMenuItem
-                  onClick={() =>
-                    copyToClipboard(
-                      formatPhoneNumber(row.original.phone || ""),
-                      "Phone number"
-                    )
-                  }
-                  disabled={!row.original.phone}
-                >
-                  <IconCircleCheck className="size-4" />
-                  Accept
-                </DropdownMenuItem>
+  const filteredByStatus = React.useMemo(() => {
+    if (statusFilter === "all") return data
+    return data.filter(d => d.membershipStatus === statusFilter)
+  }, [data, statusFilter])
 
-                <DropdownMenuItem
-                  onClick={() => {
-                    window.location.href = `mailto:${row.original.email}`
-                  }}
-                >
-                  <IconBan className="size-4" />
-                  Reject
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ),
+  const openAction = React.useCallback((id: string, action: "approve" | "reject") => {
+    setActionReason("")
+    setActionTarget({ id, action })
+  }, [])
+
+  const columns = React.useMemo<ColumnDef<ApplicantSummary>[]>(() => [
+    {
+      accessorKey: "name",
+      header: "Applicant",
+      filterFn: (row, _id, filterValue) => {
+        const s = String(filterValue ?? "").toLowerCase().trim()
+        if (!s) return true
+        return (
+          row.original.name.toLowerCase().includes(s) ||
+          row.original.email.toLowerCase().includes(s)
+        )
       },
-    ],
-    [copyToClipboard]
-  )
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.name}</div>
+          <div className="text-xs text-muted-foreground">{row.original.email}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "grade",
+      header: "Grade",
+      cell: ({ row }) => <div className="text-sm">{getGradeLabel(row.original)}</div>,
+    },
+    {
+      accessorKey: "returning",
+      header: "Type",
+      cell: ({ row }) => <ReturningBadge value={normalizeReturning(row.original)} />,
+    },
+    {
+      accessorKey: "membershipStatus",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge value={row.original.membershipStatus} />,
+    },
+    {
+      accessorKey: "submittedAt",
+      header: "Submitted",
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">{row.original.submittedAt || "—"}</div>
+      ),
+    },
+    {
+      id: "actions",
+      header: () => null,
+      enableSorting: false,
+      enableHiding: false,
+      cell: ({ row }) => (
+        <div className="flex justify-center" onClick={e => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-8">
+                <IconDots className="size-4" />
+                <span className="sr-only">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => openEdit(row.original)}>
+                <IconEdit className="size-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => openAction(row.original.id, "approve")}
+                disabled={row.original.membershipStatus === "ACTIVE"}
+              >
+                <IconCircleCheck className="size-4" /> Accept
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => openAction(row.original.id, "reject")}
+                disabled={row.original.membershipStatus === "REMOVED"}
+              >
+                <IconBan className="size-4" /> Reject
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ),
+    },
+  ], [openAction, openEdit])
 
   const table = useReactTable({
-    data,
+    data: filteredByStatus,
     columns,
-    state: {
-      columnFilters,
-      pagination,
-    },
+    state: { columnFilters, pagination },
     onColumnFiltersChange: setColumnFilters,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
@@ -380,300 +432,626 @@ export function ApplicantsTable() {
     getPaginationRowModel: getPaginationRowModel(),
   })
 
-  const pageCount = table.getPageCount()
-  const currentPage =
-    pageCount === 0 ? 0 : table.getState().pagination.pageIndex + 1
+  if (detailsLoading || selectedApplicant) {
+    return (
+      <>
+        <div className="space-y-6 px-4 lg:px-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2 text-muted-foreground hover:text-foreground"
+            onClick={() => setSelectedApplicant(null)}
+          >
+            <IconArrowLeft className="size-4" />
+            Back to applicants
+          </Button>
 
-  const showingDetails = detailsLoading || !!selectedApplicant
+          {detailsLoading ? (
+            <div className="flex h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <IconLoader2 className="size-4 animate-spin" />
+              Loading application...
+            </div>
+          ) : selectedApplicant ? (
+            <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+              <div className="space-y-4">
+                <div className="rounded-xl border p-6 space-y-5">
+                  <h2 className="font-semibold">Written responses</h2>
+                  <Separator />
+                  <ResponseItem
+                    label="Why do you want to join Science Olympiad?"
+                    value={selectedApplicant.whyJoin}
+                  />
+                  <ResponseItem
+                    label="What new ideas do you have and how will you contribute?"
+                    value={selectedApplicant.contributionIdeas}
+                  />
+                  <ResponseItem
+                    label="Division B and Division C awards"
+                    value={selectedApplicant.awards}
+                  />
+                  <ResponseItem
+                    label="Previously competed events"
+                    value={selectedApplicant.previousEvents}
+                  />
+                  <ResponseItem
+                    label="Science classes taken or currently taking"
+                    value={selectedApplicant.scienceClasses}
+                  />
+                  <ResponseItem
+                    label="Math classes taken or currently taking"
+                    value={selectedApplicant.mathClasses}
+                  />
+                  <ResponseItem label="Questions" value={selectedApplicant.questions} />
+                </div>
+
+                <div className="rounded-xl border p-6 space-y-4">
+                  <h2 className="font-semibold">Top 6 event choices</h2>
+                  <Separator />
+                  {selectedApplicant.topEvents.length ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {selectedApplicant.topEvents.map((choice, i) => (
+                        <div key={`${choice.eventName}-${i}`} className="rounded-lg border p-4 space-y-2">
+                          <div className="text-sm font-semibold text-muted-foreground">
+                            Choice #{i + 1}
+                          </div>
+                          <div className="text-sm font-medium">{choice.eventName || "—"}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Partner preference: {formatPartnerPreference(choice.partnerPreference)}
+                            {choice.partnerNames ? ` · ${choice.partnerNames}` : ""}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No event choices available.</p>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+                <div className="rounded-xl border p-4 space-y-4">
+                  <div>
+                    <div className="text-base font-semibold">{selectedApplicant.name}</div>
+                    <div className="text-sm text-muted-foreground">{selectedApplicant.email}</div>
+                    {selectedApplicant.phone && (
+                      <div className="text-sm text-muted-foreground">
+                        {formatPhone(selectedApplicant.phone)}
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2.5">
+                    <InfoRow label="Grade" value={getGradeLabel(selectedApplicant)} />
+                    <InfoRow label="Shirt size" value={selectedApplicant.shirtSize || "—"} />
+                    <InfoRow
+                      label="Type"
+                      value={<ReturningBadge value={normalizeReturning(selectedApplicant)} />}
+                    />
+                    <InfoRow
+                      label="Status"
+                      value={<StatusBadge value={selectedApplicant.membershipStatus} />}
+                    />
+                    <InfoRow label="Submitted" value={selectedApplicant.submittedAt || "—"} />
+                    {selectedApplicant.statusChangedAt && (
+                      <InfoRow label="Updated" value={selectedApplicant.statusChangedAt} />
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full"
+                      disabled={selectedApplicant.membershipStatus === "ACTIVE"}
+                      onClick={() => openAction(selectedApplicant.id, "approve")}
+                    >
+                      <IconCircleCheck className="size-4" />
+                      Accept
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      disabled={selectedApplicant.membershipStatus === "REMOVED"}
+                      onClick={() => openAction(selectedApplicant.id, "reject")}
+                    >
+                      <IconBan className="size-4" />
+                      Reject
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => openEdit(selectedApplicant)}
+                    >
+                      <IconEdit className="size-4" />
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+                <div className="rounded-xl border p-4 space-y-3">
+                  <div className="text-sm font-semibold">Attachments</div>
+                  {selectedApplicant.focusPageFileUrl ? (
+                    <a
+                      href={selectedApplicant.focusPageFileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-primary underline underline-offset-4"
+                    >
+                      {selectedApplicant.focusPageFileName || "Open attachment"}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No Broward Focus page uploaded.</p>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          ) : null}
+        </div>
+        <EditSheet
+          target={editTarget}
+          form={editForm}
+          saving={editSaving}
+          onChange={setEditForm}
+          onClose={() => { setEditTarget(null); setEditForm(null) }}
+          onSave={() => void saveEdit()}
+        />
+        <ReasonDialog
+          action={actionTarget?.action ?? null}
+          reason={actionReason}
+          saving={actionSaving}
+          onReasonChange={setActionReason}
+          onClose={() => { setActionTarget(null); setActionReason("") }}
+          onConfirm={() => void submitAction()}
+        />
+      </>
+    )
+  }
 
   return (
-    <div className="space-y-4 px-4 lg:px-6">
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {showingDetails
-                ? "Application details"
-                : "Applicants"}
-            </h1>
+    <>
+      <div className="space-y-4 px-4 lg:px-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Applicants</h1>
             <p className="text-sm text-muted-foreground">
-              {showingDetails
-                ? "Review the full application and event preferences."
-                : "Browse submitted applications for the active season."}
+              Browse submitted applications for the active season.
             </p>
           </div>
+          <div className="w-full sm:w-[240px]">
+            <Label htmlFor="search-applicants" className="sr-only">Search</Label>
+            <Input
+              id="search-applicants"
+              placeholder="Search by name or email..."
+              value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+              onChange={e => table.getColumn("name")?.setFilterValue(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "Total", count: counts.total },
+            { label: "Pending", count: counts.pending },
+            { label: "Approved", count: counts.approved },
+            { label: "Rejected", count: counts.rejected },
+          ].map(({ label, count }) => (
+            <div
+              key={label}
+              className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
+            >
+              <span className="text-muted-foreground">{label}</span>
+              <span className="font-semibold tabular-nums">{count}</span>
+            </div>
+          ))}
+        </div>
+        <Tabs
+          value={statusFilter}
+          onValueChange={v => {
+            setStatusFilter(v as StatusFilter)
+            setPagination(p => ({ ...p, pageIndex: 0 }))
+          }}
+        >
+          <TabsList variant="line">
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="PENDING">Pending</TabsTrigger>
+            <TabsTrigger value="ACTIVE">Approved</TabsTrigger>
+            <TabsTrigger value="REMOVED">Rejected</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader className="bg-muted/50">
+              {table.getHeaderGroups().map(hg => (
+                <TableRow key={hg.id} className="h-12">
+                  {hg.headers.map(header => (
+                    <TableHead
+                      key={header.id}
+                      className={
+                        header.id === "submittedAt"
+                          ? "w-px whitespace-nowrap px-4 font-semibold text-foreground"
+                          : "px-4 font-semibold text-foreground"
+                      }
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
 
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
-            {showingDetails ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSelectedApplicant(null)}
-                className="w-full sm:w-auto"
-              >
-                <IconArrowLeft className="size-4" />
-                Back to applicants
-              </Button>
-            ) : (
-              <>
-                <div className="w-full sm:w-[200px] lg:w-[320px]">
-                  <Label htmlFor="search-applicants" className="sr-only">
-                    Search applicants
-                  </Label>
-                  <Input
-                    id="search-applicants"
-                    placeholder="Search..."
-                    value={
-                      (table.getColumn("name")?.getFilterValue() as string) ?? ""
-                    }
-                    onChange={(e) =>
-                      table.getColumn("name")?.setFilterValue(e.target.value)
-                    }
-                    className="bg-background"
-                  />
-                </div>
-              </>
-            )}
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <IconLoader2 className="size-4 animate-spin" />
+                      <span>Loading applicants...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map(row => (
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => void loadApplicantDetails(row.original.id)}
+                  >
+                    {row.getVisibleCells().map(cell => (
+                      <TableCell
+                        key={cell.id}
+                        className={cell.column.id === "submittedAt" ? "whitespace-nowrap px-4 py-3" : "px-4 py-3"}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                    No applicants found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="flex items-center justify-between px-1">
+          <div className="text-sm text-muted-foreground">
+            {(() => {
+              const total = table.getFilteredRowModel().rows.length
+              const { pageIndex, pageSize } = table.getState().pagination
+              const from = total === 0 ? 0 : pageIndex * pageSize + 1
+              const to = Math.min((pageIndex + 1) * pageSize, total)
+              return `Showing ${from}–${to} of ${total}`
+            })()}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <IconChevronLeft className="size-4" />
+              <span className="sr-only">Previous page</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <IconChevronRight className="size-4" />
+              <span className="sr-only">Next page</span>
+            </Button>
           </div>
         </div>
       </div>
+      <EditSheet
+        target={editTarget}
+        form={editForm}
+        saving={editSaving}
+        onChange={setEditForm}
+        onClose={() => { setEditTarget(null); setEditForm(null) }}
+        onSave={() => void saveEdit()}
+      />
+      <ReasonDialog
+        action={actionTarget?.action ?? null}
+        reason={actionReason}
+        saving={actionSaving}
+        onReasonChange={setActionReason}
+        onClose={() => { setActionTarget(null); setActionReason("") }}
+        onConfirm={() => void submitAction()}
+      />
+    </>
+  )
+}
 
-      {showingDetails ? (
-        detailsLoading ? (
-          <div className="rounded-lg border p-10">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <IconLoader2 className="size-4 animate-spin" />
-              Loading full application...
+function ReasonDialog({
+  action,
+  reason,
+  saving,
+  onReasonChange,
+  onClose,
+  onConfirm,
+}: {
+  action: "approve" | "reject" | null
+  reason: string
+  saving: boolean
+  onReasonChange: (v: string) => void
+  onClose: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <Dialog open={!!action} onOpenChange={open => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {action === "approve" ? "Accept applicant" : "Reject applicant"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <p className="text-sm text-muted-foreground">
+            {action === "approve"
+              ? "Provide an optional note for accepting this applicant."
+              : "Provide an optional reason for rejecting this applicant."}
+          </p>
+          <textarea
+            rows={4}
+            className={textareaClassName}
+            placeholder="Optional reason..."
+            value={reason}
+            onChange={e => onReasonChange(e.target.value)}
+          />
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant={action === "reject" ? "destructive" : "default"}
+            onClick={onConfirm}
+            disabled={saving}
+          >
+            {saving && <IconLoader2 className="size-4 animate-spin" />}
+            {action === "approve" ? "Accept" : "Reject"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EditSheet({
+  target,
+  form,
+  saving,
+  onChange,
+  onClose,
+  onSave,
+}: {
+  target: ApplicantSummary | ApplicantDetail | null
+  form: EditFormState | null
+  saving: boolean
+  onChange: React.Dispatch<React.SetStateAction<EditFormState | null>>
+  onClose: () => void
+  onSave: () => void
+}) {
+  const setField = (field: keyof EditFormState) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => onChange(f => f ? { ...f, [field]: e.target.value } : f)
+
+  return (
+    <Sheet open={!!target} onOpenChange={open => { if (!open) onClose() }}>
+      <SheetContent side="right" className="flex flex-col sm:max-w-lg gap-0">
+        <SheetHeader className="border-b pb-4">
+          <SheetTitle>Edit applicant</SheetTitle>
+        </SheetHeader>
+        {form && (
+          <div className="flex-1 overflow-y-auto py-6 space-y-6 px-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="ef-first">First name</FieldLabel>
+                <Input id="ef-first" value={form.firstName} onChange={setField("firstName")} />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="ef-last">Last name</FieldLabel>
+                <Input id="ef-last" value={form.lastName} onChange={setField("lastName")} />
+              </Field>
             </div>
-          </div>
-        ) : selectedApplicant ? (
-          <div className="space-y-4">
-            <DetailSection title="Basic information">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <DetailItem label="Name" value={selectedApplicant.name} />
-                <DetailItem label="Applicant ID" value={selectedApplicant.id} />
-                <DetailItem
-                  label="Grade level"
-                  value={getGradeLabel(selectedApplicant)}
-                />
-                <DetailItem
-                  label="Shirt size"
-                  value={selectedApplicant.shirtSize || "—"}
-                />
-                <DetailItem label="Email" value={selectedApplicant.email} />
-                <DetailItem
-                  label="Phone"
-                  value={formatPhoneNumber(selectedApplicant.phone || "")}
-                />
-                <DetailItem
-                  label="Member status"
-                  value={
-                    <ReturningBadge
-                      value={normalizeReturningStatus(selectedApplicant)}
-                    />
-                  }
-                />
-                <DetailItem
-                  label="Submitted"
-                  value={selectedApplicant.submittedAt || "—"}
-                />
-              </div>
-            </DetailSection>
 
-            <DetailSection title="Written responses">
-              <div className="space-y-4">
-                <DetailItem
-                  label="Why do you want to join Science Olympiad?"
-                  value={selectedApplicant.whyJoin || "—"}
-                />
-                <DetailItem
-                  label="What new ideas do you have for the club, and how will you contribute?"
-                  value={selectedApplicant.contributionIdeas || "—"}
-                />
-                <DetailItem
-                  label="List both your Division B and Division C awards"
-                  value={selectedApplicant.awards || "—"}
-                />
-                <DetailItem
-                  label="What events have you previously competed in before?"
-                  value={selectedApplicant.previousEvents || "—"}
-                />
-                <DetailItem
-                  label="What science classes have you already taken or are currently taking?"
-                  value={selectedApplicant.scienceClasses || "—"}
-                />
-                <DetailItem
-                  label="What math classes have you already taken or are currently taking?"
-                  value={selectedApplicant.mathClasses || "—"}
-                />
-                <DetailItem
-                  label="Any questions?"
-                  value={selectedApplicant.questions || "—"}
-                />
-              </div>
-            </DetailSection>
+            <Field>
+              <FieldLabel htmlFor="ef-email">Email</FieldLabel>
+              <Input id="ef-email" type="email" value={form.email} onChange={setField("email")} />
+            </Field>
 
-            <DetailSection title="Top 6 event choices">
-              {selectedApplicant.topEvents.length ? (
-                <div className="grid gap-3 lg:grid-cols-2">
-                  {selectedApplicant.topEvents.map((choice, index) => (
-                    <div
-                      key={`${choice.eventName}-${index}`}
-                      className="rounded-md border p-4"
-                    >
-                      <div className="mb-3 text-base font-semibold">
-                        Choice #{index + 1}
-                      </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="ef-phone">Phone number</FieldLabel>
+                <Input
+                  id="ef-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="(555) 555-5555"
+                  value={form.phone}
+                  onChange={setField("phone")}
+                />
+              </Field>
 
-                      <div className="space-y-3">
-                        <DetailItem
-                          label="Event"
-                          value={choice.eventName || "—"}
-                        />
-                        <DetailItem
-                          label="Partner preference"
-                          value={formatPartnerPreference(
-                            choice.partnerPreference
-                          )}
-                        />
-                        <DetailItem
-                          label="Partner name(s)"
-                          value={choice.partnerNames || "—"}
-                        />
-                      </div>
-                    </div>
+              <Field>
+                <FieldLabel htmlFor="ef-grade">Grade level</FieldLabel>
+                <select
+                  id="ef-grade"
+                  value={form.gradeLevel}
+                  onChange={setField("gradeLevel")}
+                  className={selectClassName}
+                >
+                  <option value="">Select grade</option>
+                  {["9", "10", "11", "12"].map(g => (
+                    <option key={g} value={g}>{g}</option>
                   ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No event choices available.
-                </p>
-              )}
-            </DetailSection>
+                </select>
+              </Field>
+            </div>
 
-            <DetailSection title="Attachments">
-              {selectedApplicant.focusPageFileUrl ? (
-                <div className="space-y-2">
-                  <DetailItem
-                    label="Broward Focus page"
-                    value={
-                      <a
-                        href={selectedApplicant.focusPageFileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-primary underline underline-offset-4"
-                      >
-                        {selectedApplicant.focusPageFileName ||
-                          "Open attachment"}
-                      </a>
-                    }
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No uploaded Broward Focus page found.
-                </p>
-              )}
-            </DetailSection>
-          </div>
-        ) : null
-      ) : (
-        <>
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className="font-semibold text-foreground"
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
+            <Field>
+              <FieldLabel htmlFor="ef-shirt">Shirt size</FieldLabel>
+              <select
+                id="ef-shirt"
+                value={form.shirtSize}
+                onChange={setField("shirtSize")}
+                className={selectClassName}
+              >
+                <option value="">Select size</option>
+                {["XS", "S", "M", "L", "XL"].map(s => (
+                  <option key={s} value={s}>{s}</option>
                 ))}
-              </TableHeader>
+              </select>
+            </Field>
 
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      <div className="flex items-center justify-center gap-2">
-                        <IconLoader2 className="size-4 animate-spin" />
-                        <span>Loading applicants...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => void loadApplicantDetails(row.original.id)}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center text-muted-foreground"
-                    >
-                      No applicants found.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <Field>
+              <FieldLabel>Returning member?</FieldLabel>
+              <div className="flex flex-wrap gap-4 rounded-md border p-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="ef-returning"
+                    value="yes"
+                    checked={form.isReturning === true}
+                    onChange={() => onChange(f => f ? { ...f, isReturning: true } : f)}
+                  />
+                  Yes
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="ef-returning"
+                    value="no"
+                    checked={form.isReturning === false}
+                    onChange={() => onChange(f => f ? { ...f, isReturning: false } : f)}
+                  />
+                  No
+                </label>
+              </div>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="ef-why">
+                Why do you want to join Science Olympiad?
+              </FieldLabel>
+              <textarea
+                id="ef-why"
+                rows={5}
+                className={textareaClassName}
+                value={form.whyJoin}
+                onChange={setField("whyJoin")}
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="ef-contrib">
+                What new ideas do you have for the club, and how will you contribute
+                to the club? If you were a member last year, what changes do you
+                think could be made?
+              </FieldLabel>
+              <textarea
+                id="ef-contrib"
+                rows={6}
+                className={textareaClassName}
+                value={form.contributionIdeas}
+                onChange={setField("contributionIdeas")}
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="ef-awards">
+                List both your Division B and Division C awards (if applicable) and
+                mention the year, division, and whether it was attained at an
+                invitational, regional, or state level
+              </FieldLabel>
+              <textarea
+                id="ef-awards"
+                rows={5}
+                className={textareaClassName}
+                value={form.awards}
+                onChange={setField("awards")}
+                placeholder="Example: 2024 Regionals 3rd in Disease Detectives (Div B.)"
+              />
+              <FieldDescription>Write N/A if none.</FieldDescription>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="ef-prev">
+                What events have you previously competed in before?
+              </FieldLabel>
+              <textarea
+                id="ef-prev"
+                rows={4}
+                className={textareaClassName}
+                value={form.previousEvents}
+                onChange={setField("previousEvents")}
+                placeholder="List previous events"
+              />
+              <FieldDescription>Write N/A if none.</FieldDescription>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="ef-sci">
+                What science classes have you already taken or are currently taking?
+              </FieldLabel>
+              <textarea
+                id="ef-sci"
+                rows={4}
+                className={textareaClassName}
+                value={form.scienceClasses}
+                onChange={setField("scienceClasses")}
+                placeholder="List your science classes"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="ef-math">
+                What math classes have you already taken or are currently taking?
+              </FieldLabel>
+              <textarea
+                id="ef-math"
+                rows={4}
+                className={textareaClassName}
+                value={form.mathClasses}
+                onChange={setField("mathClasses")}
+                placeholder="List your math classes"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="ef-q">Any questions?</FieldLabel>
+              <textarea
+                id="ef-q"
+                rows={4}
+                className={textareaClassName}
+                value={form.questions}
+                onChange={setField("questions")}
+                placeholder="Optional"
+              />
+            </Field>
+
           </div>
+        )}
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Page {currentPage} of {pageCount}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                <IconChevronLeft className="size-4" />
-                <span className="sr-only">Previous page</span>
-              </Button>
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                <IconChevronRight className="size-4" />
-                <span className="sr-only">Next page</span>
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+        <SheetFooter className="border-t pt-4 flex-row justify-end gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={onSave} disabled={saving}>
+            {saving && <IconLoader2 className="size-4 animate-spin" />}
+            Save changes
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }
