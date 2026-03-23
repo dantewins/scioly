@@ -12,7 +12,7 @@ export const POST = withAdminAuth(
     if (!activeSeason) return err("No active season.", 400)
 
     const body = await request.json() as {
-      action: "assign" | "unassign" | "create" | "auto-assign" | "delete"
+      action: "assign" | "unassign" | "create" | "auto-assign" | "delete" | "reset"
       competitionId?: string
       eventId?: string
       memberSeasonId?: string
@@ -25,7 +25,7 @@ export const POST = withAdminAuth(
     const { action } = body
 
     if (action === "assign") {
-      const { competitionId, eventId, memberSeasonId, role } = body
+      const { competitionId, eventId, memberSeasonId, role, label = "A" } = body
       if (!competitionId || !eventId || !memberSeasonId) {
         return err("Missing required fields.", 400)
       }
@@ -36,7 +36,7 @@ export const POST = withAdminAuth(
       })
 
       let team = await prisma.team.findFirst({
-        where: { eventId, competitionId, seasonId: activeSeason.id },
+        where: { eventId, competitionId, seasonId: activeSeason.id, label },
         select: { id: true, assignments: { select: { id: true } } },
       })
 
@@ -46,7 +46,7 @@ export const POST = withAdminAuth(
             seasonId: activeSeason.id,
             eventId,
             competitionId,
-            label: "A",
+            label,
             status: "ACTIVE",
           },
           select: { id: true, assignments: { select: { id: true } } },
@@ -141,8 +141,17 @@ export const POST = withAdminAuth(
       return ok({ success: true })
     }
 
+    if (action === "reset") {
+      const { competitionId, label } = body
+      if (!competitionId) return err("Missing competitionId.", 400)
+      await prisma.teamAssignment.deleteMany({
+        where: { team: { competitionId, ...(label ? { label } : {}) } },
+      })
+      return ok({ success: true })
+    }
+
     if (action === "auto-assign") {
-      const { competitionId } = body
+      const { competitionId, label = "A" } = body
       if (!competitionId) return err("Missing competitionId.", 400)
 
       const schedules = await prisma.eventSchedule.findMany({
@@ -205,7 +214,16 @@ export const POST = withAdminAuth(
         }
       }
 
-      await prisma.teamAssignment.deleteMany({ where: { team: { competitionId } } })
+      // Clear only the current squad's assignments before re-assigning
+      await prisma.teamAssignment.deleteMany({ where: { team: { competitionId, label } } })
+
+      // Gather members already on OTHER squads for this competition — exclude them as candidates
+      const otherSquadMemberIds = new Set<string>(
+        (await prisma.teamAssignment.findMany({
+          where: { team: { competitionId, label: { not: label } } },
+          select: { memberSeasonId: true },
+        })).map(a => a.memberSeasonId)
+      )
 
       for (const m of allMembers) {
         assignedInSlot.set(m.id, new Set())
@@ -225,7 +243,7 @@ export const POST = withAdminAuth(
           const { event } = schedule
 
           let team = await prisma.team.findFirst({
-            where: { seasonId: activeSeason.id, eventId: event.id, competitionId },
+            where: { seasonId: activeSeason.id, eventId: event.id, competitionId, label },
             select: { id: true },
           })
 
@@ -235,7 +253,7 @@ export const POST = withAdminAuth(
                 seasonId: activeSeason.id,
                 eventId: event.id,
                 competitionId,
-                label: "A",
+                label,
                 status: "ACTIVE",
               },
               select: { id: true },
@@ -245,6 +263,7 @@ export const POST = withAdminAuth(
 
           const candidates = allMembers
             .filter(m => {
+              if (otherSquadMemberIds.has(m.id)) return false
               const slots = assignedInSlot.get(m.id)
               if (!slots) return false
               if (slots.has(timeSlot)) return false

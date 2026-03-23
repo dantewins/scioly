@@ -116,10 +116,7 @@ export const GET = withAdminAuth(
         .sort(([a], [b]) => a - b)
         .map(([timeSlot, { slotLabel, events }]) => ({ timeSlot, slotLabel, events }))
 
-      const teamsByEventId = new Map<string, typeof competition.teams[0]>()
-      for (const team of competition.teams) {
-        teamsByEventId.set(team.eventId, team)
-      }
+      const isEnded = competition.endsAt != null && competition.endsAt < new Date()
 
       return ok({
         id: competition.id,
@@ -129,13 +126,14 @@ export const GET = withAdminAuth(
         startsAt: formatDate(competition.startsAt),
         endsAt: competition.endsAt ? formatDate(competition.endsAt) : "",
         isPublished: competition.isPublished,
+        isEnded,
         eventSchedules,
         teams: competition.teams.map(t => ({
           id: t.id,
           eventId: t.eventId,
           eventName: t.event.name,
           maxParticipants: t.event.maxParticipants,
-          label: t.label,
+          label: t.label ?? "A",
           status: t.status,
           assignments: t.assignments.map(a => {
             const name = `${a.memberSeason.user.firstName} ${a.memberSeason.user.lastName}`.trim()

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  IconAtom,
   IconDashboard,
   IconCalendarWeek,
   IconFileCheck,
@@ -9,7 +10,6 @@ import {
   IconUsers,
   IconUser,
 } from "@tabler/icons-react";
-import { Command } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser, type NavUserData } from "@/components/nav-user";
@@ -95,11 +95,11 @@ export function AppSidebar({
             <SidebarMenuButton size="lg" asChild>
               <a href="/">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Command className="size-4" />
+                  <IconAtom className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate font-medium">Science Olympiad</span>
+                  <span className="truncate text-xs">Club Management</span>
                 </div>
               </a>
             </SidebarMenuButton>

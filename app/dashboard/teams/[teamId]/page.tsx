@@ -41,7 +41,7 @@ const teamSchema = z.object({
   eventId: z.string(),
   eventName: z.string(),
   maxParticipants: z.number().default(2),
-  label: z.string(),
+  label: z.string().default("A"),
   status: z.string(),
   assignments: z.array(assignmentSchema).default([]),
 })
@@ -79,6 +79,7 @@ const competitionDetailSchema = z.object({
   type: z.string(),
   location: z.string().optional().default(""),
   startsAt: z.string().optional().default(""),
+  isEnded: z.boolean().optional().default(false),
   eventSchedules: z.array(eventSlotSchema).default([]),
   teams: z.array(teamSchema).default([]),
   members: z.array(memberSchema).default([]),
@@ -123,7 +124,9 @@ export default function TeamBuilderPage() {
   const [competition, setCompetition] = React.useState<CompetitionDetail | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [selectedMemberId, setSelectedMemberId] = React.useState<string | null>(null)
+  const [selectedSquad, setSelectedSquad] = React.useState<string>("A")
   const [autoAssigning, setAutoAssigning] = React.useState(false)
+  const [addingSquad, setAddingSquad] = React.useState(false)
   const [resetting, setResetting] = React.useState(false)
   const [confirmReset, setConfirmReset] = React.useState(false)
   const [actionLoading, setActionLoading] = React.useState<string | null>(null)
@@ -145,12 +148,20 @@ export default function TeamBuilderPage() {
 
   React.useEffect(() => { void loadCompetition() }, [loadCompetition])
 
+  const squads = React.useMemo(() => {
+    if (!competition) return ["A"]
+    const labels = [...new Set(competition.teams.map(t => t.label))].sort()
+    return labels.length > 0 ? labels : ["A"]
+  }, [competition])
+
   const teamsByEventId = React.useMemo(() => {
     if (!competition) return new Map<string, Team>()
     const m = new Map<string, Team>()
-    for (const t of competition.teams) m.set(t.eventId, t)
+    for (const t of competition.teams) {
+      if (t.label === selectedSquad) m.set(t.eventId, t)
+    }
     return m
-  }, [competition])
+  }, [competition, selectedSquad])
 
   const eventToSlot = React.useMemo(() => {
     if (!competition) return new Map<string, number>()
@@ -222,7 +233,7 @@ export default function TeamBuilderPage() {
       const res = await fetch("/api/admin/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "assign", competitionId: competition.id, eventId, memberSeasonId: selectedMemberId }),
+        body: JSON.stringify({ action: "assign", competitionId: competition.id, eventId, memberSeasonId: selectedMemberId, label: selectedSquad }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -262,7 +273,7 @@ export default function TeamBuilderPage() {
       const res = await fetch("/api/admin/teams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "auto-assign", competitionId: competition.id }),
+        body: JSON.stringify({ action: "auto-assign", competitionId: competition.id, label: selectedSquad }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error()
@@ -280,23 +291,46 @@ export default function TeamBuilderPage() {
     setResetting(true)
     setConfirmReset(false)
     try {
-      for (const team of competition.teams) {
-        for (const assignment of team.assignments) {
-          await fetch("/api/admin/teams", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "unassign", assignmentId: assignment.id }),
-          })
-        }
-      }
-      toast.success("All assignments cleared.")
+      const res = await fetch("/api/admin/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset", competitionId: competition.id, label: selectedSquad }),
+      })
+      if (!res.ok) throw new Error()
+      toast.success(`Squad ${selectedSquad} assignments cleared.`)
       await loadCompetition()
     } catch {
       toast.error("Failed to reset assignments.")
     } finally {
       setResetting(false)
     }
-  }, [competition, loadCompetition])
+  }, [competition, selectedSquad, loadCompetition])
+
+  const handleAddSquad = React.useCallback(async () => {
+    if (!competition) return
+    const nextLabel = String.fromCharCode(65 + squads.length) // A=65, B=66...
+    if (squads.includes(nextLabel)) return
+    setAddingSquad(true)
+    try {
+      for (const slot of competition.eventSchedules) {
+        for (const ev of slot.events) {
+          await fetch("/api/admin/teams", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "create", competitionId: competition.id, eventId: ev.id, label: nextLabel }),
+          })
+        }
+      }
+      await loadCompetition()
+      setSelectedSquad(nextLabel)
+    } catch {
+      toast.error("Failed to add squad.")
+    } finally {
+      setAddingSquad(false)
+    }
+  }, [competition, squads, loadCompetition])
+
+  const isEnded = competition?.isEnded ?? false
 
   if (loading) {
     return (
@@ -318,7 +352,8 @@ export default function TeamBuilderPage() {
     )
   }
 
-  const totalAssigned = competition.teams.reduce((s, t) => s + t.assignments.length, 0)
+  const squadTeams = competition.teams.filter(t => t.label === selectedSquad)
+  const totalAssigned = squadTeams.reduce((s, t) => s + t.assignments.length, 0)
   const totalSlots = competition.eventSchedules.reduce((s, sl) => s + sl.events.length * 2, 0)
 
   return (
@@ -352,7 +387,7 @@ export default function TeamBuilderPage() {
             variant="outline"
             size="sm"
             onClick={() => setConfirmReset(true)}
-            disabled={resetting || autoAssigning}
+            disabled={resetting || autoAssigning || isEnded}
           >
             {resetting ? <IconLoader2 className="size-4 animate-spin" /> : <IconRefresh className="size-4" />}
             Reset
@@ -360,7 +395,7 @@ export default function TeamBuilderPage() {
           <Button
             size="sm"
             onClick={() => void handleAutoAssign()}
-            disabled={autoAssigning || resetting}
+            disabled={autoAssigning || resetting || isEnded}
           >
             {autoAssigning ? <IconLoader2 className="size-4 animate-spin" /> : <IconWand className="size-4" />}
             Auto Assign
@@ -368,8 +403,39 @@ export default function TeamBuilderPage() {
         </div>
       </div>
 
+      {isEnded && (
+        <div className="px-4 lg:px-6 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
+          This competition has ended — assignments are view-only.
+        </div>
+      )}
+
+      <div className="px-4 lg:px-6 py-2 border-b flex items-center gap-2 flex-wrap">
+        {squads.map(sq => (
+          <button
+            key={sq}
+            onClick={() => { setSelectedSquad(sq); setSelectedMemberId(null) }}
+            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+              sq === selectedSquad
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            Squad {sq}
+          </button>
+        ))}
+        {!isEnded && squads.length < 8 && (
+          <button
+            onClick={() => void handleAddSquad()}
+            disabled={addingSquad}
+            className="rounded-full px-3 py-1 text-sm font-medium text-muted-foreground border border-dashed hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+          >
+            {addingSquad ? <IconLoader2 className="size-3 animate-spin inline" /> : "+ New Squad"}
+          </button>
+        )}
+      </div>
+
       <div className="flex flex-1 min-h-0 overflow-hidden">
-        <div className="w-72 shrink-0 border-r flex flex-col bg-muted/20">
+        {!isEnded && <div className="w-72 shrink-0 border-r flex flex-col bg-muted/20">
           <div className="p-3 border-b">
             <Input
               placeholder="Search members..."
@@ -440,7 +506,7 @@ export default function TeamBuilderPage() {
               </p>
             </div>
           )}
-        </div>
+        </div>}
 
         <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6 md:py-6 space-y-8">
           {competition.eventSchedules.map(slot => (
@@ -511,20 +577,22 @@ export default function TeamBuilderPage() {
                             {a.skillRating != null && (
                               <span className="text-[10px] text-muted-foreground shrink-0">{a.skillRating}/10</span>
                             )}
-                            <button
-                              onClick={() => void handleUnassign(a.id)}
-                              disabled={actionLoading === a.id}
-                              className="text-muted-foreground hover:text-destructive shrink-0"
-                            >
-                              {actionLoading === a.id
-                                ? <IconLoader2 className="size-3 animate-spin" />
-                                : <IconX className="size-3" />
-                              }
-                            </button>
+                            {!isEnded && (
+                              <button
+                                onClick={() => void handleUnassign(a.id)}
+                                disabled={actionLoading === a.id}
+                                className="text-muted-foreground hover:text-destructive shrink-0"
+                              >
+                                {actionLoading === a.id
+                                  ? <IconLoader2 className="size-3 animate-spin" />
+                                  : <IconX className="size-3" />
+                                }
+                              </button>
+                            )}
                           </div>
                         ))}
 
-                        {Array.from({ length: Math.max(0, ev.maxParticipants - assignments.length) }).map((_, i) => (
+                        {!isEnded && Array.from({ length: Math.max(0, ev.maxParticipants - assignments.length) }).map((_, i) => (
                           <div
                             key={`empty-${i}`}
                             className={`flex items-center justify-center rounded-md border border-dashed h-7 ${
@@ -556,10 +624,10 @@ export default function TeamBuilderPage() {
       <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Reset all assignments?</DialogTitle>
+            <DialogTitle>Reset Squad {selectedSquad}?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            This will remove all team assignments for this competition. This cannot be undone.
+            This will remove all assignments for Squad {selectedSquad} in this competition. This cannot be undone.
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setConfirmReset(false)}>Cancel</Button>

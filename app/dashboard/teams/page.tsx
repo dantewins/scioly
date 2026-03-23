@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Field, FieldLabel } from "@/components/ui/field"
+import { PageHeader } from "@/components/page-header"
 
 const competitionSchema = z.object({
   id: z.string(),
@@ -116,19 +117,16 @@ export default function TeamsPage() {
   }, [form, loadCompetitions])
 
   return (
-    <div className="space-y-4 px-4 py-4 md:py-6 lg:px-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Teams</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage team assignments for each competition.
-          </p>
-        </div>
+    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+      <PageHeader
+        title="Teams"
+        description="Manage team assignments for each competition."
+      >
         <Button onClick={() => setCreateOpen(true)}>
           <IconPlus className="size-4" />
           New competition
         </Button>
-      </div>
+      </PageHeader>
 
       {loading ? (
         <div className="flex h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -142,7 +140,9 @@ export default function TeamsPage() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map(c => (
+          {data.map(c => {
+            const isEnded = !!c.endsAt && new Date(c.endsAt) < new Date()
+            return (
             <div
               key={c.id}
               className="rounded-xl border bg-card p-5 space-y-4 hover:border-primary/40 transition-colors"
@@ -150,11 +150,18 @@ export default function TeamsPage() {
               <div className="space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="font-semibold leading-tight">{c.name}</h2>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_COLORS[c.type] ?? TYPE_COLORS.OTHER}`}
-                  >
-                    {TYPE_LABELS[c.type] ?? c.type}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {isEnded && (
+                      <span className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                        Ended
+                      </span>
+                    )}
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_COLORS[c.type] ?? TYPE_COLORS.OTHER}`}
+                    >
+                      {TYPE_LABELS[c.type] ?? c.type}
+                    </span>
+                  </div>
                 </div>
                 {c.location && (
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -183,12 +190,13 @@ export default function TeamsPage() {
 
               <Button
                 className="w-full"
+                variant={isEnded ? "outline" : "default"}
                 onClick={() => router.push(`/dashboard/teams/${c.id}`)}
               >
-                Open Team Builder
+                {isEnded ? "View Teams" : "Open Team Builder"}
               </Button>
             </div>
-          ))}
+          )})}
         </div>
       )}
 

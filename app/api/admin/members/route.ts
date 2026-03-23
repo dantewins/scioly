@@ -116,47 +116,67 @@ export const GET = withAdminAuth(
       })
     }
 
-    const members = await prisma.memberSeason.findMany({
-      where: {
-        seasonId: activeSeason.id,
-        membershipStatus: { in: [MembershipStatus.ACTIVE, MembershipStatus.INACTIVE, MembershipStatus.ALUMNI] },
-      },
-      select: {
-        id: true,
-        membershipStatus: true,
-        statusChangedAt: true,
-        isReturning: true,
-        joinedAt: true,
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            gradeLevel: true,
-            phone: true,
-          },
-        },
-        eventEnrollments: {
-          select: { id: true },
-        },
-        teamAssignments: {
-          select: {
-            team: {
-              select: {
-                label: true,
-                event: { select: { name: true } },
-              },
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
+    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "10", 10)))
+    const status = searchParams.get("status")?.trim() ?? "all"
+    const search = searchParams.get("search")?.trim() ?? ""
+
+    const baseWhere = {
+      seasonId: activeSeason.id,
+      membershipStatus: { in: [MembershipStatus.ACTIVE, MembershipStatus.INACTIVE, MembershipStatus.ALUMNI] as MembershipStatus[] },
+      ...(status !== "all" && { membershipStatus: status as MembershipStatus }),
+      ...(search && {
+        OR: [
+          { user: { firstName: { contains: search, mode: "insensitive" as const } } },
+          { user: { lastName: { contains: search, mode: "insensitive" as const } } },
+          { user: { email: { contains: search, mode: "insensitive" as const } } },
+        ],
+      }),
+    }
+
+    const [total, members] = await Promise.all([
+      prisma.memberSeason.count({ where: baseWhere }),
+      prisma.memberSeason.findMany({
+        where: baseWhere,
+        select: {
+          id: true,
+          membershipStatus: true,
+          statusChangedAt: true,
+          isReturning: true,
+          joinedAt: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              gradeLevel: true,
+              phone: true,
             },
           },
-          take: 1,
+          eventEnrollments: {
+            select: { id: true },
+          },
+          teamAssignments: {
+            select: {
+              team: {
+                select: {
+                  label: true,
+                  event: { select: { name: true } },
+                },
+              },
+            },
+            take: 1,
+          },
         },
-      },
-      orderBy: { joinedAt: "desc" },
-    })
+        orderBy: { joinedAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ])
 
-    return ok(
-      members.map(m => ({
+    return ok({
+      items: members.map(m => ({
         id: m.id,
         userId: m.user.id,
         name: `${m.user.firstName} ${m.user.lastName}`.trim(),
@@ -169,8 +189,9 @@ export const GET = withAdminAuth(
         eventCount: m.eventEnrollments.length,
         teamLabel: m.teamAssignments[0]?.team.label ?? null,
         teamEvent: m.teamAssignments[0]?.team.event.name ?? null,
-      }))
-    )
+      })),
+      total,
+    })
   },
   "fetch members"
 )

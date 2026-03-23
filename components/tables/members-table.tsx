@@ -14,11 +14,8 @@ import {
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   useReactTable,
   type ColumnDef,
-  type ColumnFiltersState,
   type PaginationState,
 } from "@tanstack/react-table"
 import { toast } from "sonner"
@@ -59,6 +56,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { PageHeader } from "@/components/page-header"
 
 const summarySchemaMember = z.object({
   id: z.string(),
@@ -184,12 +183,19 @@ function buildMemberEditForm(m: MemberSummary | MemberDetail): MemberEditFormSta
 const selectClassName =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
 
+const pagedMembersSchema = z.object({
+  items: z.array(summarySchemaMember),
+  total: z.number(),
+})
+
 export function MembersTable() {
   const [data, setData] = React.useState<MemberSummary[]>([])
+  const [total, setTotal] = React.useState(0)
   const [loading, setLoading] = React.useState(true)
   const [detailsLoading, setDetailsLoading] = React.useState(false)
   const [selectedMember, setSelectedMember] = React.useState<MemberDetail | null>(null)
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all")
+  const [searchQuery, setSearchQuery] = React.useState("")
 
   const [editTarget, setEditTarget] = React.useState<MemberSummary | MemberDetail | null>(null)
   const [editForm, setEditForm] = React.useState<MemberEditFormState | null>(null)
@@ -198,22 +204,37 @@ export function MembersTable() {
   const [deactivateTarget, setDeactivateTarget] = React.useState<{ id: string; action: "deactivate" | "reactivate" } | null>(null)
   const [deactivateSaving, setDeactivateSaving] = React.useState(false)
 
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   })
 
-  const loadMembers = React.useCallback(async () => {
+  const isMobile = useIsMobile()
+
+  const loadMembers = React.useCallback(async (
+    page: number,
+    pageSize: number,
+    status: StatusFilter,
+    search: string,
+  ) => {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/members", { method: "GET", cache: "no-store" })
+      const params = new URLSearchParams({
+        page: String(page + 1),
+        pageSize: String(pageSize),
+        status,
+        search,
+      })
+      const res = await fetch(`/api/admin/members?${params}`, { cache: "no-store" })
       if (!res.ok) throw new Error()
       const json = await res.json()
-      setData(z.array(summarySchemaMember).parse(json))
+      const parsed = pagedMembersSchema.parse(json)
+      setData(parsed.items)
+      setTotal(parsed.total)
     } catch {
       toast.error("Failed to load members.")
       setData([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
@@ -234,7 +255,28 @@ export function MembersTable() {
     }
   }, [])
 
-  React.useEffect(() => { void loadMembers() }, [loadMembers])
+  // Fetch when page/pageSize changes
+  React.useEffect(() => {
+    void loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.pageIndex, pagination.pageSize])
+
+  // Status tab change: reset to page 0
+  React.useEffect(() => {
+    setPagination(p => ({ ...p, pageIndex: 0 }))
+    void loadMembers(0, pagination.pageSize, statusFilter, searchQuery)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter])
+
+  // Search debounce: reset to page 0 after 300 ms
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setPagination(p => ({ ...p, pageIndex: 0 }))
+      void loadMembers(0, pagination.pageSize, statusFilter, searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
 
   const openEdit = React.useCallback((m: MemberSummary | MemberDetail) => {
     setEditTarget(m)
@@ -254,14 +296,14 @@ export function MembersTable() {
       toast.success("Member updated.")
       setEditTarget(null)
       setEditForm(null)
-      await loadMembers()
+      await loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
       if (selectedMember?.id === editTarget.id) await loadMemberDetails(editTarget.id)
     } catch {
       toast.error("Failed to save changes.")
     } finally {
       setEditSaving(false)
     }
-  }, [editTarget, editForm, loadMembers, loadMemberDetails, selectedMember])
+  }, [editTarget, editForm, loadMembers, loadMemberDetails, selectedMember, pagination, statusFilter, searchQuery])
 
   const submitDeactivate = React.useCallback(async () => {
     if (!deactivateTarget) return
@@ -275,26 +317,15 @@ export function MembersTable() {
       if (!res.ok) throw new Error()
       toast.success(deactivateTarget.action === "deactivate" ? "Member deactivated." : "Member reactivated.")
       setDeactivateTarget(null)
-      await loadMembers()
+      await loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
       if (selectedMember?.id === deactivateTarget.id) await loadMemberDetails(deactivateTarget.id)
     } catch {
       toast.error("Failed to update member status.")
     } finally {
       setDeactivateSaving(false)
     }
-  }, [deactivateTarget, loadMembers, loadMemberDetails, selectedMember])
+  }, [deactivateTarget, loadMembers, loadMemberDetails, selectedMember, pagination, statusFilter, searchQuery])
 
-  const counts = React.useMemo(() => ({
-    total: data.length,
-    active: data.filter(d => d.membershipStatus === "ACTIVE").length,
-    inactive: data.filter(d => d.membershipStatus === "INACTIVE").length,
-    alumni: data.filter(d => d.membershipStatus === "ALUMNI").length,
-  }), [data])
-
-  const filteredByStatus = React.useMemo(() => {
-    if (statusFilter === "all") return data
-    return data.filter(d => d.membershipStatus === statusFilter)
-  }, [data, statusFilter])
 
   const columns = React.useMemo<ColumnDef<MemberSummary>[]>(() => [
     {
@@ -385,14 +416,13 @@ export function MembersTable() {
   ], [openEdit])
 
   const table = useReactTable({
-    data: filteredByStatus,
+    data,
     columns,
-    state: { columnFilters, pagination },
-    onColumnFiltersChange: setColumnFilters,
+    state: { pagination },
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    rowCount: total,
   })
 
   if (detailsLoading || selectedMember) {
@@ -561,46 +591,21 @@ export function MembersTable() {
   return (
     <>
       <div className="space-y-4 px-4 lg:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Members</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage accepted members for the active season.
-            </p>
-          </div>
+        <PageHeader title="Members" description="Manage accepted members for the active season.">
           <div className="w-full sm:w-[240px]">
             <Label htmlFor="search-members" className="sr-only">Search</Label>
             <Input
               id="search-members"
               placeholder="Search by name or email..."
-              value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-              onChange={e => table.getColumn("name")?.setFilterValue(e.target.value)}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="bg-background"
             />
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { label: "Total", count: counts.total },
-            { label: "Active", count: counts.active },
-            { label: "Inactive", count: counts.inactive },
-            { label: "Alumni", count: counts.alumni },
-          ].map(({ label, count }) => (
-            <div
-              key={label}
-              className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
-            >
-              <span className="text-muted-foreground">{label}</span>
-              <span className="font-semibold tabular-nums">{count}</span>
-            </div>
-          ))}
-        </div>
+        </PageHeader>
         <Tabs
           value={statusFilter}
-          onValueChange={v => {
-            setStatusFilter(v as StatusFilter)
-            setPagination(p => ({ ...p, pageIndex: 0 }))
-          }}
+          onValueChange={v => setStatusFilter(v as StatusFilter)}
         >
           <TabsList variant="line">
             <TabsTrigger value="all">All</TabsTrigger>
@@ -609,61 +614,123 @@ export function MembersTable() {
             <TabsTrigger value="ALUMNI">Alumni</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="overflow-hidden rounded-xl border">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              {table.getHeaderGroups().map(hg => (
-                <TableRow key={hg.id} className="h-12">
-                  {hg.headers.map(header => (
-                    <TableHead key={header.id} className="px-4 font-semibold text-foreground">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                    <div className="flex items-center justify-center gap-2">
-                      <IconLoader2 className="size-4 animate-spin" />
-                      <span>Loading members...</span>
+        {isMobile ? (
+          <div className="space-y-3">
+            {loading ? (
+              <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground">
+                <IconLoader2 className="size-4 animate-spin" />
+                Loading members...
+              </div>
+            ) : data.length === 0 ? (
+              <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+                No members found.
+              </div>
+            ) : (
+              data.map(m => (
+                <div
+                  key={m.id}
+                  className="rounded-xl border bg-card p-4 space-y-3 cursor-pointer hover:border-primary/40 transition-colors"
+                  onClick={() => void loadMemberDetails(m.id)}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-medium">{m.name}</div>
+                      <div className="text-sm text-muted-foreground">{m.email}</div>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ) : table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map(row => (
-                  <TableRow
-                    key={row.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => void loadMemberDetails(row.original.id)}
-                  >
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id} className="px-4 py-3">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                    <div onClick={e => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-8 shrink-0">
+                            <IconDots className="size-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEdit(m)}>
+                            <IconEdit className="size-4" /> Edit
+                          </DropdownMenuItem>
+                          {m.membershipStatus === "ACTIVE" ? (
+                            <DropdownMenuItem
+                              onClick={() => setDeactivateTarget({ id: m.id, action: "deactivate" })}
+                            >
+                              <IconUserOff className="size-4" /> Deactivate
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => setDeactivateTarget({ id: m.id, action: "reactivate" })}
+                            >
+                              <IconUserCheck className="size-4" /> Reactivate
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    {m.grade && <span>Grade {m.grade}</span>}
+                    <span>{m.eventCount ?? 0} event{m.eventCount === 1 ? "" : "s"}</span>
+                    <MemberStatusBadge value={m.membershipStatus} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                {table.getHeaderGroups().map(hg => (
+                  <TableRow key={hg.id} className="h-12">
+                    {hg.headers.map(header => (
+                      <TableHead key={header.id} className="px-4 font-semibold text-foreground">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                    No members found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ))}
+              </TableHeader>
+
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                      <div className="flex items-center justify-center gap-2">
+                        <IconLoader2 className="size-4 animate-spin" />
+                        <span>Loading members...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows.length ? (
+                  table.getRowModel().rows.map(row => (
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => void loadMemberDetails(row.original.id)}
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <TableCell key={cell.id} className="px-4 py-3">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                      No members found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
         <div className="flex items-center justify-between px-1">
           <div className="text-sm text-muted-foreground">
             {(() => {
-              const total = table.getFilteredRowModel().rows.length
-              const { pageIndex, pageSize } = table.getState().pagination
+              const { pageIndex, pageSize } = pagination
               const from = total === 0 ? 0 : pageIndex * pageSize + 1
               const to = Math.min((pageIndex + 1) * pageSize, total)
               return `Showing ${from}–${to} of ${total}`
@@ -673,8 +740,8 @@ export function MembersTable() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => setPagination(p => ({ ...p, pageIndex: p.pageIndex - 1 }))}
+              disabled={pagination.pageIndex === 0}
             >
               <IconChevronLeft className="size-4" />
               <span className="sr-only">Previous page</span>
@@ -682,8 +749,8 @@ export function MembersTable() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() => setPagination(p => ({ ...p, pageIndex: p.pageIndex + 1 }))}
+              disabled={(pagination.pageIndex + 1) * pagination.pageSize >= total}
             >
               <IconChevronRight className="size-4" />
               <span className="sr-only">Next page</span>

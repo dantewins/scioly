@@ -21,16 +21,14 @@ import {
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   useReactTable,
   type ColumnDef,
-  type ColumnFiltersState,
   type PaginationState,
 } from "@tanstack/react-table"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { useIsMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -63,6 +61,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { PageHeader } from "@/components/page-header"
 
 const summarySchema = z.object({
   id: z.string(),
@@ -224,12 +223,20 @@ const selectClassName =
 const textareaClassName =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50 resize-y"
 
+const pagedApplicantsSchema = z.object({
+  items: z.array(summarySchema),
+  total: z.number(),
+})
+
 export function ApplicantsTable() {
+  const isMobile = useIsMobile()
   const [data, setData] = React.useState<ApplicantSummary[]>([])
+  const [total, setTotal] = React.useState(0)
   const [loading, setLoading] = React.useState(true)
   const [detailsLoading, setDetailsLoading] = React.useState(false)
   const [selectedApplicant, setSelectedApplicant] = React.useState<ApplicantDetail | null>(null)
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all")
+  const [searchQuery, setSearchQuery] = React.useState("")
 
   const [editTarget, setEditTarget] = React.useState<ApplicantSummary | ApplicantDetail | null>(null)
   const [editForm, setEditForm] = React.useState<EditFormState | null>(null)
@@ -239,22 +246,35 @@ export function ApplicantsTable() {
   const [actionReason, setActionReason] = React.useState("")
   const [actionSaving, setActionSaving] = React.useState(false)
 
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   })
 
-  const loadApplicants = React.useCallback(async () => {
+  const loadApplicants = React.useCallback(async (
+    page: number,
+    pageSize: number,
+    status: StatusFilter,
+    search: string,
+  ) => {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/applicants", { method: "GET", cache: "no-store" })
+      const params = new URLSearchParams({
+        page: String(page + 1),
+        pageSize: String(pageSize),
+        status,
+        search,
+      })
+      const res = await fetch(`/api/admin/applicants?${params}`, { cache: "no-store" })
       if (!res.ok) throw new Error()
       const json = await res.json()
-      setData(z.array(summarySchema).parse(json))
+      const parsed = pagedApplicantsSchema.parse(json)
+      setData(parsed.items)
+      setTotal(parsed.total)
     } catch {
       toast.error("Failed to load applicants.")
       setData([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
@@ -275,7 +295,28 @@ export function ApplicantsTable() {
     }
   }, [])
 
-  React.useEffect(() => { void loadApplicants() }, [loadApplicants])
+  // Fetch when page/pageSize changes
+  React.useEffect(() => {
+    void loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.pageIndex, pagination.pageSize])
+
+  // Status tab change: reset to page 0
+  React.useEffect(() => {
+    setPagination(p => ({ ...p, pageIndex: 0 }))
+    void loadApplicants(0, pagination.pageSize, statusFilter, searchQuery)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter])
+
+  // Search debounce: reset to page 0 after 300 ms
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setPagination(p => ({ ...p, pageIndex: 0 }))
+      void loadApplicants(0, pagination.pageSize, statusFilter, searchQuery)
+    }, 300)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
 
   const submitAction = React.useCallback(async () => {
     if (!actionTarget) return
@@ -290,14 +331,14 @@ export function ApplicantsTable() {
       toast.success(actionTarget.action === "approve" ? "Applicant approved." : "Applicant rejected.")
       setActionTarget(null)
       setActionReason("")
-      await loadApplicants()
+      await loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
       if (selectedApplicant?.id === actionTarget.id) await loadApplicantDetails(actionTarget.id)
     } catch {
       toast.error(actionTarget.action === "approve" ? "Failed to approve applicant." : "Failed to reject applicant.")
     } finally {
       setActionSaving(false)
     }
-  }, [actionTarget, actionReason, loadApplicants, loadApplicantDetails, selectedApplicant])
+  }, [actionTarget, actionReason, loadApplicants, loadApplicantDetails, selectedApplicant, pagination, statusFilter, searchQuery])
 
   const openEdit = React.useCallback((a: ApplicantSummary | ApplicantDetail) => {
     setEditTarget(a)
@@ -317,26 +358,14 @@ export function ApplicantsTable() {
       toast.success("Applicant updated.")
       setEditTarget(null)
       setEditForm(null)
-      await loadApplicants()
+      await loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
       if (selectedApplicant?.id === editTarget.id) await loadApplicantDetails(editTarget.id)
     } catch {
       toast.error("Failed to save changes.")
     } finally {
       setEditSaving(false)
     }
-  }, [editTarget, editForm, loadApplicants, loadApplicantDetails, selectedApplicant])
-
-  const counts = React.useMemo(() => ({
-    total: data.length,
-    pending: data.filter(d => d.membershipStatus === "PENDING").length,
-    approved: data.filter(d => d.membershipStatus === "ACTIVE").length,
-    rejected: data.filter(d => d.membershipStatus === "REMOVED").length,
-  }), [data])
-
-  const filteredByStatus = React.useMemo(() => {
-    if (statusFilter === "all") return data
-    return data.filter(d => d.membershipStatus === statusFilter)
-  }, [data, statusFilter])
+  }, [editTarget, editForm, loadApplicants, loadApplicantDetails, selectedApplicant, pagination, statusFilter, searchQuery])
 
   const openAction = React.useCallback((id: string, action: "approve" | "reject") => {
     setActionReason("")
@@ -422,14 +451,13 @@ export function ApplicantsTable() {
   ], [openAction, openEdit])
 
   const table = useReactTable({
-    data: filteredByStatus,
+    data,
     columns,
-    state: { columnFilters, pagination },
-    onColumnFiltersChange: setColumnFilters,
+    state: { pagination },
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    rowCount: total,
   })
 
   if (detailsLoading || selectedApplicant) {
@@ -611,46 +639,24 @@ export function ApplicantsTable() {
   return (
     <>
       <div className="space-y-4 px-4 lg:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Applicants</h1>
-            <p className="text-sm text-muted-foreground">
-              Browse submitted applications for the active season.
-            </p>
-          </div>
+        <PageHeader
+          title="Applicants"
+          description="Browse submitted applications for the active season."
+        >
           <div className="w-full sm:w-[240px]">
             <Label htmlFor="search-applicants" className="sr-only">Search</Label>
             <Input
               id="search-applicants"
               placeholder="Search by name or email..."
-              value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-              onChange={e => table.getColumn("name")?.setFilterValue(e.target.value)}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               className="bg-background"
             />
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { label: "Total", count: counts.total },
-            { label: "Pending", count: counts.pending },
-            { label: "Approved", count: counts.approved },
-            { label: "Rejected", count: counts.rejected },
-          ].map(({ label, count }) => (
-            <div
-              key={label}
-              className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
-            >
-              <span className="text-muted-foreground">{label}</span>
-              <span className="font-semibold tabular-nums">{count}</span>
-            </div>
-          ))}
-        </div>
+        </PageHeader>
         <Tabs
           value={statusFilter}
-          onValueChange={v => {
-            setStatusFilter(v as StatusFilter)
-            setPagination(p => ({ ...p, pageIndex: 0 }))
-          }}
+          onValueChange={v => setStatusFilter(v as StatusFilter)}
         >
           <TabsList variant="line">
             <TabsTrigger value="all">All</TabsTrigger>
@@ -659,71 +665,131 @@ export function ApplicantsTable() {
             <TabsTrigger value="REMOVED">Rejected</TabsTrigger>
           </TabsList>
         </Tabs>
-        <div className="overflow-hidden rounded-xl border">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              {table.getHeaderGroups().map(hg => (
-                <TableRow key={hg.id} className="h-12">
-                  {hg.headers.map(header => (
-                    <TableHead
-                      key={header.id}
-                      className={
-                        header.id === "submittedAt"
-                          ? "w-px whitespace-nowrap px-4 font-semibold text-foreground"
-                          : "px-4 font-semibold text-foreground"
-                      }
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                    <div className="flex items-center justify-center gap-2">
-                      <IconLoader2 className="size-4 animate-spin" />
-                      <span>Loading applicants...</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map(row => (
-                  <TableRow
-                    key={row.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => void loadApplicantDetails(row.original.id)}
+        {isMobile ? (
+          <div className="space-y-2">
+            {loading ? (
+              <div className="flex h-32 items-center justify-center gap-2 text-sm text-muted-foreground">
+                <IconLoader2 className="size-4 animate-spin" />
+                Loading applicants...
+              </div>
+            ) : data.length ? (
+              data.map(a => {
+                return (
+                  <div
+                    key={a.id}
+                    className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 gap-3 cursor-pointer hover:border-primary/40 transition-colors"
+                    onClick={() => void loadApplicantDetails(a.id)}
                   >
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell
-                        key={cell.id}
-                        className={cell.column.id === "submittedAt" ? "whitespace-nowrap px-4 py-3" : "px-4 py-3"}
+                    <div className="min-w-0 space-y-1">
+                      <div className="font-medium truncate">{a.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{a.email}</div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {a.grade && <span className="text-xs text-muted-foreground">Gr. {a.grade}</span>}
+                        <ReturningBadge value={normalizeReturning(a)} />
+                        <StatusBadge value={a.membershipStatus} />
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1" onClick={e => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-8">
+                            <IconDots className="size-4" />
+                            <span className="sr-only">Actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEdit(a)}>
+                            <IconEdit className="size-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openAction(a.id, "approve")}
+                            disabled={a.membershipStatus === "ACTIVE"}
+                          >
+                            <IconCircleCheck className="size-4" /> Accept
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openAction(a.id, "reject")}
+                            disabled={a.membershipStatus === "REMOVED"}
+                          >
+                            <IconBan className="size-4" /> Reject
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="h-32 flex items-center justify-center text-sm text-muted-foreground rounded-xl border">
+                No applicants found.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                {table.getHeaderGroups().map(hg => (
+                  <TableRow key={hg.id} className="h-12">
+                    {hg.headers.map(header => (
+                      <TableHead
+                        key={header.id}
+                        className={
+                          header.id === "submittedAt"
+                            ? "w-px whitespace-nowrap px-4 font-semibold text-foreground"
+                            : "px-4 font-semibold text-foreground"
+                        }
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                    No applicants found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                      <div className="flex items-center justify-center gap-2">
+                        <IconLoader2 className="size-4 animate-spin" />
+                        <span>Loading applicants...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows.length ? (
+                  table.getRowModel().rows.map(row => (
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => void loadApplicantDetails(row.original.id)}
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <TableCell
+                          key={cell.id}
+                          className={cell.column.id === "submittedAt" ? "whitespace-nowrap px-4 py-3" : "px-4 py-3"}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                      No applicants found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
         <div className="flex items-center justify-between px-1">
           <div className="text-sm text-muted-foreground">
             {(() => {
-              const total = table.getFilteredRowModel().rows.length
-              const { pageIndex, pageSize } = table.getState().pagination
+              const { pageIndex, pageSize } = pagination
               const from = total === 0 ? 0 : pageIndex * pageSize + 1
               const to = Math.min((pageIndex + 1) * pageSize, total)
               return `Showing ${from}–${to} of ${total}`
@@ -733,8 +799,8 @@ export function ApplicantsTable() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
+              onClick={() => setPagination(p => ({ ...p, pageIndex: p.pageIndex - 1 }))}
+              disabled={pagination.pageIndex === 0}
             >
               <IconChevronLeft className="size-4" />
               <span className="sr-only">Previous page</span>
@@ -742,8 +808,8 @@ export function ApplicantsTable() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
+              onClick={() => setPagination(p => ({ ...p, pageIndex: p.pageIndex + 1 }))}
+              disabled={(pagination.pageIndex + 1) * pagination.pageSize >= total}
             >
               <IconChevronRight className="size-4" />
               <span className="sr-only">Next page</span>

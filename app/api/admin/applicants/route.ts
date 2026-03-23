@@ -101,33 +101,53 @@ export const GET = withAdminAuth(
       })
     }
 
-    const applicants = await prisma.memberSeason.findMany({
-      where: {
-        seasonId: activeSeason.id,
-        applicationSubmittedAt: { not: null },
-      },
-      select: {
-        id: true,
-        isReturning: true,
-        membershipStatus: true,
-        statusChangedAt: true,
-        applicationSubmittedAt: true,
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            gradeLevel: true,
-            phone: true,
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
+    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "10", 10)))
+    const status = searchParams.get("status")?.trim() ?? "all"
+    const search = searchParams.get("search")?.trim() ?? ""
+
+    const baseWhere = {
+      seasonId: activeSeason.id,
+      applicationSubmittedAt: { not: null },
+      ...(status !== "all" && { membershipStatus: status as MembershipStatus }),
+      ...(search && {
+        OR: [
+          { user: { firstName: { contains: search, mode: "insensitive" as const } } },
+          { user: { lastName: { contains: search, mode: "insensitive" as const } } },
+          { user: { email: { contains: search, mode: "insensitive" as const } } },
+        ],
+      }),
+    }
+
+    const [total, applicants] = await Promise.all([
+      prisma.memberSeason.count({ where: baseWhere }),
+      prisma.memberSeason.findMany({
+        where: baseWhere,
+        select: {
+          id: true,
+          isReturning: true,
+          membershipStatus: true,
+          statusChangedAt: true,
+          applicationSubmittedAt: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              gradeLevel: true,
+              phone: true,
+            },
           },
         },
-      },
-      orderBy: { applicationSubmittedAt: "desc" },
-    })
+        orderBy: { applicationSubmittedAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ])
 
-    return ok(
-      applicants.map((applicant) => ({
+    return ok({
+      items: applicants.map((applicant) => ({
         id: applicant.id,
         userId: applicant.user.id,
         name: `${applicant.user.firstName} ${applicant.user.lastName}`.trim(),
@@ -138,8 +158,9 @@ export const GET = withAdminAuth(
         membershipStatus: applicant.membershipStatus,
         statusChangedAt: formatDate(applicant.statusChangedAt),
         submittedAt: formatDate(applicant.applicationSubmittedAt),
-      }))
-    )
+      })),
+      total,
+    })
   },
   "fetch applicants"
 )
