@@ -19,7 +19,7 @@ export const GET = withAdminAuth(
     const id = searchParams.get("id")?.trim()
 
     const activeSeason = await getActiveSeason(currentUser.clubId)
-    if (!activeSeason) return ok(id ? null : [])
+    if (!activeSeason) return ok(id ? null : { items: [], total: 0 })
 
     if (id) {
       const event = await prisma.clubEvent.findFirst({
@@ -79,23 +79,48 @@ export const GET = withAdminAuth(
       })
     }
 
-    const events = await prisma.clubEvent.findMany({
-      where: { seasonId: activeSeason.id },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        location: true,
-        startsAt: true,
-        endsAt: true,
-        hoursValue: true,
-        _count: { select: { attendance: true } },
-      },
-      orderBy: { startsAt: "asc" },
-    })
+    // ── Pagination, filtering & sorting ──
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
+    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") ?? "9", 10)))
+    const typeFilter = searchParams.get("type")?.trim() ?? "ALL"
+    const statusFilter = searchParams.get("status")?.trim() ?? "all"
+    const sortOrder = searchParams.get("sort") === "desc" ? "desc" as const : "asc" as const
 
-    return ok(
-      events.map(e => ({
+    const now = new Date()
+    const baseWhere: Record<string, unknown> = { seasonId: activeSeason.id }
+
+    if (typeFilter !== "ALL" && Object.values(ClubEventType).includes(typeFilter as ClubEventType)) {
+      baseWhere.type = typeFilter as ClubEventType
+    }
+
+    if (statusFilter === "upcoming") {
+      baseWhere.OR = [{ endsAt: null }, { endsAt: { gte: now } }]
+    } else if (statusFilter === "ended") {
+      baseWhere.endsAt = { not: null, lt: now }
+    }
+
+    const [total, events] = await Promise.all([
+      prisma.clubEvent.count({ where: baseWhere }),
+      prisma.clubEvent.findMany({
+        where: baseWhere,
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          location: true,
+          startsAt: true,
+          endsAt: true,
+          hoursValue: true,
+          _count: { select: { attendance: true } },
+        },
+        orderBy: { startsAt: sortOrder },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ])
+
+    return ok({
+      items: events.map(e => ({
         id: e.id,
         name: e.name,
         type: e.type,
@@ -104,9 +129,10 @@ export const GET = withAdminAuth(
         endsAt: e.endsAt ? formatDateOnly(e.endsAt) : "",
         hoursValue: Number(e.hoursValue),
         attendeeCount: e._count.attendance,
-        isEnded: e.endsAt != null && e.endsAt < new Date(),
-      }))
-    )
+        isEnded: e.endsAt != null && e.endsAt < now,
+      })),
+      total,
+    })
   },
   "fetch club events"
 )
