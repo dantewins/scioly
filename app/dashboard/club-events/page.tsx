@@ -11,119 +11,69 @@ import {
   IconPlus,
   IconClock,
   IconArrowsSort,
+  IconChevronLeft,
+  IconChevronRight,
 } from "@tabler/icons-react"
 import { toast } from "sonner"
 import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Field, FieldLabel } from "@/components/ui/field"
 import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
+import { ClubEventFormDialog } from "@/components/club-event-form-dialog"
+import {
+  EVENT_TYPES,
+  TYPE_LABELS,
+  TYPE_COLORS,
+  selectClassName,
+  pagedClubEventsSchema,
+  hourCategorySchema,
+  emptyClubEventForm,
+  type ClubEventSummary,
+  type ClubEventFormState,
+  type HourCategory,
+} from "@/lib/club-events"
 
-const clubEventSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  type: z.string(),
-  location: z.string().default(""),
-  startsAt: z.string().default(""),
-  endsAt: z.string().default(""),
-  hoursValue: z.number().default(0),
-  attendeeCount: z.number().default(0),
-  isEnded: z.boolean().default(false),
-})
-
-type ClubEvent = z.infer<typeof clubEventSchema>
-
-const hourCategorySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-})
-
-const TYPE_LABELS: Record<string, string> = {
-  MEETING: "Meeting",
-  SUPER_SATURDAY: "Super Saturday",
-  FUNDRAISER: "Fundraiser",
-  WORKSHOP: "Workshop",
-  FIELD_TRIP: "Field Trip",
-  OTHER: "Other",
-}
-
-const TYPE_COLORS: Record<string, string> = {
-  MEETING: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  SUPER_SATURDAY: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
-  FUNDRAISER: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-  WORKSHOP: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  FIELD_TRIP: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
-  OTHER: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-}
-
-const EVENT_TYPES = ["MEETING", "SUPER_SATURDAY", "FUNDRAISER", "WORKSHOP", "FIELD_TRIP", "OTHER"]
-
-const selectClassName =
-  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
-
-type FormState = {
-  name: string
-  type: string
-  location: string
-  startsAt: string
-  endsAt: string
-  hoursValue: string
-  categoryId: string
-}
-
-const emptyForm: FormState = {
-  name: "",
-  type: "MEETING",
-  location: "",
-  startsAt: "",
-  endsAt: "",
-  hoursValue: "0",
-  categoryId: "",
-}
+const PAGE_SIZE = 9
 
 export default function ClubEventsPage() {
   const router = useRouter()
-  const [data, setData] = React.useState<ClubEvent[]>([])
+  const [data, setData] = React.useState<ClubEventSummary[]>([])
+  const [total, setTotal] = React.useState(0)
   const [loading, setLoading] = React.useState(true)
   const [createOpen, setCreateOpen] = React.useState(false)
   const [creating, setCreating] = React.useState(false)
-  const [form, setForm] = React.useState<FormState>(emptyForm)
-  const [hourCategories, setHourCategories] = React.useState<z.infer<typeof hourCategorySchema>[]>([])
+  const [form, setForm] = React.useState<ClubEventFormState>(emptyClubEventForm)
+  const [hourCategories, setHourCategories] = React.useState<HourCategory[]>([])
   const [typeFilter, setTypeFilter] = React.useState("ALL")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "upcoming" | "ended">("all")
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc")
+  const [pageIndex, setPageIndex] = React.useState(0)
 
-  const displayData = React.useMemo(() => {
-    let result = [...data]
-    if (typeFilter !== "ALL") result = result.filter(e => e.type === typeFilter)
-    if (statusFilter === "upcoming") result = result.filter(e => !e.isEnded)
-    if (statusFilter === "ended") result = result.filter(e => e.isEnded)
-    result.sort((a, b) => {
-      const cmp = a.startsAt.localeCompare(b.startsAt)
-      return sortOrder === "asc" ? cmp : -cmp
-    })
-    return result
-  }, [data, typeFilter, statusFilter, sortOrder])
-
-  const loadData = React.useCallback(async () => {
+  const loadData = React.useCallback(async (
+    page: number,
+    type: string,
+    status: string,
+    sort: string,
+  ) => {
     setLoading(true)
     try {
+      const params = new URLSearchParams({
+        page: String(page + 1),
+        pageSize: String(PAGE_SIZE),
+        type,
+        status,
+        sort,
+      })
       const [eventsRes, catsRes] = await Promise.all([
-        fetch("/api/admin/club-events", { cache: "no-store" }),
+        fetch(`/api/admin/club-events?${params}`, { cache: "no-store" }),
         fetch("/api/admin/hour-categories", { cache: "no-store" }).catch(() => null),
       ])
       if (!eventsRes.ok) throw new Error()
       const json = await eventsRes.json()
-      setData(z.array(clubEventSchema).parse(json))
+      const parsed = pagedClubEventsSchema.parse(json)
+      setData(parsed.items)
+      setTotal(parsed.total)
 
       if (catsRes?.ok) {
         const catsJson = await catsRes.json()
@@ -131,12 +81,23 @@ export default function ClubEventsPage() {
       }
     } catch {
       toast.error("Failed to load club events.")
+      setData([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
   }, [])
 
-  React.useEffect(() => { void loadData() }, [loadData])
+  // Reset to page 0 when filters change
+  React.useEffect(() => {
+    setPageIndex(p => (p === 0 ? p : 0))
+  }, [typeFilter, statusFilter, sortOrder])
+
+  // Single load effect
+  React.useEffect(() => {
+    void loadData(pageIndex, typeFilter, statusFilter, sortOrder)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageIndex, typeFilter, statusFilter, sortOrder])
 
   const handleCreate = React.useCallback(async () => {
     if (!form.name.trim() || !form.startsAt) {
@@ -166,14 +127,18 @@ export default function ClubEventsPage() {
       if (!res.ok) throw new Error()
       toast.success("Event created.")
       setCreateOpen(false)
-      setForm(emptyForm)
-      await loadData()
+      setForm(emptyClubEventForm)
+      void loadData(pageIndex, typeFilter, statusFilter, sortOrder)
     } catch {
       toast.error("Failed to create event.")
     } finally {
       setCreating(false)
     }
-  }, [form, loadData])
+  }, [form, loadData, pageIndex, typeFilter, statusFilter, sortOrder])
+
+  const from = total === 0 ? 0 : pageIndex * PAGE_SIZE + 1
+  const to = Math.min((pageIndex + 1) * PAGE_SIZE, total)
+  const hasNoEvents = total === 0 && typeFilter === "ALL" && statusFilter === "all"
 
   return (
     <div className="flex flex-col gap-6 px-8 py-4 lg:px-12 md:py-6">
@@ -192,7 +157,7 @@ export default function ClubEventsPage() {
           <IconLoader2 className="size-4 animate-spin" />
           Loading events...
         </div>
-      ) : data.length === 0 ? (
+      ) : hasNoEvents ? (
         <EmptyState
           icon={IconCalendarEvent}
           title="No club events yet"
@@ -206,7 +171,7 @@ export default function ClubEventsPage() {
         />
       ) : (
         <div className="flex flex-col gap-4">
-          {/* Sort/filter bar */}
+          {/* Filter bar */}
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={typeFilter}
@@ -237,156 +202,109 @@ export default function ClubEventsPage() {
             </Button>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {displayData.map(e => (
-            <div
-              key={e.id}
-              className="rounded-xl border bg-card p-5 space-y-3 hover:border-primary/40 transition-colors cursor-pointer"
-              onClick={() => router.push(`/dashboard/club-events/${e.id}`)}
-            >
-              <div className="space-y-1.5">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {e.isEnded && (
-                    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
-                      Ended
-                    </span>
-                  )}
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_COLORS[e.type] ?? TYPE_COLORS.OTHER}`}>
-                    {TYPE_LABELS[e.type] ?? e.type}
-                  </span>
-                </div>
-                <h2 className="font-semibold">{e.name}</h2>
-                {e.location && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <IconMapPin className="size-3.5 shrink-0" />
-                    {e.location}
-                  </div>
-                )}
-                {e.startsAt && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <IconCalendar className="size-3.5 shrink-0" />
-                    {e.startsAt}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground border-t pt-3">
-                <div className="flex items-center gap-1.5">
-                  <IconUsers className="size-3.5" />
-                  <span>{e.attendeeCount} attended</span>
-                </div>
-                {e.hoursValue > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <IconClock className="size-3.5" />
-                    <span>{e.hoursValue} hrs</span>
-                  </div>
-                )}
-              </div>
+          {/* Event cards grid */}
+          {data.length === 0 ? (
+            <div className="flex h-32 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
+              No events match your filters.
             </div>
-          ))}
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {data.map(e => (
+                <EventCard key={e.id} event={e} onClick={() => router.push(`/dashboard/club-events/${e.id}`)} />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between px-1">
+            <div className="text-sm text-muted-foreground">
+              Showing {from}–{to} of {total}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPageIndex(p => p - 1)}
+                disabled={pageIndex === 0}
+              >
+                <IconChevronLeft className="size-4" />
+                <span className="sr-only">Previous page</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPageIndex(p => p + 1)}
+                disabled={(pageIndex + 1) * PAGE_SIZE >= total}
+              >
+                <IconChevronRight className="size-4" />
+                <span className="sr-only">Next page</span>
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>New club event</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <Field>
-              <FieldLabel htmlFor="ce-name">Name</FieldLabel>
-              <Input
-                id="ce-name"
-                placeholder="e.g. Super Saturday #1"
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="ce-type">Type</FieldLabel>
-              <select
-                id="ce-type"
-                value={form.type}
-                onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                className={selectClassName}
-              >
-                {EVENT_TYPES.map(t => (
-                  <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-                ))}
-              </select>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="ce-location">Location</FieldLabel>
-              <Input
-                id="ce-location"
-                placeholder="School or venue name"
-                value={form.location}
-                onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field>
-                <FieldLabel htmlFor="ce-start">Start</FieldLabel>
-                <Input
-                  id="ce-start"
-                  type="datetime-local"
-                  value={form.startsAt}
-                  onChange={e => setForm(f => ({ ...f, startsAt: e.target.value }))}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="ce-end">End</FieldLabel>
-                <Input
-                  id="ce-end"
-                  type="datetime-local"
-                  value={form.endsAt}
-                  onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))}
-                />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field>
-                <FieldLabel htmlFor="ce-hours">Hours granted</FieldLabel>
-                <Input
-                  id="ce-hours"
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  placeholder="0"
-                  value={form.hoursValue}
-                  onChange={e => setForm(f => ({ ...f, hoursValue: e.target.value }))}
-                />
-              </Field>
-              {hourCategories.length > 0 && (
-                <Field>
-                  <FieldLabel htmlFor="ce-cat">Hour category</FieldLabel>
-                  <select
-                    id="ce-cat"
-                    value={form.categoryId}
-                    onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}
-                    className={selectClassName}
-                  >
-                    <option value="">None</option>
-                    {hourCategories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </Field>
-              )}
-            </div>
+      <ClubEventFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="New club event"
+        form={form}
+        onFormChange={setForm}
+        onSubmit={() => void handleCreate()}
+        submitting={creating}
+        submitLabel="Create"
+        hourCategories={hourCategories}
+      />
+    </div>
+  )
+}
+
+// ── Event Card ──────────────────────────────────────────────────────────────
+
+function EventCard({ event: e, onClick }: { event: ClubEventSummary; onClick: () => void }) {
+  return (
+    <div
+      className="rounded-xl border bg-card p-5 space-y-3 hover:border-primary/40 transition-colors cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {e.isEnded && (
+            <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+              Ended
+            </span>
+          )}
+          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_COLORS[e.type] ?? TYPE_COLORS.OTHER}`}>
+            {TYPE_LABELS[e.type] ?? e.type}
+          </span>
+        </div>
+        <h2 className="font-semibold">{e.name}</h2>
+        {e.location && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <IconMapPin className="size-3.5 shrink-0" />
+            {e.location}
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
-              Cancel
-            </Button>
-            <Button onClick={() => void handleCreate()} disabled={creating}>
-              {creating && <IconLoader2 className="size-4 animate-spin" />}
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+        {e.startsAt && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <IconCalendar className="size-3.5 shrink-0" />
+            {e.startsAt}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground border-t pt-3">
+        <div className="flex items-center gap-1.5">
+          <IconUsers className="size-3.5" />
+          <span>{e.attendeeCount} attended</span>
+        </div>
+        {e.hoursValue > 0 && (
+          <div className="flex items-center gap-1.5">
+            <IconClock className="size-3.5" />
+            <span>{e.hoursValue} hrs</span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

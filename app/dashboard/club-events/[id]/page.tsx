@@ -17,7 +17,6 @@ import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Field, FieldLabel } from "@/components/ui/field"
 import {
   Dialog,
   DialogContent,
@@ -25,68 +24,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-
-const memberAttendeeSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  attended: z.boolean(),
-})
-
-const clubEventDetailSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  type: z.string(),
-  location: z.string().default(""),
-  startsAt: z.string().default(""),
-  endsAt: z.string().default(""),
-  hoursValue: z.number().default(0),
-  categoryId: z.string().nullable().default(null),
-  categoryName: z.string().nullable().default(null),
-  notes: z.string().default(""),
-  attendeeCount: z.number().default(0),
-  members: z.array(memberAttendeeSchema).default([]),
-})
-
-const hourCategorySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-})
-
-type ClubEventDetail = z.infer<typeof clubEventDetailSchema>
-
-const TYPE_LABELS: Record<string, string> = {
-  MEETING: "Meeting",
-  SUPER_SATURDAY: "Super Saturday",
-  FUNDRAISER: "Fundraiser",
-  WORKSHOP: "Workshop",
-  FIELD_TRIP: "Field Trip",
-  OTHER: "Other",
-}
-
-const TYPE_COLORS: Record<string, string> = {
-  MEETING: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  SUPER_SATURDAY: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
-  FUNDRAISER: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-  WORKSHOP: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  FIELD_TRIP: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
-  OTHER: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
-}
-
-const EVENT_TYPES = ["MEETING", "SUPER_SATURDAY", "FUNDRAISER", "WORKSHOP", "FIELD_TRIP", "OTHER"]
-
-const selectClassName =
-  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
-
-type FormState = {
-  name: string
-  type: string
-  location: string
-  startsAt: string
-  endsAt: string
-  hoursValue: string
-  categoryId: string
-  notes: string
-}
+import { ClubEventFormDialog } from "@/components/club-event-form-dialog"
+import {
+  TYPE_LABELS,
+  TYPE_COLORS,
+  clubEventDetailSchema,
+  hourCategorySchema,
+  type ClubEventDetail,
+  type ClubEventFormState,
+  type HourCategory,
+} from "@/lib/club-events"
 
 export default function ClubEventDetailPage() {
   const params = useParams()
@@ -100,11 +47,11 @@ export default function ClubEventDetailPage() {
   const [saving, setSaving] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
-  const [form, setForm] = React.useState<FormState>({
+  const [form, setForm] = React.useState<ClubEventFormState>({
     name: "", type: "MEETING", location: "", startsAt: "", endsAt: "",
     hoursValue: "0", categoryId: "", notes: "",
   })
-  const [hourCategories, setHourCategories] = React.useState<z.infer<typeof hourCategorySchema>[]>([])
+  const [hourCategories, setHourCategories] = React.useState<HourCategory[]>([])
   const [memberSearch, setMemberSearch] = React.useState("")
 
   const loadEvent = React.useCallback(async () => {
@@ -116,8 +63,7 @@ export default function ClubEventDetailPage() {
       ])
       if (!eventRes.ok) throw new Error()
       const json = await eventRes.json()
-      const parsed = clubEventDetailSchema.parse(json)
-      setEvent(parsed)
+      setEvent(clubEventDetailSchema.parse(json))
 
       if (catsRes?.ok) {
         const catsJson = await catsRes.json()
@@ -215,7 +161,6 @@ export default function ClubEventDetailPage() {
         }),
       })
       if (!res.ok) throw new Error()
-      // Optimistically update
       setEvent(prev => {
         if (!prev) return prev
         return {
@@ -300,7 +245,6 @@ export default function ClubEventDetailPage() {
             <IconPencil className="size-4" />
             Edit
           </Button>
-          {/* Neutral icon instead of red so it doesn't clash with the monochrome theme */}
           <Button variant="outline" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => setDeleteOpen(true)}>
             <IconTrash className="size-4" />
           </Button>
@@ -369,99 +313,18 @@ export default function ClubEventDetailPage() {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit event</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <Field>
-              <FieldLabel htmlFor="edit-name">Name</FieldLabel>
-              <Input
-                id="edit-name"
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="edit-type">Type</FieldLabel>
-              <select
-                id="edit-type"
-                value={form.type}
-                onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                className={selectClassName}
-              >
-                {EVENT_TYPES.map(t => (
-                  <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-                ))}
-              </select>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="edit-location">Location</FieldLabel>
-              <Input
-                id="edit-location"
-                value={form.location}
-                onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field>
-                <FieldLabel htmlFor="edit-start">Start</FieldLabel>
-                <Input id="edit-start" type="datetime-local" value={form.startsAt} onChange={e => setForm(f => ({ ...f, startsAt: e.target.value }))} />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="edit-end">End</FieldLabel>
-                <Input id="edit-end" type="datetime-local" value={form.endsAt} onChange={e => setForm(f => ({ ...f, endsAt: e.target.value }))} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Field>
-                <FieldLabel htmlFor="edit-hours">Hours granted</FieldLabel>
-                <Input
-                  id="edit-hours"
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={form.hoursValue}
-                  onChange={e => setForm(f => ({ ...f, hoursValue: e.target.value }))}
-                />
-              </Field>
-              {hourCategories.length > 0 && (
-                <Field>
-                  <FieldLabel htmlFor="edit-cat">Hour category</FieldLabel>
-                  <select
-                    id="edit-cat"
-                    value={form.categoryId}
-                    onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}
-                    className={selectClassName}
-                  >
-                    <option value="">None</option>
-                    {hourCategories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </Field>
-              )}
-            </div>
-            <Field>
-              <FieldLabel htmlFor="edit-notes">Notes</FieldLabel>
-              <Input
-                id="edit-notes"
-                value={form.notes}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                placeholder="Optional notes"
-              />
-            </Field>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>Cancel</Button>
-            <Button onClick={() => void handleSave()} disabled={saving}>
-              {saving && <IconLoader2 className="size-4 animate-spin" />}
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ClubEventFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        title="Edit event"
+        form={form}
+        onFormChange={setForm}
+        onSubmit={() => void handleSave()}
+        submitting={saving}
+        submitLabel="Save"
+        hourCategories={hourCategories}
+        showNotes
+      />
 
       {/* Delete Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -474,7 +337,6 @@ export default function ClubEventDetailPage() {
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</Button>
-            {/* Default (dark) variant — keeps the interface monochrome */}
             <Button variant="default" onClick={() => void handleDelete()} disabled={deleting}>
               {deleting && <IconLoader2 className="size-4 animate-spin" />}
               Delete
