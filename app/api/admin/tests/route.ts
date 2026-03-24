@@ -2,17 +2,19 @@ import type { User } from "@prisma/client"
 import { Prisma } from "@prisma/client"
 
 import { prisma } from "@/lib/prisma"
-import { withAdminAuth, ok, err } from "@/lib/api"
+import { withAdminAuth, withMemberAuth, ADMIN_ROLES, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
 // GET /api/admin/tests          → list all tests for active season (summary)
 // GET /api/admin/tests?id=xxx   → full test with questions
-export const GET = withAdminAuth(
+// Members can GET (active tests only, answer keys stripped)
+export const GET = withMemberAuth(
   async (request: Request, _ctx: unknown, currentUser: User) => {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
+    const isAdmin = ADMIN_ROLES.has(currentUser.role)
 
     // Single test with questions
     if (id) {
@@ -24,7 +26,16 @@ export const GET = withAdminAuth(
         },
       })
       if (!test) return err("Test not found.", 404)
-      return ok(test)
+      // Members can only access active tests
+      if (!isAdmin && !test.isActive) return err("Test not found.", 404)
+
+      const questions = test.questions.map(q => ({
+        ...q,
+        // Strip answer keys for non-admins
+        answerKey: isAdmin ? q.answerKey : null,
+      }))
+
+      return ok({ ...test, questions })
     }
 
     // List all tests for active season
@@ -32,7 +43,11 @@ export const GET = withAdminAuth(
     if (!activeSeason) return ok([])
 
     const tests = await prisma.test.findMany({
-      where: { seasonId: activeSeason.id },
+      where: {
+        seasonId: activeSeason.id,
+        // Members only see active tests
+        ...(isAdmin ? {} : { isActive: true }),
+      },
       include: {
         event: { select: { id: true, name: true, code: true } },
         _count: { select: { questions: true } },
@@ -50,6 +65,7 @@ export const GET = withAdminAuth(
         eventCode: t.event?.code ?? null,
         questionCount: t._count.questions,
         isActive: t.isActive,
+        timeLimitMinutes: t.timeLimitMinutes,
         createdAt: t.createdAt.toISOString(),
       }))
     )
@@ -60,13 +76,16 @@ export const GET = withAdminAuth(
 type QuestionInput = {
   order: number
   content: string
-  type: "MCQ" | "FREE_RESPONSE"
-  options?: { label: string; text: string }[]
+  type: "MCQ" | "SELECT_ALL" | "MATCHING" | "FREE_RESPONSE"
+  options?: unknown
   answerKey?: string | null
   points?: number
+  imageUrl?: string | null
+  stationNumber?: number | null
+  stationContext?: string | null
 }
 
-// POST /api/admin/tests — CRUD actions
+// POST /api/admin/tests — CRUD actions (admin only)
 export const POST = withAdminAuth(
   async (request: Request, _ctx: unknown, currentUser: User) => {
     const activeSeason = await getActiveSeason(currentUser.clubId)
@@ -78,13 +97,14 @@ export const POST = withAdminAuth(
       title?: string
       description?: string
       eventId?: string | null
+      timeLimitMinutes?: number | null
       questions?: QuestionInput[]
     }
 
     const { action } = body
 
     if (action === "create") {
-      const { title, description, eventId } = body
+      const { title, description, eventId, timeLimitMinutes } = body
       if (!title?.trim()) return err("Title is required.", 400)
 
       const test = await prisma.test.create({
@@ -93,6 +113,7 @@ export const POST = withAdminAuth(
           title: title.trim(),
           description: description?.trim() || null,
           eventId: eventId || null,
+          timeLimitMinutes: timeLimitMinutes ?? null,
         },
         select: { id: true, title: true },
       })
@@ -101,7 +122,7 @@ export const POST = withAdminAuth(
     }
 
     if (action === "edit") {
-      const { id, title, description, eventId } = body
+      const { id, title, description, eventId, timeLimitMinutes } = body
       if (!id) return err("Missing id.", 400)
       if (!title?.trim()) return err("Title is required.", 400)
 
@@ -111,6 +132,7 @@ export const POST = withAdminAuth(
           title: title.trim(),
           description: description?.trim() || null,
           eventId: eventId ?? null,
+          timeLimitMinutes: timeLimitMinutes ?? null,
         },
       })
 
@@ -125,13 +147,12 @@ export const POST = withAdminAuth(
       return ok({ success: true })
     }
 
-    // Replace all questions for a test (used after both manual entry and upload review)
+    // Replace all questions for a test
     if (action === "save-questions") {
       const { id, questions } = body
       if (!id) return err("Missing id.", 400)
       if (!Array.isArray(questions)) return err("Questions must be an array.", 400)
 
-      // Delete existing questions then recreate in the right order
       await prisma.$transaction([
         prisma.testQuestion.deleteMany({ where: { testId: id } }),
         prisma.testQuestion.createMany({
@@ -140,10 +161,12 @@ export const POST = withAdminAuth(
             order: q.order ?? i + 1,
             content: q.content,
             type: q.type ?? "MCQ",
-            // Prisma requires Prisma.JsonNull for nullable Json fields
             options: q.options != null ? (q.options as Prisma.InputJsonValue) : Prisma.JsonNull,
             answerKey: q.answerKey ?? null,
             points: q.points ?? 1,
+            imageUrl: q.imageUrl ?? null,
+            stationNumber: q.stationNumber ?? null,
+            stationContext: q.stationContext ?? null,
           })),
         }),
       ])

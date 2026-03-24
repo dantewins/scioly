@@ -40,6 +40,7 @@ export async function proxy(req: NextRequest) {
     const publicApi = isPublicApi(pathname);
 
     // Allow public auth endpoints and public pages when logged out
+    console.log(token);
     if (!token) {
         if (publicPage || publicApi) {
             return NextResponse.next();

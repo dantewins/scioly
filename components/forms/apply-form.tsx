@@ -14,6 +14,13 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 type ReturningValue = "" | "yes" | "no"
 type PartnerPreference = "MANDATORY" | "RECOMMENDED" | "NA"
@@ -616,23 +623,28 @@ export function ApplyForm({
                                     >
                                         Grade level *
                                     </FieldLabel>
-                                    <select
-                                        id="gradeLevel"
-                                        name="gradeLevel"
-                                        value={form.gradeLevel}
-                                        onChange={updateField}
-                                        className={cn(
-                                            selectClassName,
-                                            getFieldClass("gradeLevel")
-                                        )}
+                                    <Select
+                                        value={form.gradeLevel || undefined}
+                                        onValueChange={val => {
+                                            setForm(prev => ({ ...prev, gradeLevel: val }))
+                                            clearFieldError("gradeLevel")
+                                            setFormError(null)
+                                        }}
                                     >
-                                        <option value="">Select grade</option>
-                                        {GRADE_LEVELS.map((grade) => (
-                                            <option key={grade} value={grade}>
-                                                {grade}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        <SelectTrigger
+                                            id="gradeLevel"
+                                            className={getFieldClass("gradeLevel")}
+                                        >
+                                            <SelectValue placeholder="Select grade" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {GRADE_LEVELS.map((grade) => (
+                                                <SelectItem key={grade} value={grade}>
+                                                    {grade}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     {fieldErrors.gradeLevel ? (
                                         <p className="mt-1 text-sm text-destructive">
                                             {fieldErrors.gradeLevel}
@@ -698,23 +710,28 @@ export function ApplyForm({
                                     >
                                         Shirt size *
                                     </FieldLabel>
-                                    <select
-                                        id="shirtSize"
-                                        name="shirtSize"
-                                        value={form.shirtSize}
-                                        onChange={updateField}
-                                        className={cn(
-                                            selectClassName,
-                                            getFieldClass("shirtSize")
-                                        )}
+                                    <Select
+                                        value={form.shirtSize || undefined}
+                                        onValueChange={val => {
+                                            setForm(prev => ({ ...prev, shirtSize: val }))
+                                            clearFieldError("shirtSize")
+                                            setFormError(null)
+                                        }}
                                     >
-                                        <option value="">Select size</option>
-                                        {SHIRT_SIZES.map((size) => (
-                                            <option key={size} value={size}>
-                                                {size}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        <SelectTrigger
+                                            id="shirtSize"
+                                            className={getFieldClass("shirtSize")}
+                                        >
+                                            <SelectValue placeholder="Select size" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {SHIRT_SIZES.map((size) => (
+                                                <SelectItem key={size} value={size}>
+                                                    {size}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     {fieldErrors.shirtSize ? (
                                         <p className="mt-1 text-sm text-destructive">
                                             {fieldErrors.shirtSize}
@@ -881,34 +898,26 @@ export function ApplyForm({
                                                         Event
                                                     </FieldLabel>
 
-                                                    <select
-                                                        id={`eventName-${index}`}
-                                                        value={choice.eventName}
-                                                        onChange={(e) =>
-                                                            updateEventChoice(
-                                                                index,
-                                                                "eventName",
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        className={cn(
-                                                            selectClassName,
-                                                            getFieldClass(`topEvents.${index}.eventName`)
-                                                        )}
+                                                    <Select
+                                                        value={choice.eventName || undefined}
+                                                        onValueChange={(val) => updateEventChoice(index, "eventName", val)}
                                                         disabled={eventsLoading || !!eventsError || !hasEventOptions}
                                                     >
-                                                        <option value="">
-                                                            {eventsLoading
-                                                                ? "Loading events..."
-                                                                : "Select event"}
-                                                        </option>
-                                                        {eventOptions.map((event) => (
-                                                            <option key={event.id} value={event.name}>
-                                                                {event.name}
-                                                                {event.isTrialEvent ? " (Trial)" : ""}
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                        <SelectTrigger
+                                                            id={`eventName-${index}`}
+                                                            className={getFieldClass(`topEvents.${index}.eventName`)}
+                                                        >
+                                                            <SelectValue placeholder={eventsLoading ? "Loading events..." : "Select event"} />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {eventOptions.map((event) => (
+                                                                <SelectItem key={event.id} value={event.name}>
+                                                                    {event.name}
+                                                                    {event.isTrialEvent ? " (Trial)" : ""}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
 
                                                     {fieldErrors[`topEvents.${index}.eventName`] ? (
                                                         <p className="mt-1 text-sm text-destructive">
@@ -968,22 +977,19 @@ export function ApplyForm({
                                                         <FieldLabel htmlFor={`partnerPreference-${index}`}>
                                                             Status
                                                         </FieldLabel>
-                                                        <select
-                                                            id={`partnerPreference-${index}`}
+                                                        <Select
                                                             value={choice.partnerPreference}
-                                                            onChange={(e) =>
-                                                                updateEventChoice(
-                                                                    index,
-                                                                    "partnerPreference",
-                                                                    e.target.value
-                                                                )
-                                                            }
-                                                            className={selectClassName}
+                                                            onValueChange={(val) => updateEventChoice(index, "partnerPreference", val)}
                                                         >
-                                                            <option value="NA">N/A</option>
-                                                            <option value="RECOMMENDED">Recommended</option>
-                                                            <option value="MANDATORY">Mandatory</option>
-                                                        </select>
+                                                            <SelectTrigger id={`partnerPreference-${index}`}>
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="NA">N/A</SelectItem>
+                                                                <SelectItem value="RECOMMENDED">Recommended</SelectItem>
+                                                                <SelectItem value="MANDATORY">Mandatory</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
                                                     </Field>
                                                 </div>
                                             </div>

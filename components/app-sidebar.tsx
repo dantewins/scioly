@@ -10,6 +10,8 @@ import {
   IconTrophy,
   IconUsers,
   IconUser,
+  IconPencil,
+  IconSchool,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -25,33 +27,6 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 
-// Nav sections — three logical groups for clean scanning.
-// "Management" covers SciOly admin; "Club" covers general club ops; "Tools" holds utilities.
-const navSections = [
-  {
-    label: "Management",
-    items: [
-      { title: "Dashboard",    url: "",             icon: IconDashboard },
-      { title: "Events",       url: "/events",       icon: IconAtom },
-      { title: "Competitions", url: "/competitions", icon: IconTrophy },
-      { title: "Teams",        url: "/teams",        icon: IconUsers },
-    ],
-  },
-  {
-    label: "Club",
-    items: [
-      { title: "Club Events",  url: "/club-events",  icon: IconCalendarEvent },
-      { title: "Members",      url: "/members",      icon: IconUser },
-      { title: "Applications", url: "/applications", icon: IconFileCheck },
-    ],
-  },
-  {
-    label: "Tools",
-    items: [
-      { title: "Tests", url: "/tests", icon: IconReport },
-    ],
-  },
-];
 
 // Builds the user object expected by NavUser from the auth context shape.
 function buildSidebarUser(
@@ -77,12 +52,45 @@ function buildSidebarUser(
 export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, loading, canAccessAdmin } = useAuth();
 
   const sidebarUser = React.useMemo(
     () => buildSidebarUser(user),
     [user]
   );
+
+  // Nav sections — built inside the component so we can gate on canAccessAdmin.
+  const navSections = React.useMemo(() => [
+    {
+      label: "Management",
+      items: [
+        { title: "Dashboard",    url: "",             icon: IconDashboard },
+        { title: "Events",       url: "/events",       icon: IconAtom },
+        { title: "Competitions", url: "/competitions", icon: IconTrophy },
+        { title: "Teams",        url: "/teams",        icon: IconUsers },
+      ],
+    },
+    {
+      label: "Club",
+      items: [
+        { title: "Club Events",  url: "/club-events",  icon: IconCalendarEvent },
+        { title: "Members",      url: "/members",      icon: IconUser },
+        { title: "Applications", url: "/applications", icon: IconFileCheck },
+      ],
+    },
+    {
+      label: "Tools",
+      items: [
+        ...(canAccessAdmin ? [{ title: "Tests", url: "/tests", icon: IconReport }] : []),
+      ],
+    },
+    ...(canAccessAdmin ? [{
+      label: "Preview",
+      items: [
+        { title: "Practice Tests", url: "/practice", icon: IconSchool },
+      ],
+    }] : []),
+  ], [canAccessAdmin]);
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>

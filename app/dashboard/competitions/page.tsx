@@ -272,11 +272,11 @@ export default function CompetitionsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-semibold leading-tight truncate">{c.name}</h3>
                     {c.isEnded && (
-                      <span className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+                      <span className="hidden sm:inline-block shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
                         Ended
                       </span>
                     )}
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_BADGE[c.type] ?? TYPE_BADGE.OTHER}`}>
+                    <span className={`hidden sm:inline-block shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_BADGE[c.type] ?? TYPE_BADGE.OTHER}`}>
                       {TYPE_LABELS[c.type] ?? c.type}
                     </span>
                   </div>
@@ -328,14 +328,6 @@ export default function CompetitionsPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button
-                    size="sm"
-                    variant={c.isEnded ? "outline" : "default"}
-                    onClick={() => router.push(`/dashboard/competitions/${c.id}`)}
-                  >
-                    {c.isEnded ? "View" : "Open"}
-                    <IconArrowRight className="size-3.5" />
-                  </Button>
                 </div>
               </div>
             </div>

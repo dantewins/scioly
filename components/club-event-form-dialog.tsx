@@ -11,11 +11,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Field, FieldLabel } from "@/components/ui/field"
 import {
   EVENT_TYPES,
   TYPE_LABELS,
-  selectClassName,
   type ClubEventFormState,
   type HourCategory,
 } from "@/lib/club-events"
@@ -64,16 +70,16 @@ export function ClubEventFormDialog({
           </Field>
           <Field>
             <FieldLabel htmlFor="ce-type">Type</FieldLabel>
-            <select
-              id="ce-type"
-              value={form.type}
-              onChange={e => onFormChange(f => ({ ...f, type: e.target.value }))}
-              className={selectClassName}
-            >
-              {EVENT_TYPES.map(t => (
-                <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-              ))}
-            </select>
+            <Select value={form.type} onValueChange={val => onFormChange(f => ({ ...f, type: val }))}>
+              <SelectTrigger id="ce-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EVENT_TYPES.map(t => (
+                  <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field>
             <FieldLabel htmlFor="ce-location">Location</FieldLabel>
@@ -120,17 +126,20 @@ export function ClubEventFormDialog({
             {hourCategories.length > 0 && (
               <Field>
                 <FieldLabel htmlFor="ce-cat">Hour category</FieldLabel>
-                <select
-                  id="ce-cat"
-                  value={form.categoryId}
-                  onChange={e => onFormChange(f => ({ ...f, categoryId: e.target.value }))}
-                  className={selectClassName}
+                <Select
+                  value={form.categoryId || "_none"}
+                  onValueChange={val => onFormChange(f => ({ ...f, categoryId: val === "_none" ? "" : val }))}
                 >
-                  <option value="">None</option>
-                  {hourCategories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger id="ce-cat">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">None</SelectItem>
+                    {hourCategories.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
             )}
           </div>

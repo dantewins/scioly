@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-8 bg-background p-6 text-center">
-      <div className="flex flex-col items-center gap-4">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 text-center">
+      <div className="flex flex-col items-center gap-6">
         <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
           <IconAtom className="size-8" />
         </div>

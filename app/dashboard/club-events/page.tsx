@@ -22,10 +22,16 @@ import { EmptyState } from "@/components/empty-state"
 import { PageHeader } from "@/components/page-header"
 import { ClubEventFormDialog } from "@/components/club-event-form-dialog"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   EVENT_TYPES,
   TYPE_LABELS,
   TYPE_COLORS,
-  selectClassName,
   pagedClubEventsSchema,
   hourCategorySchema,
   emptyClubEventForm,
@@ -173,25 +179,27 @@ export default function ClubEventsPage() {
         <div className="flex flex-col gap-4">
           {/* Filter bar */}
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
-              className={selectClassName + " w-auto"}
-            >
-              <option value="ALL">All types</option>
-              {EVENT_TYPES.map(t => (
-                <option key={t} value={t}>{TYPE_LABELS[t]}</option>
-              ))}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as "all" | "upcoming" | "ended")}
-              className={selectClassName + " w-auto"}
-            >
-              <option value="all">All</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="ended">Ended</option>
-            </select>
+            <Select value={typeFilter} onValueChange={val => setTypeFilter(val)}>
+              <SelectTrigger className="w-auto">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All types</SelectItem>
+                {EVENT_TYPES.map(t => (
+                  <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={val => setStatusFilter(val as "all" | "upcoming" | "ended")}>
+              <SelectTrigger className="w-auto">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="ended">Ended</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               variant="outline"
               size="sm"

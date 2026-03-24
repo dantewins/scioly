@@ -61,6 +61,13 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { PageHeader } from "@/components/page-header"
 
 const summarySchema = z.object({
@@ -952,33 +959,37 @@ function EditSheet({
 
               <Field>
                 <FieldLabel htmlFor="ef-grade">Grade level</FieldLabel>
-                <select
-                  id="ef-grade"
-                  value={form.gradeLevel}
-                  onChange={setField("gradeLevel")}
-                  className={selectClassName}
+                <Select
+                  value={form.gradeLevel || undefined}
+                  onValueChange={val => onChange(f => f ? { ...f, gradeLevel: val } : f)}
                 >
-                  <option value="">Select grade</option>
-                  {["9", "10", "11", "12"].map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
+                  <SelectTrigger id="ef-grade">
+                    <SelectValue placeholder="Select grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["9", "10", "11", "12"].map(g => (
+                      <SelectItem key={g} value={g}>{g}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
             </div>
 
             <Field>
               <FieldLabel htmlFor="ef-shirt">Shirt size</FieldLabel>
-              <select
-                id="ef-shirt"
-                value={form.shirtSize}
-                onChange={setField("shirtSize")}
-                className={selectClassName}
+              <Select
+                value={form.shirtSize || undefined}
+                onValueChange={val => onChange(f => f ? { ...f, shirtSize: val } : f)}
               >
-                <option value="">Select size</option>
-                {["XS", "S", "M", "L", "XL"].map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+                <SelectTrigger id="ef-shirt">
+                  <SelectValue placeholder="Select size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["XS", "S", "M", "L", "XL"].map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
 
             <Field>
