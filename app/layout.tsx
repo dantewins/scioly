@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SciOly Manager",
+  title: "Scioly",
   description: "Science Olympiad club management platform",
 };
 

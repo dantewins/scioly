@@ -4,9 +4,10 @@ import * as React from "react";
 import {
   IconAtom,
   IconDashboard,
-  IconCalendarWeek,
+  IconCalendarEvent,
   IconFileCheck,
   IconReport,
+  IconTrophy,
   IconUsers,
   IconUser,
 } from "@tabler/icons-react";
@@ -24,39 +25,35 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 
-const navMain = [
+// Nav sections — three logical groups for clean scanning.
+// "Management" covers SciOly admin; "Club" covers general club ops; "Tools" holds utilities.
+const navSections = [
   {
-    title: "Dashboard",
-    url: "",
-    icon: IconDashboard,
+    label: "Management",
+    items: [
+      { title: "Dashboard",    url: "",             icon: IconDashboard },
+      { title: "Events",       url: "/events",       icon: IconAtom },
+      { title: "Competitions", url: "/competitions", icon: IconTrophy },
+      { title: "Teams",        url: "/teams",        icon: IconUsers },
+    ],
   },
   {
-    title: "Events",
-    url: "/events",
-    icon: IconCalendarWeek,
+    label: "Club",
+    items: [
+      { title: "Club Events",  url: "/club-events",  icon: IconCalendarEvent },
+      { title: "Members",      url: "/members",      icon: IconUser },
+      { title: "Applications", url: "/applications", icon: IconFileCheck },
+    ],
   },
   {
-    title: "Teams",
-    url: "/teams",
-    icon: IconUsers,
-  },
-  {
-    title: "Members",
-    url: "/members",
-    icon: IconUser,
-  },
-  {
-    title: "Applications",
-    url: "/applications",
-    icon: IconFileCheck,
-  },
-  {
-    title: "Tests",
-    url: "/tests",
-    icon: IconReport,
+    label: "Tools",
+    items: [
+      { title: "Tests", url: "/tests", icon: IconReport },
+    ],
   },
 ];
 
+// Builds the user object expected by NavUser from the auth context shape.
 function buildSidebarUser(
   user: {
     email: string;
@@ -108,7 +105,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain sections={navSections} />
       </SidebarContent>
 
       <SidebarFooter className="!px-0 !pt-0">

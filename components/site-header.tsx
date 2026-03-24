@@ -8,6 +8,8 @@ import { usePathname } from "next/navigation"
 const PAGE_TITLES: Record<string, string> = {
   dashboard: "Dashboard",
   events: "Events",
+  competitions: "Competitions",
+  "club-events": "Club Events",
   teams: "Teams",
   members: "Members",
   applications: "Applications",
@@ -19,9 +21,14 @@ function getPageTitle(pathname: string): string {
   const last = segments[segments.length - 1] ?? ""
   const secondLast = segments[segments.length - 2] ?? ""
 
-  // /dashboard/teams/[uuid] → "Team Builder"
-  if (secondLast === "teams" && last !== "teams") {
+  // /dashboard/competitions/[uuid] → "Team Builder"
+  if (secondLast === "competitions" && last !== "competitions") {
     return "Team Builder"
+  }
+
+  // /dashboard/club-events/[uuid] → "Club Event"
+  if (secondLast === "club-events" && last !== "club-events") {
+    return "Club Event"
   }
 
   return PAGE_TITLES[last] ?? (last.charAt(0).toUpperCase() + last.slice(1))

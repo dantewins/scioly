@@ -8,6 +8,11 @@ import { formatDate, formatDateOnly } from "@/lib/format"
 
 export const dynamic = "force-dynamic"
 
+function toLocalDatetimeInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
 export const GET = withAdminAuth(
   async (request: Request, _ctx: unknown, currentUser: User) => {
     const { searchParams } = new URL(request.url)
@@ -187,6 +192,7 @@ export const GET = withAdminAuth(
         teams: {
           select: {
             id: true,
+            label: true,
             assignments: { select: { id: true } },
           },
         },
@@ -200,16 +206,23 @@ export const GET = withAdminAuth(
         name: c.name,
         type: c.type,
         location: c.location ?? "",
-        startsAt: formatDateOnly(c.startsAt),
-        endsAt: c.endsAt ? formatDateOnly(c.endsAt) : "",
+        startsAt: toLocalDatetimeInput(c.startsAt),
+        endsAt: c.endsAt ? toLocalDatetimeInput(c.endsAt) : "",
         isPublished: c.isPublished,
+        squadCount: new Set(c.teams.map(t => t.label ?? "A")).size,
         teamCount: c.teams.length,
-        memberCount: new Set(c.teams.flatMap(t => t.assignments.map(a => a.id))).size,
+        isEnded: c.endsAt != null && c.endsAt < new Date(),
       }))
     )
   },
   "fetch competitions"
 )
+
+function parseDateRange(startsAt: string, endsAt?: string) {
+  const start = new Date(startsAt)
+  if (!endsAt) return { start, end: null }
+  return { start, end: new Date(endsAt) }
+}
 
 export const POST = withAdminAuth(
   async (request: Request, _ctx: unknown, currentUser: User) => {
@@ -217,26 +230,96 @@ export const POST = withAdminAuth(
     if (!activeSeason) return err("No active season.", 400)
 
     const body = await request.json() as {
-      name: string
-      type: CompetitionType
+      action?: "create" | "edit" | "delete"
+      id?: string
+      name?: string
+      type?: CompetitionType
       location?: string
-      startsAt: string
+      startsAt?: string
       endsAt?: string
     }
 
+    const action = body.action ?? "create"
+
+    if (action === "edit") {
+      const { id, name, type, location, startsAt, endsAt } = body
+      if (!id || !name?.trim() || !startsAt) return err("Missing required fields.", 400)
+      const { start, end } = parseDateRange(startsAt, endsAt)
+      await prisma.competition.update({
+        where: { id },
+        data: {
+          name: name.trim(),
+          type: type ?? "OTHER",
+          location: location?.trim() || null,
+          startsAt: start,
+          endsAt: end,
+        },
+      })
+      return ok({ success: true })
+    }
+
+    if (action === "delete") {
+      const { id } = body
+      if (!id) return err("Missing id.", 400)
+      await prisma.competition.delete({ where: { id } })
+      return ok({ success: true })
+    }
+
+    // create
+    if (!body.name?.trim() || !body.startsAt) return err("Name and start date are required.", 400)
+    const { start: compStart, end: compEnd } = parseDateRange(body.startsAt, body.endsAt)
     const competition = await prisma.competition.create({
       data: {
         seasonId: activeSeason.id,
-        name: body.name,
+        name: body.name.trim(),
         type: body.type ?? "OTHER",
-        location: body.location ?? null,
-        startsAt: new Date(body.startsAt),
-        endsAt: body.endsAt ? new Date(body.endsAt) : null,
+        location: body.location?.trim() || null,
+        startsAt: compStart,
+        endsAt: compEnd,
         isPublished: true,
       },
     })
 
     return ok({ id: competition.id, name: competition.name })
   },
-  "create competition"
+  "manage competition"
+)
+
+export const PATCH = withAdminAuth(
+  async (request: Request, _ctx: unknown, _currentUser: User) => {
+    const body = await request.json() as {
+      action: "add-event" | "remove-event"
+      competitionId: string
+      eventId: string
+      timeSlot?: number
+      slotLabel?: string
+    }
+
+    const { action, competitionId, eventId } = body
+    if (!competitionId || !eventId) return err("Missing competitionId or eventId.", 400)
+
+    if (action === "add-event") {
+      await prisma.eventSchedule.upsert({
+        where: { competitionId_eventId: { competitionId, eventId } },
+        create: { competitionId, eventId, timeSlot: body.timeSlot ?? 1, slotLabel: body.slotLabel ?? null },
+        update: { timeSlot: body.timeSlot ?? 1, slotLabel: body.slotLabel ?? null },
+      })
+      return ok({ success: true })
+    }
+
+    if (action === "remove-event") {
+      const hasAssignments = await prisma.teamAssignment.findFirst({
+        where: { team: { competitionId, eventId } },
+      })
+      if (hasAssignments) return err("Cannot remove event with existing team assignments.", 409)
+
+      await prisma.eventSchedule.delete({
+        where: { competitionId_eventId: { competitionId, eventId } },
+      })
+      return ok({ success: true })
+    }
+
+    return err("Invalid action.", 400)
+  },
+  "schedule competition event"
 )

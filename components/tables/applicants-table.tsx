@@ -295,28 +295,25 @@ export function ApplicantsTable() {
     }
   }, [])
 
-  // Fetch when page/pageSize changes
+  // Debounce raw search input — debouncedSearch drives the load, not searchQuery directly
+  const [debouncedSearch, setDebouncedSearch] = React.useState(searchQuery)
   React.useEffect(() => {
-    void loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.pageIndex, pagination.pageSize])
-
-  // Status tab change: reset to page 0
-  React.useEffect(() => {
-    setPagination(p => ({ ...p, pageIndex: 0 }))
-    void loadApplicants(0, pagination.pageSize, statusFilter, searchQuery)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
-
-  // Search debounce: reset to page 0 after 300 ms
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setPagination(p => ({ ...p, pageIndex: 0 }))
-      void loadApplicants(0, pagination.pageSize, statusFilter, searchQuery)
-    }, 300)
-    return () => clearTimeout(timer)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300)
+    return () => clearTimeout(t)
   }, [searchQuery])
+
+  // When filter or debounced search changes, reset to page 0.
+  // Returns the same reference when already at page 0 so React bails out and avoids a re-render.
+  React.useEffect(() => {
+    setPagination(p => p.pageIndex === 0 ? p : { ...p, pageIndex: 0 })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, debouncedSearch])
+
+  // Single load effect — covers initial mount, page navigation, filter changes, and search changes
+  React.useEffect(() => {
+    void loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch])
 
   const submitAction = React.useCallback(async () => {
     if (!actionTarget) return
@@ -331,14 +328,14 @@ export function ApplicantsTable() {
       toast.success(actionTarget.action === "approve" ? "Applicant approved." : "Applicant rejected.")
       setActionTarget(null)
       setActionReason("")
-      await loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
+      await loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch)
       if (selectedApplicant?.id === actionTarget.id) await loadApplicantDetails(actionTarget.id)
     } catch {
       toast.error(actionTarget.action === "approve" ? "Failed to approve applicant." : "Failed to reject applicant.")
     } finally {
       setActionSaving(false)
     }
-  }, [actionTarget, actionReason, loadApplicants, loadApplicantDetails, selectedApplicant, pagination, statusFilter, searchQuery])
+  }, [actionTarget, actionReason, loadApplicants, loadApplicantDetails, selectedApplicant, pagination, statusFilter, debouncedSearch])
 
   const openEdit = React.useCallback((a: ApplicantSummary | ApplicantDetail) => {
     setEditTarget(a)
@@ -358,14 +355,14 @@ export function ApplicantsTable() {
       toast.success("Applicant updated.")
       setEditTarget(null)
       setEditForm(null)
-      await loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
+      await loadApplicants(pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch)
       if (selectedApplicant?.id === editTarget.id) await loadApplicantDetails(editTarget.id)
     } catch {
       toast.error("Failed to save changes.")
     } finally {
       setEditSaving(false)
     }
-  }, [editTarget, editForm, loadApplicants, loadApplicantDetails, selectedApplicant, pagination, statusFilter, searchQuery])
+  }, [editTarget, editForm, loadApplicants, loadApplicantDetails, selectedApplicant, pagination, statusFilter, debouncedSearch])
 
   const openAction = React.useCallback((id: string, action: "approve" | "reject") => {
     setActionReason("")
@@ -684,7 +681,11 @@ export function ApplicantsTable() {
                       <div className="font-medium truncate">{a.name}</div>
                       <div className="text-xs text-muted-foreground truncate">{a.email}</div>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        {a.grade && <span className="text-xs text-muted-foreground">Gr. {a.grade}</span>}
+                        {a.grade && (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            Gr. {a.grade}
+                          </span>
+                        )}
                         <ReturningBadge value={normalizeReturning(a)} />
                         <StatusBadge value={a.membershipStatus} />
                       </div>

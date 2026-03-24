@@ -255,28 +255,25 @@ export function MembersTable() {
     }
   }, [])
 
-  // Fetch when page/pageSize changes
+  // Debounce raw search input — debouncedSearch drives the load, not searchQuery directly
+  const [debouncedSearch, setDebouncedSearch] = React.useState(searchQuery)
   React.useEffect(() => {
-    void loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.pageIndex, pagination.pageSize])
-
-  // Status tab change: reset to page 0
-  React.useEffect(() => {
-    setPagination(p => ({ ...p, pageIndex: 0 }))
-    void loadMembers(0, pagination.pageSize, statusFilter, searchQuery)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter])
-
-  // Search debounce: reset to page 0 after 300 ms
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setPagination(p => ({ ...p, pageIndex: 0 }))
-      void loadMembers(0, pagination.pageSize, statusFilter, searchQuery)
-    }, 300)
-    return () => clearTimeout(timer)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300)
+    return () => clearTimeout(t)
   }, [searchQuery])
+
+  // When filter or debounced search changes, reset to page 0.
+  // Returns the same reference when already at page 0 so React bails out and avoids a re-render.
+  React.useEffect(() => {
+    setPagination(p => p.pageIndex === 0 ? p : { ...p, pageIndex: 0 })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, debouncedSearch])
+
+  // Single load effect — covers initial mount, page navigation, filter changes, and search changes
+  React.useEffect(() => {
+    void loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch])
 
   const openEdit = React.useCallback((m: MemberSummary | MemberDetail) => {
     setEditTarget(m)
@@ -296,14 +293,14 @@ export function MembersTable() {
       toast.success("Member updated.")
       setEditTarget(null)
       setEditForm(null)
-      await loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
+      await loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch)
       if (selectedMember?.id === editTarget.id) await loadMemberDetails(editTarget.id)
     } catch {
       toast.error("Failed to save changes.")
     } finally {
       setEditSaving(false)
     }
-  }, [editTarget, editForm, loadMembers, loadMemberDetails, selectedMember, pagination, statusFilter, searchQuery])
+  }, [editTarget, editForm, loadMembers, loadMemberDetails, selectedMember, pagination, statusFilter, debouncedSearch])
 
   const submitDeactivate = React.useCallback(async () => {
     if (!deactivateTarget) return
@@ -317,14 +314,14 @@ export function MembersTable() {
       if (!res.ok) throw new Error()
       toast.success(deactivateTarget.action === "deactivate" ? "Member deactivated." : "Member reactivated.")
       setDeactivateTarget(null)
-      await loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, searchQuery)
+      await loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch)
       if (selectedMember?.id === deactivateTarget.id) await loadMemberDetails(deactivateTarget.id)
     } catch {
       toast.error("Failed to update member status.")
     } finally {
       setDeactivateSaving(false)
     }
-  }, [deactivateTarget, loadMembers, loadMemberDetails, selectedMember, pagination, statusFilter, searchQuery])
+  }, [deactivateTarget, loadMembers, loadMemberDetails, selectedMember, pagination, statusFilter, debouncedSearch])
 
 
   const columns = React.useMemo<ColumnDef<MemberSummary>[]>(() => [
@@ -629,47 +626,53 @@ export function MembersTable() {
               data.map(m => (
                 <div
                   key={m.id}
-                  className="rounded-xl border bg-card p-4 space-y-3 cursor-pointer hover:border-primary/40 transition-colors"
+                  className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 gap-3 cursor-pointer hover:border-primary/40 transition-colors"
                   onClick={() => void loadMemberDetails(m.id)}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="font-medium">{m.name}</div>
-                      <div className="text-sm text-muted-foreground">{m.email}</div>
-                    </div>
-                    <div onClick={e => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-8 shrink-0">
-                            <IconDots className="size-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(m)}>
-                            <IconEdit className="size-4" /> Edit
-                          </DropdownMenuItem>
-                          {m.membershipStatus === "ACTIVE" ? (
-                            <DropdownMenuItem
-                              onClick={() => setDeactivateTarget({ id: m.id, action: "deactivate" })}
-                            >
-                              <IconUserOff className="size-4" /> Deactivate
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem
-                              onClick={() => setDeactivateTarget({ id: m.id, action: "reactivate" })}
-                            >
-                              <IconUserCheck className="size-4" /> Reactivate
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  <div className="min-w-0 space-y-1">
+                    <div className="font-medium truncate">{m.name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{m.email}</div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {m.grade && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                          Grade {m.grade}
+                        </span>
+                      )}
+                      {(m.eventCount ?? 0) > 0 && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                          {m.eventCount} event{m.eventCount === 1 ? "" : "s"}
+                        </span>
+                      )}
+                      <MemberStatusBadge value={m.membershipStatus} />
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    {m.grade && <span>Grade {m.grade}</span>}
-                    <span>{m.eventCount ?? 0} event{m.eventCount === 1 ? "" : "s"}</span>
-                    <MemberStatusBadge value={m.membershipStatus} />
+                  <div className="shrink-0" onClick={e => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="size-8">
+                          <IconDots className="size-4" />
+                          <span className="sr-only">Actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEdit(m)}>
+                          <IconEdit className="size-4" /> Edit
+                        </DropdownMenuItem>
+                        {m.membershipStatus === "ACTIVE" ? (
+                          <DropdownMenuItem
+                            onClick={() => setDeactivateTarget({ id: m.id, action: "deactivate" })}
+                          >
+                            <IconUserOff className="size-4" /> Deactivate
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() => setDeactivateTarget({ id: m.id, action: "reactivate" })}
+                          >
+                            <IconUserCheck className="size-4" /> Reactivate
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))
@@ -682,7 +685,14 @@ export function MembersTable() {
                 {table.getHeaderGroups().map(hg => (
                   <TableRow key={hg.id} className="h-12">
                     {hg.headers.map(header => (
-                      <TableHead key={header.id} className="px-4 font-semibold text-foreground">
+                      <TableHead
+                        key={header.id}
+                        className={
+                          header.id === "membershipStatus" || header.id === "actions"
+                            ? "w-px whitespace-nowrap px-4 font-semibold text-foreground"
+                            : "px-4 font-semibold text-foreground"
+                        }
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
@@ -710,7 +720,14 @@ export function MembersTable() {
                       onClick={() => void loadMemberDetails(row.original.id)}
                     >
                       {row.getVisibleCells().map(cell => (
-                        <TableCell key={cell.id} className="px-4 py-3">
+                        <TableCell
+                          key={cell.id}
+                          className={
+                            cell.column.id === "membershipStatus" || cell.column.id === "actions"
+                              ? "w-px whitespace-nowrap px-4 py-3"
+                              : "px-4 py-3"
+                          }
+                        >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}

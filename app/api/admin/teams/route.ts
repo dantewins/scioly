@@ -6,6 +6,67 @@ import { getActiveSeason } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
+export const GET = withAdminAuth(
+  async (_request: Request, _ctx: unknown, currentUser: User) => {
+    const activeSeason = await getActiveSeason(currentUser.clubId)
+    if (!activeSeason) return ok([])
+
+    const teams = await prisma.team.findMany({
+      where: { seasonId: activeSeason.id, competitionId: { not: null } },
+      select: {
+        id: true,
+        label: true,
+        status: true,
+        competition: { select: { id: true, name: true, type: true, startsAt: true } },
+        event: { select: { name: true } },
+        assignments: { select: { id: true } },
+      },
+      orderBy: [{ competition: { startsAt: "asc" } }, { label: "asc" }, { event: { sortOrder: "asc" } }],
+    })
+
+    // Group by competition → then by squad label
+    const compMap = new Map<string, {
+      competitionId: string
+      competitionName: string
+      competitionType: string
+      squads: Map<string, { eventCount: number; memberCount: number }>
+    }>()
+
+    for (const team of teams) {
+      if (!team.competition) continue
+      const cid = team.competition.id
+      if (!compMap.has(cid)) {
+        compMap.set(cid, {
+          competitionId: cid,
+          competitionName: team.competition.name,
+          competitionType: team.competition.type,
+          squads: new Map(),
+        })
+      }
+      const comp = compMap.get(cid)!
+      const label = team.label
+      if (!comp.squads.has(label)) {
+        comp.squads.set(label, { eventCount: 0, memberCount: 0 })
+      }
+      const squad = comp.squads.get(label)!
+      squad.eventCount++
+      squad.memberCount += team.assignments.length
+    }
+
+    const result = Array.from(compMap.values()).map(c => ({
+      competitionId: c.competitionId,
+      competitionName: c.competitionName,
+      competitionType: c.competitionType,
+      squads: Array.from(c.squads.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([label, { eventCount, memberCount }]) => ({ label, eventCount, memberCount })),
+    }))
+
+    return ok(result)
+  },
+  "fetch team roster"
+)
+
 export const POST = withAdminAuth(
   async (request: Request, _ctx: unknown, currentUser: User) => {
     const activeSeason = await getActiveSeason(currentUser.clubId)
