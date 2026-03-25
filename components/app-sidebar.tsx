@@ -10,7 +10,6 @@ import {
   IconTrophy,
   IconUsers,
   IconUser,
-  IconPencil,
   IconSchool,
 } from "@tabler/icons-react";
 

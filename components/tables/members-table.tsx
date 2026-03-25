@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import {
-  IconArrowLeft,
   IconDots,
   IconLoader2,
   IconChevronLeft,
@@ -10,6 +9,7 @@ import {
   IconEdit,
   IconUserOff,
   IconUserCheck,
+  IconEye,
 } from "@tabler/icons-react"
 import {
   flexRender,
@@ -20,6 +20,7 @@ import {
 } from "@tanstack/react-table"
 import { toast } from "sonner"
 import { z } from "zod"
+import { useRouter } from "next/navigation"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -68,6 +69,7 @@ import { PageHeader } from "@/components/page-header"
 
 const summarySchemaMember = z.object({
   id: z.string(),
+  userId: z.string().optional().default(""),
   name: z.string(),
   email: z.string(),
   grade: z.string().optional().default(""),
@@ -187,9 +189,6 @@ function buildMemberEditForm(m: MemberSummary | MemberDetail): MemberEditFormSta
   }
 }
 
-const selectClassName =
-  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50"
-
 const pagedMembersSchema = z.object({
   items: z.array(summarySchemaMember),
   total: z.number(),
@@ -199,8 +198,6 @@ export function MembersTable() {
   const [data, setData] = React.useState<MemberSummary[]>([])
   const [total, setTotal] = React.useState(0)
   const [loading, setLoading] = React.useState(true)
-  const [detailsLoading, setDetailsLoading] = React.useState(false)
-  const [selectedMember, setSelectedMember] = React.useState<MemberDetail | null>(null)
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all")
   const [searchQuery, setSearchQuery] = React.useState("")
 
@@ -215,6 +212,8 @@ export function MembersTable() {
     pageIndex: 0,
     pageSize: 10,
   })
+
+  const router = useRouter()
 
   const isMobile = useIsMobile()
 
@@ -244,21 +243,6 @@ export function MembersTable() {
       setTotal(0)
     } finally {
       setLoading(false)
-    }
-  }, [])
-
-  const loadMemberDetails = React.useCallback(async (id: string) => {
-    setDetailsLoading(true)
-    try {
-      const res = await fetch(`/api/admin/members?id=${id}`, { method: "GET", cache: "no-store" })
-      if (!res.ok) throw new Error()
-      const json = await res.json()
-      setSelectedMember(detailSchemaMember.parse(json))
-    } catch {
-      toast.error("Failed to load member details.")
-      setSelectedMember(null)
-    } finally {
-      setDetailsLoading(false)
     }
   }, [])
 
@@ -301,13 +285,12 @@ export function MembersTable() {
       setEditTarget(null)
       setEditForm(null)
       await loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch)
-      if (selectedMember?.id === editTarget.id) await loadMemberDetails(editTarget.id)
     } catch {
       toast.error("Failed to save changes.")
     } finally {
       setEditSaving(false)
     }
-  }, [editTarget, editForm, loadMembers, loadMemberDetails, selectedMember, pagination, statusFilter, debouncedSearch])
+  }, [editTarget, editForm, loadMembers, pagination, statusFilter, debouncedSearch])
 
   const submitDeactivate = React.useCallback(async () => {
     if (!deactivateTarget) return
@@ -322,13 +305,12 @@ export function MembersTable() {
       toast.success(deactivateTarget.action === "deactivate" ? "Member deactivated." : "Member reactivated.")
       setDeactivateTarget(null)
       await loadMembers(pagination.pageIndex, pagination.pageSize, statusFilter, debouncedSearch)
-      if (selectedMember?.id === deactivateTarget.id) await loadMemberDetails(deactivateTarget.id)
     } catch {
       toast.error("Failed to update member status.")
     } finally {
       setDeactivateSaving(false)
     }
-  }, [deactivateTarget, loadMembers, loadMemberDetails, selectedMember, pagination, statusFilter, debouncedSearch])
+  }, [deactivateTarget, loadMembers, pagination, statusFilter, debouncedSearch])
 
 
   const columns = React.useMemo<ColumnDef<MemberSummary>[]>(() => [
@@ -396,6 +378,9 @@ export function MembersTable() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push('/dashboard/members/' + row.original.userId)}>
+                <IconEye className="size-4" /> View Details
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openEdit(row.original)}>
                 <IconEdit className="size-4" /> Edit
               </DropdownMenuItem>
@@ -428,169 +413,6 @@ export function MembersTable() {
     manualPagination: true,
     rowCount: total,
   })
-
-  if (detailsLoading || selectedMember) {
-    return (
-      <>
-        <div className="space-y-6 px-4 lg:px-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="-ml-2 text-muted-foreground hover:text-foreground"
-            onClick={() => setSelectedMember(null)}
-          >
-            <IconArrowLeft className="size-4" />
-            Back to members
-          </Button>
-
-          {detailsLoading ? (
-            <div className="flex h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
-              <IconLoader2 className="size-4 animate-spin" />
-              Loading member...
-            </div>
-          ) : selectedMember ? (
-            <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-              <div className="space-y-4">
-                <div className="rounded-xl border p-6 space-y-4">
-                  <h2 className="font-semibold">Event enrollments</h2>
-                  <Separator />
-                  {selectedMember.eventEnrollments.length ? (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {selectedMember.eventEnrollments.map(e => (
-                        <div key={e.id} className="rounded-lg border p-4 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-medium">{e.eventName}</div>
-                            <EnrollmentStatusBadge value={e.status} />
-                          </div>
-                          {e.preferenceRank != null && (
-                            <div className="text-xs text-muted-foreground">
-                              Preference rank: #{e.preferenceRank}
-                            </div>
-                          )}
-                          {e.partnerPreference && e.partnerPreference !== "NA" && (
-                            <div className="text-xs text-muted-foreground">
-                              Partner: {e.partnerPreference.toLowerCase()}{e.partnerNames ? ` · ${e.partnerNames}` : ""}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No event enrollments.</p>
-                  )}
-                </div>
-
-                <div className="rounded-xl border p-6 space-y-4">
-                  <h2 className="font-semibold">Team assignments</h2>
-                  <Separator />
-                  {selectedMember.teamAssignments.length ? (
-                    <div className="space-y-3">
-                      {selectedMember.teamAssignments.map(t => (
-                        <div key={t.id} className="rounded-lg border p-4 space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-medium">
-                              Team {t.teamLabel} — {t.eventName}
-                            </div>
-                            <Badge variant="outline" className="text-xs">{t.role}</Badge>
-                          </div>
-                          {t.competitionName && (
-                            <div className="text-xs text-muted-foreground">{t.competitionName}</div>
-                          )}
-                          {t.seatNumber != null && (
-                            <div className="text-xs text-muted-foreground">Seat #{t.seatNumber}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No team assignments.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-                <div className="rounded-xl border p-4 space-y-4">
-                  <div>
-                    <div className="text-base font-semibold">{selectedMember.name}</div>
-                    <div className="text-sm text-muted-foreground">{selectedMember.email}</div>
-                    {selectedMember.phone && (
-                      <div className="text-sm text-muted-foreground">
-                        {formatPhone(selectedMember.phone)}
-                      </div>
-                    )}
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2.5">
-                    <InfoRow label="Grade" value={selectedMember.grade || "—"} />
-                    <InfoRow label="Shirt size" value={selectedMember.shirtSize || "—"} />
-                    <InfoRow label="Can travel" value={selectedMember.canTravel ? "Yes" : "No"} />
-                    <InfoRow
-                      label="Status"
-                      value={<MemberStatusBadge value={selectedMember.membershipStatus} />}
-                    />
-                    <InfoRow label="Joined" value={selectedMember.joinedAt || "—"} />
-                    {selectedMember.statusChangedAt && (
-                      <InfoRow label="Updated" value={selectedMember.statusChangedAt} />
-                    )}
-                    {selectedMember.statusReason && (
-                      <InfoRow label="Note" value={selectedMember.statusReason} />
-                    )}
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    {selectedMember.membershipStatus === "ACTIVE" ? (
-                      <Button
-                        variant="destructive"
-                        className="w-full"
-                        onClick={() => setDeactivateTarget({ id: selectedMember.id, action: "deactivate" })}
-                      >
-                        <IconUserOff className="size-4" />
-                        Deactivate
-                      </Button>
-                    ) : (
-                      <Button
-                        className="w-full"
-                        onClick={() => setDeactivateTarget({ id: selectedMember.id, action: "reactivate" })}
-                      >
-                        <IconUserCheck className="size-4" />
-                        Reactivate
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => openEdit(selectedMember)}
-                    >
-                      <IconEdit className="size-4" />
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </div>
-        <MemberEditSheet
-          target={editTarget}
-          form={editForm}
-          saving={editSaving}
-          onChange={setEditForm}
-          onClose={() => { setEditTarget(null); setEditForm(null) }}
-          onSave={() => void saveEdit()}
-        />
-        <DeactivateDialog
-          target={deactivateTarget}
-          saving={deactivateSaving}
-          onClose={() => setDeactivateTarget(null)}
-          onConfirm={() => void submitDeactivate()}
-        />
-      </>
-    )
-  }
 
   return (
     <>
@@ -634,7 +456,7 @@ export function MembersTable() {
                 <div
                   key={m.id}
                   className="flex items-center justify-between rounded-xl border bg-card px-4 py-3 gap-3 cursor-pointer hover:border-primary/40 transition-colors"
-                  onClick={() => void loadMemberDetails(m.id)}
+                  onClick={() => m.userId && router.push(`/dashboard/members/${m.userId}`)}
                 >
                   <div className="min-w-0 space-y-1">
                     <div className="font-medium truncate">{m.name}</div>
@@ -724,7 +546,7 @@ export function MembersTable() {
                     <TableRow
                       key={row.id}
                       className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => void loadMemberDetails(row.original.id)}
+                      onClick={() => row.original.userId && router.push(`/dashboard/members/${row.original.userId}`)}
                     >
                       {row.getVisibleCells().map(cell => (
                         <TableCell

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { withAdminAuth, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
 import { formatDate, extractUploadedFileName } from "@/lib/format"
+import { sendPasswordSetupEmail } from "@/lib/email"
 
 export const dynamic = "force-dynamic"
 
@@ -215,7 +216,7 @@ export const PATCH = withAdminAuth(
     const now = new Date()
 
     if (action === "approve") {
-      await prisma.$transaction([
+      const [, approvedUser] = await prisma.$transaction([
         prisma.memberSeason.update({
           where: { id },
           data: {
@@ -227,8 +228,25 @@ export const PATCH = withAdminAuth(
         prisma.user.update({
           where: { id: existing.userId },
           data: { role: UserRole.MEMBER },
+          select: { email: true, firstName: true, passwordHash: true },
         }),
       ])
+
+      // If the user has no password yet, create a setup token and email them.
+      if (!approvedUser.passwordHash) {
+        const setupToken = await prisma.passwordSetupToken.create({
+          data: {
+            userId: existing.userId,
+            expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+          },
+        })
+        try {
+          await sendPasswordSetupEmail(approvedUser.email, setupToken.token, approvedUser.firstName)
+        } catch (emailError) {
+          console.error("Failed to send password setup email:", emailError)
+          // Non-fatal — approval still succeeds
+        }
+      }
 
       return ok({ success: true, membershipStatus: "ACTIVE" })
     }
