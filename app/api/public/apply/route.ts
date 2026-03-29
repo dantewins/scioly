@@ -81,6 +81,7 @@ export async function POST(req: Request) {
         const scienceClasses = getString(formData, "scienceClasses")
         const mathClasses = getString(formData, "mathClasses")
         const questions = getString(formData, "questions")
+        const joinCode = getString(formData, "joinCode")
         const topEventsRaw = getString(formData, "topEvents")
 
         const focusPageFileEntry = formData.get("focusPageFile")
@@ -171,6 +172,25 @@ export async function POST(req: Request) {
             )
         }
 
+        if (!joinCode) {
+            return NextResponse.json(
+                { error: "A join code is required to apply." },
+                { status: 400 }
+            )
+        }
+
+        const club = await prisma.club.findUnique({
+            where: { joinCode },
+            select: { id: true },
+        })
+
+        if (!club) {
+            return NextResponse.json(
+                { error: "Invalid join code. Please check with your club admin." },
+                { status: 400 }
+            )
+        }
+
         const existingUser = await prisma.user.findUnique({
             where: { email },
         })
@@ -183,7 +203,7 @@ export async function POST(req: Request) {
         }
 
         const activeSeason = await prisma.season.findFirst({
-            where: { isActive: true },
+            where: { isActive: true, clubId: club.id },
             orderBy: { startsAt: "desc" },
         });
 

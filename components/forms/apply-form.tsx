@@ -34,6 +34,7 @@ type EventChoice = {
 type FieldErrors = Record<string, string>
 
 type ApplicationForm = {
+    joinCode: string
     name: string
     gradeLevel: string
     email: string
@@ -91,6 +92,7 @@ function createEmptyTopEvents(): EventChoice[] {
 
 function createInitialForm(): ApplicationForm {
     return {
+        joinCode: "",
         name: "",
         gradeLevel: "",
         email: "",
@@ -158,6 +160,8 @@ function getDuplicateEventErrors(events: EventChoice[]): FieldErrors {
 
 function validateStep1(form: ApplicationForm): FieldErrors {
     const errors: FieldErrors = {}
+
+    if (!form.joinCode.trim()) errors.joinCode = "Join code is required."
 
     if (!form.name.trim()) errors.name = "Full name is required."
 
@@ -276,16 +280,16 @@ export function ApplyForm({
         return new Set(eventOptions.map((event) => event.name))
     }, [eventOptions])
 
-    const loadEvents = React.useCallback(async () => {
+    const loadEvents = React.useCallback(async (joinCode?: string) => {
         setEventsLoading(true)
         setEventsError(null)
 
         try {
-            const res = await fetch("/api/public/events", {
-                method: "GET",
-                cache: "no-store",
-            })
+            const url = joinCode
+                ? `/api/public/events?joinCode=${encodeURIComponent(joinCode)}`
+                : "/api/public/events"
 
+            const res = await fetch(url, { method: "GET", cache: "no-store" })
             const data: EventsResponse = await res.json()
 
             if (!res.ok) {
@@ -295,7 +299,9 @@ export function ApplyForm({
             setEventOptions(data.events ?? [])
 
             if (!data.events?.length) {
-                setEventsError("No events are available right now.")
+                setEventsError(
+                    data.error ?? "No events are available for this join code."
+                )
             }
         } catch (error) {
             console.error(error)
@@ -309,6 +315,15 @@ export function ApplyForm({
     React.useEffect(() => {
         void loadEvents()
     }, [loadEvents])
+
+    // Re-fetch events when a complete join code is entered (on step 2 load)
+    const joinCodeRef = React.useRef(form.joinCode)
+    React.useEffect(() => {
+        if (step === 2 && form.joinCode.trim() && form.joinCode !== joinCodeRef.current) {
+            joinCodeRef.current = form.joinCode
+            void loadEvents(form.joinCode.trim())
+        }
+    }, [step, form.joinCode, loadEvents])
 
     const isStep1Complete = React.useMemo(() => {
         return Object.keys(validateStep1(form)).length === 0
@@ -494,6 +509,7 @@ export function ApplyForm({
         try {
             const payload = new FormData()
 
+            payload.append("joinCode", form.joinCode.trim())
             payload.append("name", form.name.trim())
             payload.append("gradeLevel", form.gradeLevel)
             payload.append("email", form.email.trim())
@@ -593,6 +609,29 @@ export function ApplyForm({
 
                     {step === 1 ? (
                         <>
+                            <Field>
+                                <FieldLabel
+                                    htmlFor="joinCode"
+                                    className={getLabelClass("joinCode")}
+                                >
+                                    Club join code *
+                                </FieldLabel>
+                                <Input
+                                    id="joinCode"
+                                    name="joinCode"
+                                    value={form.joinCode}
+                                    onChange={updateField}
+                                    placeholder="e.g. PPCHS2026"
+                                    className={getFieldClass("joinCode")}
+                                    autoComplete="off"
+                                />
+                                {fieldErrors.joinCode ? (
+                                    <p className="mt-1 text-sm text-destructive">
+                                        {fieldErrors.joinCode}
+                                    </p>
+                                ) : null}
+                            </Field>
+
                             <div className="grid gap-4 md:grid-cols-2">
                                 <Field>
                                     <FieldLabel

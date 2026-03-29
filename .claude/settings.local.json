@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/Danny/OneDrive/Documents/Personal/Projects/scioly/app/api/public -type f -name *.ts)",
+      "Bash(npx prisma:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"Yes\" npx prisma migrate reset --force)",
+      "Bash(npm run:*)",
+      "Bash(npx tsx:*)"
+    ]
+  }
+}
