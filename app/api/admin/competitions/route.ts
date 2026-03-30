@@ -158,7 +158,7 @@ export const GET = withAdminAuth(
         members: members.map(m => {
           const assignedSlots = new Set<number>()
           for (const ta of m.teamAssignments) {
-            const slot = ta.team.event.eventSchedules[0]?.timeSlot
+            const slot = ta.team.event?.eventSchedules[0]?.timeSlot
             if (slot != null) assignedSlots.add(slot)
           }
           return {
