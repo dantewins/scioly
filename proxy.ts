@@ -5,7 +5,7 @@ import { jwtVerify } from "jose";
 const SESSION_COOKIE = "app_session";
 const secret = new TextEncoder().encode(process.env.APP_JWT_SECRET!);
 
-const PUBLIC_PAGES = ["/login"];
+const PUBLIC_PAGES = ["/login", "/"];
 const PUBLIC_API_PREFIXES = [
     "/api/auth/login",
     "/api/public/",
