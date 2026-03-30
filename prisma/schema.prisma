@@ -191,6 +191,8 @@ model Season {
   clubEvents     ClubEvent[]
   resources      Resource[]
   announcements  Announcement[]
+  tests          Test[]
+  roles          ClubRole[]
 
   @@unique([clubId, schoolYear])
   @@index([clubId, isActive])
@@ -277,6 +279,8 @@ model MemberSeason {
   hourEntries       HourEntry[]
   assignmentMembers AssignmentMember[]
   eventAttendances  ClubEventAttendance[]
+  testAttempts      TestAttempt[]
+  roles             MemberRole[]
 
   @@unique([userId, seasonId])
   @@index([seasonId, membershipStatus])
@@ -302,6 +306,7 @@ model Event {
   eventSchedules EventSchedule[]
   resources    Resource[]
   announcements Announcement[]
+  tests         Test[]
 
   @@unique([seasonId, name])
   @@index([seasonId, sortOrder])
@@ -715,3 +720,105 @@ model ActivityLog {
   @@index([actorId])
   @@index([entityType, entityId])
 }
+
+model ClubRole {
+  id          String   @id @default(cuid())
+  seasonId    String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  season      Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  members     MemberRole[]
+
+  @@unique([seasonId, name])
+  @@index([seasonId])
+}
+
+model MemberRole {
+  id             String   @id @default(cuid())
+  memberSeasonId String
+  clubRoleId     String
+  assignedAt     DateTime @default(now())
+
+  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
+  clubRole     ClubRole     @relation(fields: [clubRoleId], references: [id], onDelete: Cascade)
+
+  @@unique([memberSeasonId, clubRoleId])
+  @@index([memberSeasonId])
+  @@index([clubRoleId])
+}
+
+model Test {
+  id               String         @id @default(cuid())
+  seasonId         String
+  eventId          String?
+  title            String
+  description      String?
+  isActive         Boolean        @default(true)
+  timeLimitMinutes Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  season    Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  event     Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  questions TestQuestion[]
+  attempts  TestAttempt[]
+
+  @@index([seasonId])
+  @@index([eventId])
+}
+
+model TestQuestion {
+  id             String       @id @default(cuid())
+  testId         String
+  order          Int
+  content        String
+  type           QuestionType @default(MCQ)
+  options        Json?
+  answerKey      String?
+  points         Int          @default(1)
+  imageUrl       String?
+  stationNumber  Int?
+  stationContext String?
+
+  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers TestAnswer[]
+
+  @@index([testId, order])
+}
+
+model TestAttempt {
+  id             String       @id @default(cuid())
+  testId         String
+  memberSeasonId String
+  startedAt      DateTime     @default(now())
+  submittedAt    DateTime?
+  totalPoints    Int
+  earnedPoints   Int?
+  createdAt      DateTime     @default(now())
+
+  test         Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
+  answers      TestAnswer[]
+
+  @@index([testId])
+  @@index([memberSeasonId])
+}
+
+model TestAnswer {
+  id           String  @id @default(cuid())
+  attemptId    String
+  questionId   String
+  response     Json
+  isCorrect    Boolean?
+  pointsEarned Int?
+
+  attempt  TestAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question TestQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+}
+

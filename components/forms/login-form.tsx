@@ -76,7 +76,7 @@ export function LoginForm({
               className="flex flex-col items-center gap-2 font-medium"
             >
               <div className="flex size-8 items-center justify-center rounded-md">
-                <IconAtom className="size-7" />
+                <IconAtom className="size-8" />
               </div>
               <span className="sr-only">Science Olympiad.</span>
             </Link>

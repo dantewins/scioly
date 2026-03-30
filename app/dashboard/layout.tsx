@@ -22,7 +22,7 @@ export default function DashboardLayout({
                 } as CSSProperties
             }
         >
-            <NextTopLoader height={2} color="black" showSpinner={false} shadow={false} />
+            <NextTopLoader height={2} color="#0085C7" showSpinner={false} shadow={false} />
             <AppSidebar variant="inset" />
             <SidebarInset>
                 <SiteHeader />

@@ -61,7 +61,7 @@ export default function SetPasswordPage() {
         {/* Logo */}
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <IconAtom className="size-5" />
+            <IconAtom className="size-8" />
           </div>
           <h1 className="text-xl font-semibold">Set your password</h1>
           <p className="text-sm text-muted-foreground">

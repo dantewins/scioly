@@ -1,6 +1,7 @@
 import "dotenv/config"
 import { PrismaPg } from "@prisma/adapter-pg"
 import {
+  EventEnrollmentStatus,
   MembershipStatus,
   PartnerPreference,
   PrismaClient,
@@ -543,17 +544,20 @@ async function main() {
       await prisma.eventEnrollment.upsert({
         where: { memberSeasonId_eventId: { memberSeasonId: ms.id, eventId } },
         update: {
-          name: "PPCHS Science Olympiad",
-          schoolName: "Pembroke Pines Charter High School",
-          description: "Main club record",
-          joinCode: "PPCHS2026",
+          status: EventEnrollmentStatus.ACTIVE,
+          preferenceRank: ev.rank,
+          skillRating: ev.skill,
+          partnerPreference: ev.partnerPref ?? PartnerPreference.NA,
+          partnerNames: ev.partnerName ?? null,
         },
         create: {
-          name: "PPCHS Science Olympiad",
-          slug: "ppchs-scioly",
-          joinCode: "PPCHS2026",
-          schoolName: "Pembroke Pines Charter High School",
-          description: "Main club record",
+          memberSeasonId: ms.id,
+          eventId,
+          status: EventEnrollmentStatus.ACTIVE,
+          preferenceRank: ev.rank,
+          skillRating: ev.skill,
+          partnerPreference: ev.partnerPref ?? PartnerPreference.NA,
+          partnerNames: ev.partnerName ?? null,
         },
       })
     }

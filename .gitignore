@@ -1,5 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+CLAUDE.md
+
 # dependencies
 /node_modules
 /.pnp
@@ -44,7 +46,6 @@ next-env.d.ts
 
 /lib/generated/prisma
 
-CLAUDE.md
 /.claude
 /.docs
 /scioly-drive
