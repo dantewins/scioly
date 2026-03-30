@@ -136,8 +136,8 @@ export const GET = withAdminAuth(
         teams: competition.teams.map(t => ({
           id: t.id,
           eventId: t.eventId,
-          eventName: t.event.name ?? "Unknown event",
-          maxParticipants: t.event.maxParticipants,
+          eventName: t.event?.name ?? "Unknown event",
+          maxParticipants: t.event?.maxParticipants ?? 0,
           label: t.label ?? "A",
           status: t.status,
           assignments: t.assignments.map(a => {
