@@ -54,7 +54,7 @@ A multi-tenant Science Olympiad club management SaaS platform. Schools self-regi
 - `/` — landing/marketing page
 - `/register` — club self-registration (teacher/president creates club + their account)
 - `/login` — email + password login with school domain enforcement
-- `/apply` — member application form (public, tied to club by slug or join code)
+- `/apply/[clubSlug]` — member application form (public, tied to club by its URL slug, e.g. `/apply/mast-scioly`)
 - `/set-password` — token-based password setup (sent via email on application approval)
 
 ### Protected (`/dashboard/*`)
@@ -134,7 +134,7 @@ The following models are structurally sound and carry forward unchanged:
 - `app/api/admin/applications/`, `app/api/admin/members/`, `app/api/member/forms/`, `app/api/public/apply/`
 
 **Builds:**
-- Public `/apply` page: multi-step application form scoped to club by slug/join code
+- Public `/apply/[clubSlug]` page: multi-step application form scoped to club by URL slug
 - Application review flow: table, approve/reject with status reason, email trigger on approval
 - Password setup email sent on approval → `/set-password` token flow
 - Member directory: searchable/filterable table with role badges, membership status
@@ -215,7 +215,7 @@ The following models are structurally sound and carry forward unchanged:
 - UI components: shadcn/ui only, no custom component libraries
 - Icons: `@tabler/icons-react` only
 - All admin routes: export `dynamic = "force-dynamic"`
-- No direct `prisma.*` calls in API routes — use helper functions where possible
+- Prefer `lib/db.ts` helpers for common queries (e.g. `getActiveSeason`, `getMemberSeason`); direct `prisma.*` calls are acceptable in API route handlers for one-off queries
 - File uploads: `multipart/form-data`
 
 ---
@@ -242,4 +242,6 @@ The following models are structurally sound and carry forward unchanged:
 | Practice Tests | `app/dashboard/practice/`, `app/dashboard/admin/practice/`, `app/api/admin/practice/`, `app/api/member/practice/` |
 | Polish | `app/dashboard/page.tsx`, `app/dashboard/announcements/`, `app/dashboard/resources/`, `app/api/admin/announcements/`, `app/api/admin/resources/` |
 
-**Shared (read-only for non-Foundation agents):** `prisma/schema.prisma`, `lib/*`, `components/ui/*`, `app/dashboard/layout.tsx`
+**Shared (read-only for non-Foundation agents after Phase 1):** `prisma/schema.prisma`, `lib/*`, `components/ui/*`, `app/dashboard/layout.tsx`
+
+> Note: On club self-registration (`/register`), the founding user's email domain becomes the club's `schoolDomain`. Domain enforcement only applies to subsequent logins and member registrations — not to the initial club founder creating the club.
