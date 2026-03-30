@@ -54,33 +54,33 @@ A multi-tenant Science Olympiad club management SaaS platform. Schools self-regi
 
 Each club defines its own roles (e.g. "President", "Treasurer", "Head Team Captain"). Each role has individual permission flags. Members can hold multiple roles; permissions are unioned across all assigned roles.
 
-**Permission flags (26 total — each area has `view_` and `manage_`):**
+**Permission flags (52 total — each area has `view_`, `create_`, `edit_`, `delete_`):**
 
-| Area | `view_[area]` gates | `manage_[area]` gates |
-|---|---|---|
-| `members` | View member directory, profiles | Approve/reject applications, edit profiles, change roles |
-| `teams` | View team rosters and assignments | Create/edit/delete teams, assign members |
-| `events` | View Science Olympiad events, enrollments | Create/edit/delete events, manage enrollments |
-| `competitions` | View competitions, schedules | Create/edit/delete competitions, publish schedules |
-| `hours` | View own hour entries | Approve/reject submissions, create categories |
-| `finances` | View own invoices | Create invoices, record payments, view all finances |
-| `forms` | View own form submissions | Create form types, verify submissions |
-| `club_events` | View club events calendar | Create/edit/delete events, take attendance |
-| `resources` | View resources | Upload/delete resources |
-| `announcements` | View announcements | Create/pin/delete announcements |
-| `practice` | View and attempt practice tests | Upload PDFs, create/edit answer keys |
-| `roles` | View club roles | Create/edit/delete roles, assign to members |
-| `club_settings` | View club settings | Edit club name, domain, season settings |
+| Area | `view_[area]` | `create_[area]` | `edit_[area]` | `delete_[area]` |
+|---|---|---|---|---|
+| `members` | View directory, profiles | Approve applications, invite members | Edit profiles, change roles, reject applications | Remove members |
+| `teams` | View team rosters | Create teams | Edit teams, assign/remove members | Delete teams |
+| `events` | View events, enrollments | Create events | Edit events, manage enrollments | Delete events |
+| `competitions` | View competitions, schedules | Create competitions | Edit competitions, publish schedules | Delete competitions |
+| `hours` | View own hour entries | Submit hour entries | Approve/reject submissions, edit categories | Delete entries/categories |
+| `finances` | View own invoices | Create invoices | Record payments, edit invoices | Delete invoices/payments |
+| `forms` | View own submissions | Create form types | Verify/reject submissions, edit form types | Delete form types |
+| `club_events` | View club events calendar | Create club events | Edit events, take attendance | Delete club events |
+| `resources` | View resources | Upload resources | Edit resource metadata | Delete resources |
+| `announcements` | View announcements | Create announcements | Edit/pin announcements | Delete announcements |
+| `practice` | View and attempt practice tests | Upload PDFs, create answer keys | Edit answer keys, test metadata | Delete practice tests |
+| `roles` | View club roles | Create roles | Edit roles, assign/remove from members | Delete roles |
+| `club_settings` | View club settings | — | Edit club name, domain, season settings | — |
 
-> `manage_[area]` always implies `view_[area]`. `WEBSITE_OWNER` bypasses all flags.
+> Higher CRUD flags do not imply lower ones — each flag is independent. `WEBSITE_OWNER` bypasses all flags. `create_club_settings` and `delete_club_settings` intentionally have no meaning and are always ignored.
 
 **Default roles created on club setup:**
 
 | Role | Default permissions |
 |---|---|
-| `Admin` | All `manage_*` flags enabled |
-| `Board Member` | `manage_members`, `manage_teams`, `manage_events`, `manage_competitions`, `manage_hours`, `manage_forms`, `manage_club_events`, `manage_resources`, `manage_announcements`, `view_finances`, `view_roles`, `view_club_settings` |
-| `Member` | All `view_*` flags enabled; no `manage_*` flags |
+| `Admin` | All 52 flags enabled (except `create_club_settings` / `delete_club_settings` which are inert) |
+| `Board Member` | All `view_*` + `create_*` + `edit_*` flags; no `delete_*` flags except `delete_hours` and `delete_resources` |
+| `Member` | All `view_*` flags + `create_hours` (submit own hours) + `create_practice` (attempt practice tests) |
 
 Clubs can rename, modify permissions on, or delete any of these. The club founder (WEBSITE_OWNER) is never subject to role permission checks.
 
@@ -91,9 +91,13 @@ Clubs can rename, modify permissions on, or delete any of these. The club founde
 ```json
 {
   "view_members": true,
-  "manage_members": true,
+  "create_members": true,
+  "edit_members": true,
+  "delete_members": false,
   "view_finances": true,
-  "manage_finances": false
+  "create_finances": false,
+  "edit_finances": false,
+  "delete_finances": false
 }
 ```
 
@@ -102,14 +106,17 @@ Clubs can rename, modify permissions on, or delete any of these. The club founde
 ### Permission check helpers (`lib/permissions.ts`)
 
 ```ts
+// PermissionFlag = "view_members" | "create_members" | "edit_members" | "delete_members" | ...
 hasPermission(memberRoles: ClubRole[], flag: PermissionFlag): boolean
 canView(memberRoles: ClubRole[], area: PermissionArea): boolean
-canManage(memberRoles: ClubRole[], area: PermissionArea): boolean
+canCreate(memberRoles: ClubRole[], area: PermissionArea): boolean
+canEdit(memberRoles: ClubRole[], area: PermissionArea): boolean
+canDelete(memberRoles: ClubRole[], area: PermissionArea): boolean
 ```
 
 API wrappers updated:
-- `withPermission(flag)` — replaces `withAdminAuth` / `withMemberAuth` for granular checks
-- `withAdminAuth` retained as a convenience wrapper for `manage_club_settings` (backward compat)
+- `withPermission(flag)` — checks a single permission flag; used in all API routes
+- `withAdminAuth` retained as a convenience alias for `edit_club_settings`
 
 ---
 
@@ -282,7 +289,7 @@ The following models are structurally sound and carry forward unchanged:
 ## Coding Conventions (All Agents)
 
 - Dashboard pages: server components, call `getCurrentUser()` directly, no client-side auth
-- API routes: use `withPermission(flag)` from `lib/api.ts` for granular permission checks; `withAdminAuth` is a convenience alias for `manage_club_settings`
+- API routes: use `withPermission(flag)` from `lib/api.ts` for granular CRUD permission checks (e.g. `withPermission("delete_members")`); `withAdminAuth` is a convenience alias for `edit_club_settings`
 - Responses: always use `ok(data)` and `err(message, status)` helpers
 - Validation: Zod schemas for all API inputs
 - Tables: TanStack Table via shared table components
