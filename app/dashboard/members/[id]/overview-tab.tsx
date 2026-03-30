@@ -42,7 +42,7 @@ interface EventEnrollment {
 interface TeamAssignment {
   id: string
   teamLabel: string
-  eventName: string
+  eventName: string | null
   role: string
   competitionName: string | null
   seatNumber: number | null

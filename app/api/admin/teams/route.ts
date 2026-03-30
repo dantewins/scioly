@@ -269,7 +269,7 @@ export const POST = withAdminAuth(
       })
 
       for (const ea of existingAssignments) {
-        const slot = ea.team.event.eventSchedules[0]?.timeSlot
+        const slot = ea.team.event?.eventSchedules[0]?.timeSlot
         if (slot != null) {
           assignedInSlot.get(ea.memberSeasonId)?.add(slot)
         }

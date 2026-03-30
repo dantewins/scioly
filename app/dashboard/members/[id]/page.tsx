@@ -212,7 +212,7 @@ export default async function MemberDetailPage({ params }: PageProps) {
             teamAssignments={memberSeason.teamAssignments.map(t => ({
               id: t.id,
               teamLabel: t.team.label,
-              eventName: t.team.event.name,
+              eventName: t.team.event?.name ?? null,
               role: t.role,
               competitionName: t.team.competition?.name ?? null,
               seatNumber: t.seatNumber ?? null,

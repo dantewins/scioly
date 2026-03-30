@@ -109,8 +109,8 @@ export const GET = withAdminAuth(
           teamId: t.team.id,
           teamLabel: t.team.label,
           teamStatus: t.team.status,
-          eventId: t.team.event.id,
-          eventName: t.team.event.name,
+          eventId: t.team.event?.id ?? null,
+          eventName: t.team.event?.name ?? null,
           competitionName: t.team.competition?.name ?? null,
         })),
       })
@@ -188,7 +188,7 @@ export const GET = withAdminAuth(
         joinedAt: formatDate(m.joinedAt),
         eventCount: m.eventEnrollments.length,
         teamLabel: m.teamAssignments[0]?.team.label ?? null,
-        teamEvent: m.teamAssignments[0]?.team.event.name ?? null,
+        teamEvent: m.teamAssignments[0]?.team.event?.name ?? null,
       })),
       total,
     })
