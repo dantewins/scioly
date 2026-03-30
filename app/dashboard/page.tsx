@@ -136,7 +136,7 @@ export default async function DashboardPage() {
           <Link
             key={stat.label}
             href={stat.href}
-            className={`group rounded-xl border bg-card transition-all hover:border-primary/40 hover:shadow-sm overflow-hidden ${
+            className={`group rounded-xl border bg-card transition-all hover:border-primary/40 overflow-hidden ${
               stat.highlight ? "border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""
             }`}
           >
@@ -178,7 +178,7 @@ export default async function DashboardPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {upcomingCompetitions.map(c => (
               <Link key={c.id} href={`/dashboard/competitions/${c.id}`} className="group">
-                <Card className="h-full transition-all group-hover:border-primary/40 group-hover:shadow-sm gap-3">
+                <Card className="h-full transition-all group-hover:border-primary/40 gap-3">
                   <CardHeader className="pb-0">
                     <span className={`w-fit rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_BADGE[c.type] ?? TYPE_BADGE.OTHER}`}>
                       {TYPE_LABELS[c.type] ?? c.type}
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
             <Link
               key={action.href}
               href={action.href}
-              className="flex flex-col items-center justify-center gap-2 rounded-xl border bg-card px-3 py-4 text-center transition-all hover:border-primary/40 hover:bg-muted/30 hover:shadow-sm"
+              className="flex flex-col items-center justify-center gap-2 rounded-xl border bg-card px-3 py-4 text-center transition-all hover:border-primary/40 hover:bg-muted/30"
             >
               <action.icon className="size-5 text-muted-foreground" />
               <span className="text-xs font-medium leading-tight">{action.label}</span>

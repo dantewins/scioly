@@ -734,7 +734,7 @@ export function ApplicantsTable() {
             )}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border">
+          <div className="overflow-x-auto rounded-xl border">
             <Table>
               <TableHeader className="bg-muted/50">
                 {table.getHeaderGroups().map(hg => (

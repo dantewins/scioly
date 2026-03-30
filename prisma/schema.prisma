@@ -39,6 +39,15 @@ enum TournamentType {
   OTHER
 }
 
+enum CompetitionType {
+  PRACTICE
+  INVITATIONAL
+  REGIONAL
+  STATE
+  NATIONAL
+  OTHER
+}
+
 enum TeamStatus {
   DRAFT
   ACTIVE
@@ -174,13 +183,14 @@ model Season {
   members        MemberSeason[]
   events         Event[]
   tournaments    Tournament[]
+  competitions   Competition[]
   teams          Team[]
   formTypes      FormType[]
   invoices       DuesInvoice[]
   hourCategories HourCategory[]
+  clubEvents     ClubEvent[]
   resources      Resource[]
   announcements  Announcement[]
-  tests          Test[]
 
   @@unique([clubId, schoolYear])
   @@index([clubId, isActive])
@@ -266,6 +276,7 @@ model MemberSeason {
   payments          PaymentRecord[]
   hourEntries       HourEntry[]
   assignmentMembers AssignmentMember[]
+  eventAttendances  ClubEventAttendance[]
 
   @@unique([userId, seasonId])
   @@index([seasonId, membershipStatus])
@@ -287,6 +298,8 @@ model Event {
   season       Season                     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   enrollments  EventEnrollment[]
   assignments  TournamentEventAssignment[]
+  teams        Team[]
+  eventSchedules EventSchedule[]
   resources    Resource[]
   announcements Announcement[]
 
@@ -317,6 +330,27 @@ model Tournament {
   @@index([seasonId, type])
 }
 
+model Competition {
+  id          String          @id @default(cuid())
+  seasonId    String
+  name        String
+  type        CompetitionType @default(OTHER)
+  location    String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  isPublished Boolean         @default(false)
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  season         Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  teams          Team[]
+  eventSchedules EventSchedule[]
+
+  @@unique([seasonId, name])
+  @@index([seasonId, type])
+}
+
 model EventSchedule {
   id            String      @id @default(cuid())
   competitionId String
@@ -332,16 +366,20 @@ model EventSchedule {
 }
 
 model Team {
-  id          String     @id @default(cuid())
-  seasonId    String
-  label       String     // ex: "Varsity", "JV A"
-  status      TeamStatus @default(DRAFT)
-  memberLimit Int?
-  notes       String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  seasonId      String
+  competitionId String?
+  eventId       String?
+  label         String     // ex: "Varsity", "JV A"
+  status        TeamStatus @default(DRAFT)
+  memberLimit   Int?
+  notes         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   season           Season                     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  competition      Competition?               @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  event            Event?                     @relation(fields: [eventId], references: [id], onDelete: SetNull)
   assignments      TeamAssignment[]
   teamTournaments  TeamTournament[]
   eventAssignments TournamentEventAssignment[]
@@ -349,6 +387,8 @@ model Team {
   announcements    Announcement[]
 
   @@index([seasonId])
+  @@index([competitionId])
+  @@index([eventId])
 }
 
 model TeamTournament {
