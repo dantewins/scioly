@@ -15,20 +15,18 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useAuth } from "@/context/AuthContext";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
-  const { setUser } = useAuth();
 
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
-  async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
 
@@ -48,11 +46,10 @@ export function LoginForm({
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        toast.error(data?.error ?? "Login failed.");
+        toast.error(data?.message ?? "Login failed.");
         return;
       }
 
-      setUser(data.user);
       router.push("/dashboard");
     } catch (err) {
       console.error(err);
@@ -84,7 +81,10 @@ export function LoginForm({
             <h1 className="text-xl font-bold">Welcome to Science Olympiad.</h1>
 
             <FieldDescription>
-              Don&apos;t have an account? <Link href="/apply">Apply here</Link>
+              New school?{" "}
+              <Link href="/register" className="text-foreground underline underline-offset-4">
+                Register your club
+              </Link>
             </FieldDescription>
           </div>
 
