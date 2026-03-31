@@ -48,7 +48,7 @@
 **Files:**
 - Modify: `package.json`
 
-- [ ] **Step 1: Install jose**
+- [x] **Step 1: Install jose**
 
 ```bash
 npm install jose
@@ -56,7 +56,7 @@ npm install jose
 
 Expected output: `added 1 package` (jose is used in lib/auth.ts but was missing from package.json).
 
-- [ ] **Step 2: Verify TypeScript can find it**
+- [x] **Step 2: Verify TypeScript can find it**
 
 ```bash
 npx tsc --noEmit 2>&1 | head -20
@@ -64,7 +64,7 @@ npx tsc --noEmit 2>&1 | head -20
 
 Expected: no "Cannot find module 'jose'" errors (other type errors may exist — that's fine).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add package.json package-lock.json
@@ -78,7 +78,7 @@ git commit -m "deps: add jose JWT library"
 **Files:**
 - Rewrite: `prisma/schema.prisma`
 
-- [ ] **Step 1: Write new schema**
+- [x] **Step 1: Write new schema**
 
 Replace the entire contents of `prisma/schema.prisma` with:
 
@@ -788,7 +788,7 @@ model ActivityLog {
 }
 ```
 
-- [ ] **Step 2: Push schema to database**
+- [x] **Step 2: Push schema to database**
 
 ```bash
 npx prisma db push --force-reset
@@ -798,7 +798,7 @@ Expected: `Your database is now in sync with your Prisma schema.`
 
 > `--force-reset` drops and recreates all tables. This is fine during development — we're doing a clean wipe.
 
-- [ ] **Step 3: Regenerate Prisma client**
+- [x] **Step 3: Regenerate Prisma client**
 
 ```bash
 npx prisma generate
@@ -806,7 +806,7 @@ npx prisma generate
 
 Expected: `Generated Prisma Client`.
 
-- [ ] **Step 4: Verify TypeScript sees new types**
+- [x] **Step 4: Verify TypeScript sees new types**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep -i "UserRole\|ClubRole\|permissions" | head -20
@@ -814,7 +814,7 @@ npx tsc --noEmit 2>&1 | grep -i "UserRole\|ClubRole\|permissions" | head -20
 
 Expected: no errors referencing these types.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add prisma/schema.prisma
@@ -828,7 +828,7 @@ git commit -m "schema: rewrite — simplified UserRole, ClubRole permissions, pr
 **Files:**
 - Create: `lib/permissions.ts`
 
-- [ ] **Step 1: Write the file**
+- [x] **Step 1: Write the file**
 
 ```ts
 // lib/permissions.ts
@@ -944,7 +944,7 @@ export function mergePermissions(roleMaps: unknown[]): PermissionMap {
 }
 ```
 
-- [ ] **Step 2: Verify no TypeScript errors**
+- [x] **Step 2: Verify no TypeScript errors**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "lib/permissions" | head -10
@@ -952,7 +952,7 @@ npx tsc --noEmit 2>&1 | grep "lib/permissions" | head -10
 
 Expected: no output (no errors in this file).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/permissions.ts
@@ -968,7 +968,7 @@ getCurrentUser now returns a `CurrentUser` object that includes a `permissions` 
 **Files:**
 - Modify: `lib/auth.ts`
 
-- [ ] **Step 1: Write updated lib/auth.ts**
+- [x] **Step 1: Write updated lib/auth.ts**
 
 ```ts
 // lib/auth.ts
@@ -1082,7 +1082,7 @@ export async function getCurrentUser(req?: NextRequest): Promise<CurrentUser | n
 }
 ```
 
-- [ ] **Step 2: Check types compile**
+- [x] **Step 2: Check types compile**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "lib/auth" | head -10
@@ -1090,7 +1090,7 @@ npx tsc --noEmit 2>&1 | grep "lib/auth" | head -10
 
 Expected: no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/auth.ts
@@ -1104,7 +1104,7 @@ git commit -m "feat: getCurrentUser returns permissions map"
 **Files:**
 - Rewrite: `lib/api.ts`
 
-- [ ] **Step 1: Write new lib/api.ts**
+- [x] **Step 1: Write new lib/api.ts**
 
 ```ts
 // lib/api.ts
@@ -1177,7 +1177,7 @@ export function withAdminAuth<TContext = unknown>(
 }
 ```
 
-- [ ] **Step 2: Check types**
+- [x] **Step 2: Check types**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "lib/api" | head -10
@@ -1185,7 +1185,7 @@ npx tsc --noEmit 2>&1 | grep "lib/api" | head -10
 
 Expected: no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/api.ts
@@ -1199,7 +1199,7 @@ git commit -m "feat: rewrite lib/api.ts with withPermission flag-based auth"
 **Files:**
 - Rewrite: `context/AuthContext.tsx`
 
-- [ ] **Step 1: Write new AuthContext**
+- [x] **Step 1: Write new AuthContext**
 
 ```tsx
 // context/AuthContext.tsx
@@ -1266,7 +1266,7 @@ export function useAuth() {
 }
 ```
 
-- [ ] **Step 2: Check types**
+- [x] **Step 2: Check types**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "AuthContext" | head -10
@@ -1274,7 +1274,7 @@ npx tsc --noEmit 2>&1 | grep "AuthContext" | head -10
 
 Expected: no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add context/AuthContext.tsx
@@ -1288,7 +1288,7 @@ git commit -m "feat: rewrite AuthContext with permission flag helpers"
 **Files:**
 - Modify: `middleware.ts`
 
-- [ ] **Step 1: Write middleware**
+- [x] **Step 1: Write middleware**
 
 ```ts
 // middleware.ts
@@ -1323,7 +1323,7 @@ export const config = {
 }
 ```
 
-- [ ] **Step 2: Check types**
+- [x] **Step 2: Check types**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "middleware" | head -10
@@ -1331,7 +1331,7 @@ npx tsc --noEmit 2>&1 | grep "middleware" | head -10
 
 Expected: no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add middleware.ts
