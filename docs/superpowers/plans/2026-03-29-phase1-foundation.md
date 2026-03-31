@@ -1351,7 +1351,7 @@ Delete all API routes that will be owned by later agents. Replace all dashboard 
 - Delete: `app/apply/`
 - Replace with stubs: `app/dashboard/applications/`, `app/dashboard/club-events/`, `app/dashboard/competitions/`, `app/dashboard/events/`, `app/dashboard/members/`, `app/dashboard/practice/`, `app/dashboard/teams/`, `app/dashboard/tests/`
 
-- [ ] **Step 1: Delete old routes**
+- [x] **Step 1: Delete old routes**
 
 ```bash
 rm -rf \
@@ -1381,7 +1381,7 @@ rm -rf \
   app/dashboard/tests
 ```
 
-- [ ] **Step 2: Create placeholder pages**
+- [x] **Step 2: Create placeholder pages**
 
 For each of the following paths, create a `page.tsx` with this content (substitute the section label):
 
@@ -1448,7 +1448,7 @@ export default function PracticePage() {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add -A
@@ -1464,7 +1464,7 @@ git commit -m "chore: wipe old routes, add placeholder pages for Phases 2-3"
 - Carry forward: `app/api/auth/logout/route.ts` (no changes needed)
 - Carry forward: `app/api/auth/set-password/route.ts` (no changes needed)
 
-- [ ] **Step 1: Write login route with schoolDomain enforcement**
+- [x] **Step 1: Write login route with schoolDomain enforcement**
 
 ```ts
 // app/api/auth/login/route.ts
@@ -1522,7 +1522,7 @@ export async function POST(req: Request) {
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript**
+- [x] **Step 2: Verify TypeScript**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "api/auth/login" | head -10
@@ -1530,7 +1530,7 @@ npx tsc --noEmit 2>&1 | grep "api/auth/login" | head -10
 
 Expected: no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/api/auth/login/route.ts
@@ -1546,7 +1546,7 @@ git commit -m "feat: login enforces schoolDomain per club"
 
 This route creates the club, the WEBSITE_OWNER user account, and the three default club roles in a single transaction.
 
-- [ ] **Step 1: Write registration route**
+- [x] **Step 1: Write registration route**
 
 ```ts
 // app/api/auth/register/route.ts
@@ -1666,7 +1666,7 @@ export async function POST(req: Request) {
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript**
+- [x] **Step 2: Verify TypeScript**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "api/auth/register" | head -10
@@ -1674,7 +1674,7 @@ npx tsc --noEmit 2>&1 | grep "api/auth/register" | head -10
 
 Expected: no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/api/auth/register/route.ts
@@ -1688,7 +1688,7 @@ git commit -m "feat: club self-registration API — creates club, owner, default
 **Files:**
 - Create: `app/register/page.tsx`
 
-- [ ] **Step 1: Write register page**
+- [x] **Step 1: Write register page**
 
 ```tsx
 // app/register/page.tsx
@@ -1869,7 +1869,7 @@ export default function RegisterPage() {
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript**
+- [x] **Step 2: Verify TypeScript**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "register" | head -10
@@ -1877,7 +1877,7 @@ npx tsc --noEmit 2>&1 | grep "register" | head -10
 
 Expected: no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/register/
@@ -1891,13 +1891,13 @@ git commit -m "feat: club self-registration page"
 **Files:**
 - Modify: `app/login/page.tsx`
 
-- [ ] **Step 1: Read current login page**
+- [x] **Step 1: Read current login page**
 
 ```bash
 cat app/login/page.tsx
 ```
 
-- [ ] **Step 2: Ensure "Register your club" link exists**
+- [x] **Step 2: Ensure "Register your club" link exists**
 
 If the login page does not already have a link to `/register`, add one below the sign-in button. Find the section near the bottom of the form and add:
 
@@ -1910,7 +1910,7 @@ If the login page does not already have a link to `/register`, add one below the
 </p>
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/login/page.tsx
@@ -1926,7 +1926,7 @@ Replace old role-based checks (`canAccessAdmin`) with permission flag checks.
 **Files:**
 - Rewrite: `components/app-sidebar.tsx`
 
-- [ ] **Step 1: Write new sidebar**
+- [x] **Step 1: Write new sidebar**
 
 ```tsx
 // components/app-sidebar.tsx
@@ -2131,7 +2131,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
 > Note: `NavUser` component signature may differ from current. Read `components/nav-user.tsx` before writing — if `onSignOut` prop doesn't exist, adapt accordingly.
 
-- [ ] **Step 2: Check NavUser props**
+- [x] **Step 2: Check NavUser props**
 
 ```bash
 grep -n "NavUserData\|onSignOut\|signOut" components/nav-user.tsx | head -20
@@ -2139,7 +2139,7 @@ grep -n "NavUserData\|onSignOut\|signOut" components/nav-user.tsx | head -20
 
 Adjust the `NavUser` usage in step 1 to match the actual props.
 
-- [ ] **Step 3: Verify TypeScript**
+- [x] **Step 3: Verify TypeScript**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "app-sidebar\|nav-user" | head -10
@@ -2147,7 +2147,7 @@ npx tsc --noEmit 2>&1 | grep "app-sidebar\|nav-user" | head -10
 
 Expected: no output.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/app-sidebar.tsx
@@ -2164,7 +2164,7 @@ git commit -m "feat: sidebar uses permission flags for nav gating"
 - Create: `app/api/admin/roles/[roleId]/route.ts`
 - Create: `app/api/admin/members/[id]/roles/route.ts`
 
-- [ ] **Step 1: Club settings PATCH**
+- [x] **Step 1: Club settings PATCH**
 
 ```ts
 // app/api/admin/settings/route.ts
@@ -2206,7 +2206,7 @@ export const GET = withPermission("view_club_settings", async (_req, _ctx, user)
 })
 ```
 
-- [ ] **Step 2: Roles list + create**
+- [x] **Step 2: Roles list + create**
 
 ```ts
 // app/api/admin/roles/route.ts
@@ -2247,7 +2247,7 @@ export const POST = withPermission("create_roles", async (req, _ctx, user) => {
 })
 ```
 
-- [ ] **Step 3: Role edit + delete**
+- [x] **Step 3: Role edit + delete**
 
 ```ts
 // app/api/admin/roles/[roleId]/route.ts
@@ -2300,7 +2300,7 @@ export const DELETE = withPermission(
 )
 ```
 
-- [ ] **Step 4: Assign/remove role from member**
+- [x] **Step 4: Assign/remove role from member**
 
 ```ts
 // app/api/admin/members/[id]/roles/route.ts
@@ -2371,7 +2371,7 @@ export const DELETE = withPermission(
 )
 ```
 
-- [ ] **Step 5: Verify TypeScript**
+- [x] **Step 5: Verify TypeScript**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "api/admin" | head -20
@@ -2379,7 +2379,7 @@ npx tsc --noEmit 2>&1 | grep "api/admin" | head -20
 
 Expected: no output.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/api/admin/settings/ app/api/admin/roles/ app/api/admin/members/
@@ -2393,7 +2393,7 @@ git commit -m "feat: settings and roles management API routes"
 **Files:**
 - Create: `app/dashboard/settings/page.tsx`
 
-- [ ] **Step 1: Write settings page**
+- [x] **Step 1: Write settings page**
 
 ```tsx
 // app/dashboard/settings/page.tsx
@@ -2465,7 +2465,7 @@ export default async function SettingsPage() {
 }
 ```
 
-- [ ] **Step 2: Create ClubSettingsForm client component**
+- [x] **Step 2: Create ClubSettingsForm client component**
 
 ```tsx
 // app/dashboard/settings/club-settings-form.tsx
@@ -2565,7 +2565,7 @@ export function ClubSettingsForm({ club }: Props) {
 }
 ```
 
-- [ ] **Step 3: Create RolesManager client component**
+- [x] **Step 3: Create RolesManager client component**
 
 ```tsx
 // app/dashboard/settings/roles-manager.tsx
@@ -2831,7 +2831,7 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
 }
 ```
 
-- [ ] **Step 4: Verify TypeScript**
+- [x] **Step 4: Verify TypeScript**
 
 ```bash
 npx tsc --noEmit 2>&1 | grep "settings" | head -20
@@ -2839,7 +2839,7 @@ npx tsc --noEmit 2>&1 | grep "settings" | head -20
 
 Expected: no output.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/dashboard/settings/
@@ -2853,7 +2853,7 @@ git commit -m "feat: settings page with club info and roles management UI"
 **Files:**
 - Rewrite: `prisma/seed.ts`
 
-- [ ] **Step 1: Write seed script**
+- [x] **Step 1: Write seed script**
 
 ```ts
 // prisma/seed.ts
@@ -3023,7 +3023,7 @@ main()
   .finally(() => prisma.$disconnect())
 ```
 
-- [ ] **Step 2: Run seed**
+- [x] **Step 2: Run seed**
 
 ```bash
 npx tsx prisma/seed.ts
@@ -3037,7 +3037,7 @@ Seed complete.
   Member:        member@mast.edu / password123
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add prisma/seed.ts
