@@ -1,97 +1,53 @@
-import { NextResponse } from "next/server";
-import { SignJWT } from "jose";
-import bcrypt from "bcryptjs";
+// app/api/auth/login/route.ts
+import { NextResponse } from "next/server"
+import bcrypt from "bcryptjs"
+import { z } from "zod"
+import { prisma } from "@/lib/prisma"
+import { signSession } from "@/lib/auth"
+import { setSessionCookie } from "@/lib/cookies"
+import { err, ok } from "@/lib/api"
 
-import { prisma } from "@/lib/prisma";
+export const dynamic = "force-dynamic"
 
-const SESSION_COOKIE = "app_session";
-const secret = new TextEncoder().encode(process.env.APP_JWT_SECRET!);
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+})
 
 export async function POST(req: Request) {
-    try {
-        const body = await req.json();
+  try {
+    const body = await req.json()
+    const parsed = schema.safeParse(body)
+    if (!parsed.success) return err("Invalid email or password.", 400)
 
-        const email = String(body.email ?? "").trim().toLowerCase();
-        const password = String(body.password ?? "");
+    const { email, password } = parsed.data
 
-        if (!email || !password) {
-            return NextResponse.json(
-                { error: "Email and password are required." },
-                { status: 400 }
-            );
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user || !user.passwordHash) return err("Invalid email or password.", 401)
+
+    const valid = await bcrypt.compare(password, user.passwordHash)
+    if (!valid) return err("Invalid email or password.", 401)
+
+    // Domain enforcement — WEBSITE_OWNER bypasses
+    if (user.role !== "WEBSITE_OWNER") {
+      const club = await prisma.club.findUnique({
+        where: { id: user.clubId },
+        select: { schoolDomain: true },
+      })
+      if (club?.schoolDomain) {
+        const emailDomain = email.split("@")[1]?.toLowerCase()
+        if (emailDomain !== club.schoolDomain.toLowerCase()) {
+          return err("Your email domain does not match this club's school domain.", 403)
         }
-
-        const user = await prisma.user.findUnique({
-            where: { email },
-            select: {
-                id: true,
-                email: true,
-                passwordHash: true,
-                role: true,
-                firstName: true,
-                lastName: true,
-            }
-        });
-
-        if (!user || !user.passwordHash) {
-            return NextResponse.json(
-                { error: "Invalid email or password." },
-                { status: 401 }
-            );
-        }
-
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-
-        if (!isValid) {
-            return NextResponse.json(
-                { error: "Invalid email or password." },
-                { status: 401 }
-            );
-        }
-
-        if (user.role === "APPLICANT") {
-            return NextResponse.json(
-                { error: "Your account is pending approval." },
-                { status: 403 }
-            );
-        }
-
-        const token = await new SignJWT({
-            role: user.role,
-            email: user.email,
-        })
-            .setProtectedHeader({ alg: "HS256" })
-            .setSubject(user.id)
-            .setIssuedAt()
-            .setExpirationTime("7d")
-            .sign(secret);
-
-        const res = NextResponse.json({
-            success: true,
-            user: {
-                id: user.id,
-                email: user.email,
-                role: user.role,
-                firstName: user.firstName,
-                lastName: user.lastName,
-            },
-        });
-
-        res.cookies.set(SESSION_COOKIE, token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            path: "/",
-            maxAge: 60 * 60 * 24 * 7,
-        });
-
-        return res;
-    } catch (error) {
-        console.error("LOGIN_ERROR", error);
-
-        return NextResponse.json(
-            { error: "Internal server error." },
-            { status: 500 }
-        );
+      }
     }
+
+    const token = await signSession({ sub: user.id })
+    const response = ok({ ok: true }) as ReturnType<typeof NextResponse.json>
+    setSessionCookie(token, response)
+    return response
+  } catch (e) {
+    console.error("[login]", e)
+    return err("Login failed.", 500)
+  }
 }
