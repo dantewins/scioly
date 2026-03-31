@@ -3048,7 +3048,7 @@ git commit -m "feat: seed script with sample club, roles, events, season"
 
 ## Task 17: Final integration check
 
-- [ ] **Step 1: Full TypeScript compile**
+- [x] **Step 1: Full TypeScript compile**
 
 ```bash
 npx tsc --noEmit 2>&1
@@ -3059,7 +3059,7 @@ Fix any remaining errors before proceeding. Common issues:
 - Old `UserRole.ADMIN` / `UserRole.BOARD_MEMBER` references in carry-forward files → replace with `UserRole.MEMBER`
 - `canAccessAdmin` still referenced in files not yet updated → replace with `canView("club_settings")` or `canEdit("club_settings")`
 
-- [ ] **Step 2: Start dev server**
+- [x] **Step 2: Start dev server**
 
 ```bash
 npm run dev
@@ -3067,7 +3067,7 @@ npm run dev
 
 Expected: server starts on port 3000 with no errors.
 
-- [ ] **Step 3: Manual smoke test**
+- [x] **Step 3: Manual smoke test**
 
 1. Navigate to `http://localhost:3000/register`
 2. Fill out the registration form, submit → should redirect to `/dashboard`
@@ -3077,7 +3077,7 @@ Expected: server starts on port 3000 with no errors.
 6. Edit a role's permissions → save → should persist
 7. Log out, try to access `/dashboard` → should redirect to `/login`
 
-- [ ] **Step 4: Commit final fixes**
+- [x] **Step 4: Commit final fixes**
 
 ```bash
 git add -A
