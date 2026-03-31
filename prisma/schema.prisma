@@ -6,10 +6,10 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 enum UserRole {
   WEBSITE_OWNER
-  ADMIN
-  BOARD_MEMBER
   MEMBER
   APPLICANT
 }
@@ -30,15 +30,6 @@ enum EventEnrollmentStatus {
   DROPPED
 }
 
-enum TournamentType {
-  PRACTICE
-  INVITATIONAL
-  REGIONAL
-  STATE
-  NATIONAL
-  OTHER
-}
-
 enum CompetitionType {
   PRACTICE
   INVITATIONAL
@@ -46,13 +37,6 @@ enum CompetitionType {
   STATE
   NATIONAL
   OTHER
-}
-
-enum TeamStatus {
-  DRAFT
-  ACTIVE
-  FINALIZED
-  ARCHIVED
 }
 
 enum TeamMemberRole {
@@ -115,26 +99,6 @@ enum ResourceType {
   OTHER
 }
 
-enum ResourceVisibility {
-  CLUB
-  EVENT
-  TEAM
-  BOARD_ONLY
-}
-
-enum AnnouncementAudience {
-  ALL_MEMBERS
-  BOARD_ONLY
-  EVENT_ONLY
-  TEAM_ONLY
-}
-
-enum PartnerPreference {
-  NA
-  RECOMMENDED
-  MANDATORY
-}
-
 enum ClubEventType {
   MEETING
   SUPER_SATURDAY
@@ -144,27 +108,21 @@ enum ClubEventType {
   OTHER
 }
 
-enum QuestionType {
-  MCQ
-  SELECT_ALL
-  MATCHING
-  FREE_RESPONSE
-  TRUE_FALSE
-  FILL_IN_BLANK
-}
+// ─── Core ─────────────────────────────────────────────────────────────────────
 
 model Club {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  joinCode    String?  @unique
-  schoolName  String?
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  schoolName   String?
+  schoolDomain String?
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   users        User[]
   seasons      Season[]
+  roles        ClubRole[]
   activityLogs ActivityLog[]
 }
 
@@ -172,7 +130,7 @@ model Season {
   id         String   @id @default(cuid())
   clubId     String
   name       String
-  schoolYear String   // ex: "2026-2027"
+  schoolYear String
   startsAt   DateTime
   endsAt     DateTime
   isActive   Boolean  @default(false)
@@ -182,7 +140,6 @@ model Season {
   club           Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
   members        MemberSeason[]
   events         Event[]
-  tournaments    Tournament[]
   competitions   Competition[]
   teams          Team[]
   formTypes      FormType[]
@@ -191,29 +148,28 @@ model Season {
   clubEvents     ClubEvent[]
   resources      Resource[]
   announcements  Announcement[]
-  tests          Test[]
-  roles          ClubRole[]
+  practiceTests  PracticeTest[]
 
   @@unique([clubId, schoolYear])
   @@index([clubId, isActive])
 }
 
 model User {
-  id              String    @id @default(cuid())
-  clubId          String
-  email           String    @unique
-  passwordHash    String?
-  role            UserRole  @default(MEMBER)
-  firstName       String
-  lastName        String
-  displayName     String?
-  gradeLevel      Int?
-  graduationYear  Int?
-  studentNumber   String?
-  phone           String?
-  imageUrl        String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  clubId         String
+  email          String    @unique
+  passwordHash   String?
+  role           UserRole  @default(MEMBER)
+  firstName      String
+  lastName       String
+  displayName    String?
+  gradeLevel     Int?
+  graduationYear Int?
+  studentNumber  String?
+  phone          String?
+  imageUrl       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   club                 Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
   seasonMemberships    MemberSeason[]
@@ -262,29 +218,64 @@ model MemberSeason {
   questions              String?
   focusPageFileUrl       String?
   applicationSubmittedAt DateTime?
-  statusChangedAt     DateTime?
-  statusReason        String?
+  statusChangedAt        DateTime?
+  statusReason           String?
 
-  expectedHours    Decimal?         @db.Decimal(5, 2)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  expectedHours Decimal? @db.Decimal(5, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  season            Season              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  eventEnrollments  EventEnrollment[]
-  teamAssignments   TeamAssignment[]
-  formSubmissions   FormSubmission[]
-  invoices          DuesInvoice[]
-  payments          PaymentRecord[]
-  hourEntries       HourEntry[]
-  assignmentMembers AssignmentMember[]
-  eventAttendances  ClubEventAttendance[]
-  testAttempts      TestAttempt[]
-  roles             MemberRole[]
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season           Season                @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  eventEnrollments EventEnrollment[]
+  teamAssignments  TeamAssignment[]
+  formSubmissions  FormSubmission[]
+  invoices         DuesInvoice[]
+  payments         PaymentRecord[]
+  hourEntries      HourEntry[]
+  eventAttendances ClubEventAttendance[]
+  practiceAttempts PracticeAttempt[]
+  roles            MemberRole[]
 
   @@unique([userId, seasonId])
   @@index([seasonId, membershipStatus])
 }
+
+// ─── Roles ────────────────────────────────────────────────────────────────────
+
+// ClubRole is club-scoped (not season-scoped). Members are assigned roles per MemberSeason.
+// permissions is a flat JSON object: { "view_members": true, "edit_members": false, ... }
+model ClubRole {
+  id          String   @id @default(cuid())
+  clubId      String
+  name        String
+  description String?
+  permissions Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  club    Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  members MemberRole[]
+
+  @@unique([clubId, name])
+  @@index([clubId])
+}
+
+model MemberRole {
+  id             String   @id @default(cuid())
+  memberSeasonId String
+  clubRoleId     String
+  assignedAt     DateTime @default(now())
+
+  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
+  clubRole     ClubRole     @relation(fields: [clubRoleId], references: [id], onDelete: Cascade)
+
+  @@unique([memberSeasonId, clubRoleId])
+  @@index([memberSeasonId])
+  @@index([clubRoleId])
+}
+
+// ─── Events & Competitions ────────────────────────────────────────────────────
 
 model Event {
   id              String   @id @default(cuid())
@@ -299,40 +290,16 @@ model Event {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  season       Season                     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  enrollments  EventEnrollment[]
-  assignments  TournamentEventAssignment[]
-  teams        Team[]
+  season         Season              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  enrollments    EventEnrollment[]
+  teams          Team[]
   eventSchedules EventSchedule[]
-  resources    Resource[]
-  announcements Announcement[]
-  tests         Test[]
+  resources      Resource[]
+  announcements  Announcement[]
+  practiceTests  PracticeTest[]
 
   @@unique([seasonId, name])
   @@index([seasonId, sortOrder])
-}
-
-model Tournament {
-  id          String         @id @default(cuid())
-  seasonId    String
-  name        String
-  type        TournamentType @default(OTHER)
-  location    String?
-  startsAt    DateTime
-  endsAt      DateTime?
-  notes       String?
-  isPublished Boolean        @default(false)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-
-  season            Season                     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  teamTournaments   TeamTournament[]
-  eventAssignments  TournamentEventAssignment[]
-  resources         Resource[]
-  announcements     Announcement[]
-
-  @@unique([seasonId, name])
-  @@index([seasonId, type])
 }
 
 model Competition {
@@ -351,13 +318,15 @@ model Competition {
   season         Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   teams          Team[]
   eventSchedules EventSchedule[]
+  resources      Resource[]
+  announcements  Announcement[]
 
   @@unique([seasonId, name])
   @@index([seasonId, type])
 }
 
 model EventSchedule {
-  id            String      @id @default(cuid())
+  id            String   @id @default(cuid())
   competitionId String
   eventId       String
   timeSlot      Int
@@ -371,70 +340,26 @@ model EventSchedule {
 }
 
 model Team {
-  id            String     @id @default(cuid())
+  id            String         @id @default(cuid())
   seasonId      String
   competitionId String?
   eventId       String?
-  label         String     // ex: "Varsity", "JV A"
-  status        TeamStatus @default(DRAFT)
+  label         String
   memberLimit   Int?
   notes         String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  season           Season                     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  competition      Competition?               @relation(fields: [competitionId], references: [id], onDelete: SetNull)
-  event            Event?                     @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  assignments      TeamAssignment[]
-  teamTournaments  TeamTournament[]
-  eventAssignments TournamentEventAssignment[]
-  resources        Resource[]
-  announcements    Announcement[]
+  season      Season           @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  competition Competition?     @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  event       Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  assignments TeamAssignment[]
+  resources   Resource[]
+  announcements Announcement[]
 
   @@index([seasonId])
   @@index([competitionId])
   @@index([eventId])
-}
-
-model TeamTournament {
-  id           String     @id @default(cuid())
-  teamId       String
-  tournamentId String
-
-  team       Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, tournamentId])
-  @@index([tournamentId])
-}
-
-model TournamentEventAssignment {
-  id           String @id @default(cuid())
-  tournamentId String
-  teamId       String
-  eventId      String
-
-  tournament Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  team       Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  event      Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  members    AssignmentMember[]
-
-  @@unique([tournamentId, teamId, eventId])
-  @@index([tournamentId, teamId])
-  @@index([eventId])
-}
-
-model AssignmentMember {
-  id             String @id @default(cuid())
-  assignmentId   String
-  memberSeasonId String
-  seatNumber     Int?
-
-  assignment   TournamentEventAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  memberSeason MemberSeason              @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
-
-  @@unique([assignmentId, memberSeasonId])
-  @@index([memberSeasonId])
 }
 
 model TeamAssignment {
@@ -455,20 +380,16 @@ model TeamAssignment {
 }
 
 model EventEnrollment {
-  id                    String                @id @default(cuid())
-  memberSeasonId        String
-  eventId               String
-  status                EventEnrollmentStatus @default(INTERESTED)
-  preferenceRank        Int?
-  tryoutScore           Decimal?              @db.Decimal(6, 2)
-  skillRating           Int?
-  notes                 String?
-
-  partnerPreference     PartnerPreference     @default(NA)
-  partnerNames          String?
-
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
+  id                String                @id @default(cuid())
+  memberSeasonId    String
+  eventId           String
+  status            EventEnrollmentStatus @default(INTERESTED)
+  preferenceRank    Int?
+  tryoutScore       Decimal?              @db.Decimal(6, 2)
+  skillRating       Int?
+  notes             String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
 
   memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -477,6 +398,141 @@ model EventEnrollment {
   @@index([eventId, status])
   @@index([memberSeasonId])
 }
+
+// ─── Hours ────────────────────────────────────────────────────────────────────
+
+model HourCategory {
+  id                 String   @id @default(cuid())
+  seasonId           String
+  name               String
+  description        String?
+  requiredHours      Decimal? @db.Decimal(5, 2)
+  requiresApproval   Boolean  @default(true)
+  proofInstructions  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  season      Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  hourEntries HourEntry[]
+  clubEvents  ClubEvent[]
+
+  @@unique([seasonId, name])
+  @@index([seasonId])
+}
+
+model HourEntry {
+  id              String          @id @default(cuid())
+  memberSeasonId  String
+  categoryId      String
+  title           String
+  description     String?
+  totalHours      Decimal         @db.Decimal(5, 2)
+  proofUrl        String?
+  status          HourEntryStatus @default(PENDING)
+  submittedAt     DateTime        @default(now())
+  approvedAt      DateTime?
+  approvedById    String?
+  rejectionReason String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  memberSeason MemberSeason         @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
+  category     HourCategory         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  approvedBy   User?                @relation("ApprovedHours", fields: [approvedById], references: [id], onDelete: SetNull)
+  attendance   ClubEventAttendance?
+
+  @@index([memberSeasonId, status])
+  @@index([categoryId])
+  @@index([approvedById])
+}
+
+// ─── Club Events ──────────────────────────────────────────────────────────────
+
+model ClubEvent {
+  id         String        @id @default(cuid())
+  seasonId   String
+  name       String
+  type       ClubEventType @default(OTHER)
+  location   String?
+  startsAt   DateTime
+  endsAt     DateTime?
+  hoursValue Decimal       @db.Decimal(5, 2) @default(0)
+  categoryId String?
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  season     Season                @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  category   HourCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  attendance ClubEventAttendance[]
+
+  @@index([seasonId, startsAt])
+}
+
+model ClubEventAttendance {
+  id             String   @id @default(cuid())
+  clubEventId    String
+  memberSeasonId String
+  markedAt       DateTime @default(now())
+  hourEntryId    String?  @unique
+
+  clubEvent    ClubEvent    @relation(fields: [clubEventId], references: [id], onDelete: Cascade)
+  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
+  hourEntry    HourEntry?   @relation(fields: [hourEntryId], references: [id], onDelete: SetNull)
+
+  @@unique([clubEventId, memberSeasonId])
+  @@index([memberSeasonId])
+}
+
+// ─── Finances ─────────────────────────────────────────────────────────────────
+
+model DuesInvoice {
+  id              String        @id @default(cuid())
+  seasonId        String
+  memberSeasonId  String
+  title           String
+  description     String?
+  amountCents     Int
+  amountPaidCents Int           @default(0)
+  status          InvoiceStatus @default(OPEN)
+  dueAt           DateTime?
+  issuedAt        DateTime      @default(now())
+  paidAt          DateTime?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  season       Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  memberSeason MemberSeason    @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
+  payments     PaymentRecord[]
+
+  @@index([seasonId, status])
+  @@index([memberSeasonId, status])
+}
+
+model PaymentRecord {
+  id              String        @id @default(cuid())
+  invoiceId       String
+  memberSeasonId  String
+  amountCents     Int
+  method          PaymentMethod @default(OTHER)
+  referenceNumber String?
+  receiptUrl      String?
+  notes           String?
+  paidAt          DateTime      @default(now())
+  recordedById    String?
+  createdAt       DateTime      @default(now())
+
+  invoice      DuesInvoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
+  recordedBy   User?        @relation("RecordedPayments", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([memberSeasonId])
+  @@index([recordedById])
+}
+
+// ─── Forms ────────────────────────────────────────────────────────────────────
 
 model FormType {
   id             String       @id @default(cuid())
@@ -498,19 +554,19 @@ model FormType {
 }
 
 model FormSubmission {
-  id               String               @id @default(cuid())
-  formTypeId       String
-  memberSeasonId   String
-  status           FormSubmissionStatus @default(NOT_STARTED)
-  acknowledgement  Boolean              @default(false)
-  fileUrl          String?
-  submittedAt      DateTime?
-  verifiedAt       DateTime?
-  verifiedById     String?
-  rejectionReason  String?
-  notes            String?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id              String               @id @default(cuid())
+  formTypeId      String
+  memberSeasonId  String
+  status          FormSubmissionStatus @default(NOT_STARTED)
+  acknowledgement Boolean              @default(false)
+  fileUrl         String?
+  submittedAt     DateTime?
+  verifiedAt      DateTime?
+  verifiedById    String?
+  rejectionReason String?
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
   formType     FormType     @relation(fields: [formTypeId], references: [id], onDelete: Cascade)
   memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
@@ -521,187 +577,113 @@ model FormSubmission {
   @@index([verifiedById])
 }
 
-model DuesInvoice {
-  id               String        @id @default(cuid())
-  seasonId         String
-  memberSeasonId   String
-  title            String
-  description      String?
-  amountCents      Int
-  amountPaidCents  Int           @default(0)
-  status           InvoiceStatus @default(OPEN)
-  dueAt            DateTime?
-  issuedAt         DateTime      @default(now())
-  paidAt           DateTime?
-  notes            String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  season       Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  memberSeason MemberSeason   @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
-  payments     PaymentRecord[]
-
-  @@index([seasonId, status])
-  @@index([memberSeasonId, status])
-}
-
-model PaymentRecord {
-  id              String        @id @default(cuid())
-  invoiceId       String
-  memberSeasonId  String
-  amountCents     Int
-  method          PaymentMethod @default(OTHER)
-  referenceNumber String?
-  receiptUrl      String?
-  notes           String?
-  paidAt          DateTime      @default(now())
-  recordedById    String?
-  createdAt       DateTime      @default(now())
-
-  invoice       DuesInvoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  memberSeason  MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
-  recordedBy    User?        @relation("RecordedPayments", fields: [recordedById], references: [id], onDelete: SetNull)
-
-  @@index([invoiceId])
-  @@index([memberSeasonId])
-  @@index([recordedById])
-}
-
-model HourCategory {
-  id               String   @id @default(cuid())
-  seasonId         String
-  name             String
-  description      String?
-  requiredHours    Decimal? @db.Decimal(5, 2)
-  requiresApproval Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  season      Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  hourEntries HourEntry[]
-  clubEvents  ClubEvent[]
-
-  @@unique([seasonId, name])
-  @@index([seasonId])
-}
-
-model HourEntry {
-  id              String          @id @default(cuid())
-  memberSeasonId  String
-  categoryId      String
-  title           String
-  description     String?
-  startsAt        DateTime?
-  endsAt          DateTime?
-  totalHours      Decimal         @db.Decimal(5, 2)
-  status          HourEntryStatus @default(PENDING)
-  submittedAt     DateTime        @default(now())
-  approvedAt      DateTime?
-  approvedById    String?
-  rejectionReason String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  memberSeason MemberSeason         @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
-  category     HourCategory        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  approvedBy   User?               @relation("ApprovedHours", fields: [approvedById], references: [id], onDelete: SetNull)
-  attendance   ClubEventAttendance?
-
-  @@index([memberSeasonId, status])
-  @@index([categoryId])
-  @@index([approvedById])
-}
-
-model ClubEvent {
-  id          String        @id @default(cuid())
-  seasonId    String
-  name        String
-  type        ClubEventType @default(OTHER)
-  location    String?
-  startsAt    DateTime
-  endsAt      DateTime?
-  hoursValue  Decimal       @db.Decimal(5, 2) @default(0)
-  categoryId  String?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  season     Season               @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  category   HourCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  attendance ClubEventAttendance[]
-
-  @@index([seasonId, startsAt])
-}
-
-model ClubEventAttendance {
-  id             String   @id @default(cuid())
-  clubEventId    String
-  memberSeasonId String
-  markedAt       DateTime @default(now())
-  hourEntryId    String?  @unique
-
-  clubEvent    ClubEvent    @relation(fields: [clubEventId], references: [id], onDelete: Cascade)
-  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
-  hourEntry    HourEntry?   @relation(fields: [hourEntryId], references: [id], onDelete: SetNull)
-
-  @@unique([clubEventId, memberSeasonId])
-  @@index([memberSeasonId])
-}
+// ─── Resources & Announcements ────────────────────────────────────────────────
 
 model Resource {
-  id           String             @id @default(cuid())
-  seasonId     String
-  eventId      String?
-  teamId       String?
-  tournamentId String?
-  title        String
-  description  String?
-  type         ResourceType       @default(LINK)
-  visibility   ResourceVisibility @default(CLUB)
-  url          String
-  uploadedById String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id            String       @id @default(cuid())
+  seasonId      String
+  eventId       String?
+  teamId        String?
+  competitionId String?
+  title         String
+  description   String?
+  type          ResourceType @default(LINK)
+  url           String
+  uploadedById  String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  season     Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  event      Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  team       Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
-  uploadedBy User?       @relation("UploadedResources", fields: [uploadedById], references: [id], onDelete: SetNull)
+  season      Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  event       Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  team        Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  competition Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  uploadedBy  User?        @relation("UploadedResources", fields: [uploadedById], references: [id], onDelete: SetNull)
 
-  @@index([seasonId, visibility])
+  @@index([seasonId])
   @@index([eventId])
   @@index([teamId])
-  @@index([tournamentId])
+  @@index([competitionId])
 }
 
 model Announcement {
-  id           String               @id @default(cuid())
-  seasonId     String
-  eventId      String?
-  teamId       String?
-  tournamentId String?
-  title        String
-  body         String
-  audience     AnnouncementAudience @default(ALL_MEMBERS)
-  isPinned     Boolean              @default(false)
-  publishedAt  DateTime?
-  expiresAt    DateTime?
-  createdById  String?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  id            String    @id @default(cuid())
+  seasonId      String
+  eventId       String?
+  teamId        String?
+  competitionId String?
+  title         String
+  body          String
+  isPinned      Boolean   @default(false)
+  publishedAt   DateTime?
+  expiresAt     DateTime?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  season     Season      @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  event      Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  team       Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
-  createdBy  User?       @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  season      Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  event       Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  team        Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  competition Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  createdBy   User?        @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([seasonId, publishedAt])
   @@index([eventId])
   @@index([teamId])
-  @@index([tournamentId])
+  @@index([competitionId])
 }
+
+// ─── Practice Tests ───────────────────────────────────────────────────────────
+
+model PracticeTest {
+  id               String   @id @default(cuid())
+  seasonId         String
+  eventId          String?
+  title            String
+  pdfUrl           String
+  timeLimitMinutes Int?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  season   Season          @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  event    Event?          @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  answerKey AnswerKey?
+  attempts PracticeAttempt[]
+
+  @@index([seasonId])
+  @@index([eventId])
+}
+
+// answers is an ordered JSON array: ["A", "B", "C2H6", ...]
+model AnswerKey {
+  id             String   @id @default(cuid())
+  practiceTestId String   @unique
+  answers        Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  practiceTest PracticeTest @relation(fields: [practiceTestId], references: [id], onDelete: Cascade)
+}
+
+// answers is an ordered JSON array matching the answer key indices
+model PracticeAttempt {
+  id             String    @id @default(cuid())
+  practiceTestId String
+  memberSeasonId String
+  answers        Json      @default("[]")
+  score          Int?
+  startedAt      DateTime  @default(now())
+  submittedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  practiceTest PracticeTest @relation(fields: [practiceTestId], references: [id], onDelete: Cascade)
+  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
+
+  @@index([practiceTestId])
+  @@index([memberSeasonId])
+}
+
+// ─── Activity Log ─────────────────────────────────────────────────────────────
 
 model ActivityLog {
   id         String   @id @default(cuid())
@@ -720,105 +702,3 @@ model ActivityLog {
   @@index([actorId])
   @@index([entityType, entityId])
 }
-
-model ClubRole {
-  id          String   @id @default(cuid())
-  seasonId    String
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  season      Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  members     MemberRole[]
-
-  @@unique([seasonId, name])
-  @@index([seasonId])
-}
-
-model MemberRole {
-  id             String   @id @default(cuid())
-  memberSeasonId String
-  clubRoleId     String
-  assignedAt     DateTime @default(now())
-
-  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
-  clubRole     ClubRole     @relation(fields: [clubRoleId], references: [id], onDelete: Cascade)
-
-  @@unique([memberSeasonId, clubRoleId])
-  @@index([memberSeasonId])
-  @@index([clubRoleId])
-}
-
-model Test {
-  id               String         @id @default(cuid())
-  seasonId         String
-  eventId          String?
-  title            String
-  description      String?
-  isActive         Boolean        @default(true)
-  timeLimitMinutes Int?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  season    Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
-  event     Event?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  questions TestQuestion[]
-  attempts  TestAttempt[]
-
-  @@index([seasonId])
-  @@index([eventId])
-}
-
-model TestQuestion {
-  id             String       @id @default(cuid())
-  testId         String
-  order          Int
-  content        String
-  type           QuestionType @default(MCQ)
-  options        Json?
-  answerKey      String?
-  points         Int          @default(1)
-  imageUrl       String?
-  stationNumber  Int?
-  stationContext String?
-
-  test    Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
-  answers TestAnswer[]
-
-  @@index([testId, order])
-}
-
-model TestAttempt {
-  id             String       @id @default(cuid())
-  testId         String
-  memberSeasonId String
-  startedAt      DateTime     @default(now())
-  submittedAt    DateTime?
-  totalPoints    Int
-  earnedPoints   Int?
-  createdAt      DateTime     @default(now())
-
-  test         Test         @relation(fields: [testId], references: [id], onDelete: Cascade)
-  memberSeason MemberSeason @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)
-  answers      TestAnswer[]
-
-  @@index([testId])
-  @@index([memberSeasonId])
-}
-
-model TestAnswer {
-  id           String  @id @default(cuid())
-  attemptId    String
-  questionId   String
-  response     Json
-  isCorrect    Boolean?
-  pointsEarned Int?
-
-  attempt  TestAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question TestQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([attemptId, questionId])
-  @@index([attemptId])
-}
-
