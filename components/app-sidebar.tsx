@@ -116,6 +116,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Main nav */}
         {navItems.length > 0 && (
           <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 h-6">
+              Management
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navItems.map((item) => (
@@ -167,6 +170,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Settings */}
         {(isOwner || canView("club_settings")) && (
           <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 h-6">
+              Config
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
