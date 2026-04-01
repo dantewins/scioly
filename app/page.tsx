@@ -8,9 +8,8 @@ import {
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { BlurText } from "@/components/effects/blur-text"
-import { SpotlightCard } from "@/components/effects/spotlight-card"
-import { ShinyText } from "@/components/effects/shiny-text"
-import { Magnet } from "@/components/effects/magnet"
+import { StarBorder } from "@/components/effects/star-border"
+import { StarField } from "@/components/effects/star-field"
 
 export default function Page() {
   const [scrolled, setScrolled] = useState(false)
@@ -66,7 +65,7 @@ export default function Page() {
               size="sm"
               className="h-8 px-4 text-xs rounded-md bg-foreground text-background hover:bg-foreground/90 font-medium shadow-none"
             >
-              <Link href="/apply">Apply to Join</Link>
+              <Link href="/register">Apply to Join</Link>
             </Button>
           </div>
         </div>
@@ -78,23 +77,18 @@ export default function Page() {
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className="relative w-full flex flex-col items-center text-center pt-28 pb-32 md:pt-40 md:pb-44 max-w-screen-xl mx-auto overflow-hidden">
 
-          {/* Aurora — desktop only */}
-
-          {/* Static glow fallback — always present, Aurora layers on top on desktop */}
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-96 -z-10 opacity-40"
-            style={{
-              background: "radial-gradient(ellipse 70% 50% at 50% 0%, oklch(0.55 0.18 254 / 0.25) 0%, transparent 100%)",
-            }}
-          />
+          {/* Star field — dark mode desktop only */}
+          <div className="hidden dark:sm:block absolute inset-0 -z-10 pointer-events-none">
+            <StarField />
+          </div>
 
           {/* Badge */}
           <Link
-            href="/apply"
+            href="/register"
             className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-xs font-mono tracking-wider uppercase transition-all hover:bg-primary/10 hover:border-primary/40 mb-8 ring-1 ring-primary/10"
           >
             <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            <ShinyText className="text-muted-foreground" speed={4}>Season 2026 Ready</ShinyText>
+            <span className="text-foreground">Season 2026 Ready</span>
           </Link>
 
           {/* Headline */}
@@ -116,25 +110,21 @@ export default function Page() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <Magnet disabled={isMobile} magnetStrength={3}>
-              <Button
-                asChild
-                size="lg"
-                className="h-11 px-7 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10"
-              >
-                <Link href="/login">Get Started</Link>
-              </Button>
-            </Magnet>
-            <Magnet disabled={isMobile} magnetStrength={3}>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="h-11 px-7 text-sm rounded-lg border-border/60 bg-background/60 hover:bg-muted font-semibold shadow-none"
-              >
-                <Link href="/apply">Apply to Join</Link>
-              </Button>
-            </Magnet>
+            <Button
+              asChild
+              size="lg"
+              className="h-11 px-7 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10"
+            >
+              <Link href="/login">Get Started</Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-11 px-7 text-sm rounded-lg border-border/60 bg-background/60 hover:bg-muted font-semibold shadow-none"
+            >
+              <Link href="/register">Apply to Join</Link>
+            </Button>
           </div>
         </section>
 
@@ -288,17 +278,13 @@ export default function Page() {
                 desc: "Optimized for speed. Bulk-assign students to events without waiting on slow, bloated interfaces.",
               },
             ].map((item) => (
-              <SpotlightCard
-                key={item.title}
-                className="rounded-2xl border border-border/60 bg-card p-6"
-                spotlightColor="rgba(99, 102, 241, 0.10)"
-              >
+              <StarBorder key={item.title} className="p-6">
                 <div className="w-9 h-9 rounded-lg border border-border/60 bg-muted flex items-center justify-center text-foreground mb-4">
                   {item.icon}
                 </div>
                 <h3 className="text-base font-semibold tracking-tight text-foreground mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-              </SpotlightCard>
+              </StarBorder>
             ))}
           </div>
         </section>
@@ -325,7 +311,7 @@ export default function Page() {
               size="lg"
               className="relative z-10 h-11 px-8 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10"
             >
-              <Link href="/apply">Apply to Join</Link>
+              <Link href="/register">Apply to Join</Link>
             </Button>
           </div>
         </section>
