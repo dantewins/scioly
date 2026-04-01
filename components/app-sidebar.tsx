@@ -5,7 +5,6 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  IconAtom,
   IconCalendarEvent,
   IconFileCheck,
   IconClock,
@@ -17,8 +16,8 @@ import {
   IconBooks,
   IconSettings,
   IconLayoutDashboard,
-  IconDots,
 } from "@tabler/icons-react"
+import { Atom, DotsThree, UserCircle } from "@phosphor-icons/react"
 import {
   Sidebar,
   SidebarContent,
@@ -62,7 +61,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       { href: "/dashboard/applications", label: "Applications", icon: IconUserCheck },
       { href: "/dashboard/members", label: "Members", icon: IconUsers },
     ] : []),
-    ...(canView("events") ? [{ href: "/dashboard/events", label: "Events", icon: IconAtom }] : []),
+    ...(canView("events") ? [{ href: "/dashboard/events", label: "Events", icon: Atom }] : []),
     ...(canView("competitions") ? [{ href: "/dashboard/competitions", label: "Competitions", icon: IconTrophy }] : []),
     ...(canView("teams") ? [{ href: "/dashboard/teams", label: "Teams", icon: IconChartBar }] : []),
   ]
@@ -78,6 +77,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const initials = user
     ? `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()
     : "?"
+
+  const domainLabel = user?.clubDomain
+    ? user.clubDomain.split(".")[0].toUpperCase()
+    : "Club Management"
 
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
@@ -95,7 +98,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 className="flex w-full items-center gap-2 group-data-[collapsible=icon]:justify-center"
               >
                 <div className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground group-data-[collapsible=icon]:mx-auto">
-                  <IconAtom className="size-4" />
+                  <Atom size={16} weight="bold" />
                 </div>
 
                 <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
@@ -103,7 +106,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     Scioly
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Club Management
+                    {domainLabel}
                   </span>
                 </div>
               </Link>
@@ -206,7 +209,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="truncate text-sm text-foreground">
                     {user?.firstName} {user?.lastName}
                   </span>
-                  <IconDots className="ml-auto size-4 text-muted-foreground" />
+                  <DotsThree size={16} className="ml-auto text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-52">

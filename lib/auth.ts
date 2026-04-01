@@ -17,6 +17,7 @@ export interface CurrentUser {
   lastName: string
   displayName: string | null
   role: UserRole
+  clubDomain: string | null
   permissions: PermissionMap
 }
 
@@ -70,18 +71,22 @@ export async function getCurrentUser(req?: NextRequest): Promise<CurrentUser | n
       lastName: true,
       displayName: true,
       role: true,
+      club: { select: { schoolDomain: true } },
     },
   })
   if (!user) return null
 
+  const { club, ...userFields } = user
+  const clubDomain = club?.schoolDomain ?? null
+
   // WEBSITE_OWNER has all permissions — bypass DB role lookup
   if (user.role === UserRole.WEBSITE_OWNER) {
-    return { ...user, permissions: allPermissions() }
+    return { ...userFields, clubDomain, permissions: allPermissions() }
   }
 
   // APPLICANT has no dashboard permissions
   if (user.role === UserRole.APPLICANT) {
-    return { ...user, permissions: {} }
+    return { ...userFields, clubDomain, permissions: {} }
   }
 
   // MEMBER: union permissions from all assigned club roles for the active season
@@ -89,7 +94,7 @@ export async function getCurrentUser(req?: NextRequest): Promise<CurrentUser | n
     where: { clubId: user.clubId, isActive: true },
     select: { id: true },
   })
-  if (!activeSeason) return { ...user, permissions: {} }
+  if (!activeSeason) return { ...userFields, clubDomain, permissions: {} }
 
   const memberSeason = await prisma.memberSeason.findUnique({
     where: { userId_seasonId: { userId: user.id, seasonId: activeSeason.id } },
@@ -99,11 +104,11 @@ export async function getCurrentUser(req?: NextRequest): Promise<CurrentUser | n
       },
     },
   })
-  if (!memberSeason) return { ...user, permissions: {} }
+  if (!memberSeason) return { ...userFields, clubDomain, permissions: {} }
 
   const permissions = mergePermissions(
     memberSeason.roles.map((r) => r.clubRole.permissions),
   )
 
-  return { ...user, permissions }
+  return { ...userFields, clubDomain, permissions }
 }
