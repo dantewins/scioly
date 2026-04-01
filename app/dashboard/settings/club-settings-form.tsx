@@ -48,7 +48,7 @@ export function ClubSettingsForm({ club }: Props) {
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="clubName">Club Name</Label>
