@@ -1,11 +1,12 @@
 // app/dashboard/settings/page.tsx
 import { redirect } from "next/navigation"
-import { IconSettings, IconShield } from "@tabler/icons-react"
+import { IconSettings, IconShield, IconCalendar } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { canEdit, canView } from "@/lib/permissions"
 import { ClubSettingsForm } from "./club-settings-form"
 import { RolesManager } from "./roles-manager"
+import { SeasonManager } from "./season-manager"
 
 export const dynamic = "force-dynamic"
 
@@ -18,7 +19,7 @@ export default async function SettingsPage() {
 
   if (!canEditSettings && !canViewRoles) redirect("/dashboard")
 
-  const [club, rolesRaw] = await Promise.all([
+  const [club, rolesRaw, seasons] = await Promise.all([
     prisma.club.findUnique({
       where: { id: user.clubId },
       select: { id: true, name: true, schoolName: true, schoolDomain: true, slug: true },
@@ -26,6 +27,15 @@ export default async function SettingsPage() {
     prisma.clubRole.findMany({
       where: { clubId: user.clubId },
       orderBy: { name: "asc" },
+    }),
+    prisma.season.findMany({
+      where: { clubId: user.clubId },
+      orderBy: { startsAt: "desc" },
+      select: {
+        id: true, name: true, schoolYear: true,
+        startsAt: true, endsAt: true, isActive: true, createdAt: true,
+        _count: { select: { members: true } },
+      },
     }),
   ])
 
@@ -65,6 +75,16 @@ export default async function SettingsPage() {
             roles={roles}
             canManage={user.role === "WEBSITE_OWNER" || canEdit(user.permissions, "roles")}
           />
+        </section>
+      )}
+
+      {canEditSettings && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <IconCalendar className="size-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold">Seasons</h2>
+          </div>
+          <SeasonManager seasons={seasons} canManage={canEditSettings} />
         </section>
       )}
     </div>

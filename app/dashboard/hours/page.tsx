@@ -1,3 +1,70 @@
-export default function HoursPage() {
-  return <div className="p-6 text-muted-foreground">Hours — coming in Phase 2</div>
+// app/dashboard/hours/page.tsx
+import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth"
+import { canView, canEdit, canCreate } from "@/lib/permissions"
+import { prisma } from "@/lib/prisma"
+import { getActiveSeason, getMemberSeason } from "@/lib/db"
+import { PageHeader } from "@/components/page-header"
+import { AdminHoursView } from "./admin-hours-view"
+import { MemberHoursView } from "./member-hours-view"
+
+export const dynamic = "force-dynamic"
+
+export default async function HoursPage() {
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
+  if (!canView(user.permissions, "hours")) redirect("/dashboard")
+
+  const season = await getActiveSeason(user.clubId)
+  const isAdmin = canEdit(user.permissions, "hours")
+
+  if (isAdmin) {
+    const [pendingEntries, categories] = season ? await Promise.all([
+      prisma.hourEntry.findMany({
+        where: { memberSeason: { seasonId: season.id, user: { clubId: user.clubId } }, status: "PENDING" },
+        include: {
+          memberSeason: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+          category: { select: { id: true, name: true } },
+        },
+        orderBy: { submittedAt: "asc" },
+      }),
+      prisma.hourCategory.findMany({
+        where: { seasonId: season.id },
+        include: { _count: { select: { hourEntries: true } } },
+        orderBy: { name: "asc" },
+      }),
+    ]) : [[], []]
+
+    return (
+      <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+        <PageHeader title="Hours" description={`${pendingEntries.length} pending review`} />
+        <AdminHoursView pendingEntries={pendingEntries} categories={categories} canManageCategories={canEdit(user.permissions, "hours")} />
+      </div>
+    )
+  }
+
+  // Member view: own entries + submit form
+  const ms = season ? await getMemberSeason(user.id, user.clubId) : null
+  const [myEntries, categories] = ms && season ? await Promise.all([
+    prisma.hourEntry.findMany({
+      where: { memberSeasonId: ms.id },
+      include: { category: { select: { id: true, name: true } } },
+      orderBy: { submittedAt: "desc" },
+    }),
+    prisma.hourCategory.findMany({
+      where: { seasonId: season.id },
+      orderBy: { name: "asc" },
+    }),
+  ]) : [[], []]
+
+  const totalApproved = myEntries
+    .filter((e) => e.status === "APPROVED")
+    .reduce((s, e) => s + Number(e.totalHours), 0)
+
+  return (
+    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+      <PageHeader title="My Hours" description={`${totalApproved.toFixed(1)} approved hours this season`} />
+      <MemberHoursView entries={myEntries} categories={categories} canSubmit={canCreate(user.permissions, "hours")} />
+    </div>
+  )
 }

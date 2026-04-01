@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { useAuth } from "@/context/AuthContext"
 
 export function LoginForm() {
   const router = useRouter()
+  const { refreshUser } = useAuth()
 
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -35,7 +37,8 @@ export function LoginForm() {
         return
       }
 
-      router.push("/dashboard")
+      await refreshUser()
+      router.replace("/dashboard")
     } catch (err) {
       console.error(err)
       toast.error(
@@ -48,20 +51,17 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-sm space-y-6">
-      {/* Logo */}
       <div className="flex justify-center">
         <div className="flex size-10 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground">
           <IconAtom className="size-5" />
         </div>
       </div>
 
-      {/* Heading */}
       <div className="text-center space-y-1">
         <h1 className="text-lg font-semibold text-foreground">Sign in to Scioly</h1>
         <p className="text-sm text-muted-foreground">Enter your credentials to continue</p>
       </div>
 
-      {/* Form card */}
       <div className="rounded-[var(--radius)] border border-border bg-card p-6 space-y-4">
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
@@ -105,7 +105,6 @@ export function LoginForm() {
         </form>
       </div>
 
-      {/* Footer link */}
       <p className="text-center text-xs text-muted-foreground">
         New here?{" "}
         <Link href="/register" className="text-foreground underline underline-offset-4">

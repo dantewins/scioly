@@ -1,7 +1,13 @@
-// context/AuthContext.tsx
 "use client"
 
-import { createContext, useContext, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useCallback,
+  type ReactNode,
+} from "react"
 import type { CurrentUser } from "@/lib/auth"
 import {
   hasPermission,
@@ -18,6 +24,7 @@ interface AuthContextValue {
   user: CurrentUser | null
   isOwner: boolean
   signOut: () => Promise<void>
+  refreshUser: () => Promise<CurrentUser | null>
   hasPermission: (flag: PermissionFlag) => boolean
   canView: (area: PermissionArea) => boolean
   canCreate: (area: PermissionArea) => boolean
@@ -27,11 +34,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-async function handleSignOut() {
-  await fetch("/api/auth/logout", { method: "POST" })
-  window.location.href = "/login"
-}
-
 export function AuthProvider({
   initialUser,
   children,
@@ -39,18 +41,57 @@ export function AuthProvider({
   initialUser: CurrentUser | null
   children: ReactNode
 }) {
-  const perms = initialUser?.permissions ?? {}
+  const [user, setUser] = useState<CurrentUser | null>(initialUser)
 
-  const value: AuthContextValue = {
-    user: initialUser,
-    isOwner: initialUser?.role === UserRole.WEBSITE_OWNER,
-    signOut: handleSignOut,
-    hasPermission: (flag) => hasPermission(perms, flag),
-    canView: (area) => canView(perms, area),
-    canCreate: (area) => canCreate(perms, area),
-    canEdit: (area) => canEdit(perms, area),
-    canDelete: (area) => canDelete(perms, area),
-  }
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      })
+
+      if (!res.ok) {
+        setUser(null)
+        return null
+      }
+
+      const data = await res.json()
+      const nextUser = data?.user ?? null
+      setUser(nextUser)
+      return nextUser
+    } catch (error) {
+      console.error("Failed to refresh user:", error)
+      setUser(null)
+      return null
+    }
+  }, [])
+
+  const signOut = useCallback(async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    })
+    setUser(null)
+    window.location.href = "/login"
+  }, [])
+
+  const perms = user?.permissions ?? {}
+
+  const value: AuthContextValue = useMemo(
+    () => ({
+      user,
+      isOwner: user?.role === UserRole.WEBSITE_OWNER,
+      signOut,
+      refreshUser,
+      hasPermission: (flag) => hasPermission(perms, flag),
+      canView: (area) => canView(perms, area),
+      canCreate: (area) => canCreate(perms, area),
+      canEdit: (area) => canEdit(perms, area),
+      canDelete: (area) => canDelete(perms, area),
+    }),
+    [user, perms, signOut, refreshUser]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

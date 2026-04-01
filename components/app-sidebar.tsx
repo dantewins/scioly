@@ -82,15 +82,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       {/* Logo */}
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="sm" asChild>
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="flex size-6 shrink-0 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground">
-                  <IconAtom className="size-3.5" />
+            <SidebarMenuButton
+              size="sm"
+              asChild
+              className="h-12 justify-start group-data-[collapsible=icon]:justify-center"
+            >
+              <Link
+                href="/dashboard"
+                className="flex w-full items-center gap-2 group-data-[collapsible=icon]:justify-center"
+              >
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground group-data-[collapsible=icon]:mx-auto">
+                  <IconAtom className="size-4" />
                 </div>
-                <span className="font-semibold text-sm text-foreground truncate">Scioly</span>
+
+                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                  <span className="truncate font-semibold text-foreground">
+                    Scioly
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    Club Management
+                  </span>
+                </div>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -173,7 +188,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       {/* User footer */}
-      <SidebarFooter className="border-t border-sidebar-border py-2">
+      <SidebarFooter className="py-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
