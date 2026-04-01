@@ -2,6 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+@keyframes shiny-sweep {
+  from { background-position: 200% center; }
+  to { background-position: -200% center; }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

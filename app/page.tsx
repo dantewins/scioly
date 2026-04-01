@@ -7,9 +7,10 @@ import {
   IconUsers, IconDatabase, IconLock, IconBolt,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Aurora } from "@/components/effects/aurora"
 import { BlurText } from "@/components/effects/blur-text"
 import { SpotlightCard } from "@/components/effects/spotlight-card"
+import { ShinyText } from "@/components/effects/shiny-text"
+import { Magnet } from "@/components/effects/magnet"
 
 export default function Page() {
   const [scrolled, setScrolled] = useState(false)
@@ -78,20 +79,6 @@ export default function Page() {
         <section className="relative w-full flex flex-col items-center text-center pt-28 pb-32 md:pt-40 md:pb-44 max-w-screen-xl mx-auto overflow-hidden">
 
           {/* Aurora — desktop only */}
-          <div
-            className="pointer-events-none hidden sm:block absolute inset-x-0 top-0 h-[600px] -z-10"
-            style={{
-              maskImage: "radial-gradient(ellipse 85% 70% at 50% 0%, black 30%, transparent 100%)",
-              WebkitMaskImage: "radial-gradient(ellipse 85% 70% at 50% 0%, black 30%, transparent 100%)",
-            }}
-          >
-            <Aurora
-              colorStops={["#0d0d2b", "#2a1f6e", "#1a0e3d"]}
-              amplitude={1.2}
-              blend={0.6}
-              speed={0.6}
-            />
-          </div>
 
           {/* Static glow fallback — always present, Aurora layers on top on desktop */}
           <div
@@ -104,10 +91,10 @@ export default function Page() {
           {/* Badge */}
           <Link
             href="/apply"
-            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-xs font-mono tracking-wider uppercase text-muted-foreground transition-all hover:bg-primary/10 hover:border-primary/40 mb-8 ring-1 ring-primary/10"
+            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-xs font-mono tracking-wider uppercase transition-all hover:bg-primary/10 hover:border-primary/40 mb-8 ring-1 ring-primary/10"
           >
             <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            Season 2026 Ready
+            <ShinyText className="text-muted-foreground" speed={4}>Season 2026 Ready</ShinyText>
           </Link>
 
           {/* Headline */}
@@ -129,21 +116,25 @@ export default function Page() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              asChild
-              size="lg"
-              className="h-11 px-7 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10"
-            >
-              <Link href="/login">Get Started</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="h-11 px-7 text-sm rounded-lg border-border/60 bg-background/60 hover:bg-muted font-semibold shadow-none"
-            >
-              <Link href="/apply">Apply to Join</Link>
-            </Button>
+            <Magnet disabled={isMobile} magnetStrength={3}>
+              <Button
+                asChild
+                size="lg"
+                className="h-11 px-7 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10"
+              >
+                <Link href="/login">Get Started</Link>
+              </Button>
+            </Magnet>
+            <Magnet disabled={isMobile} magnetStrength={3}>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="h-11 px-7 text-sm rounded-lg border-border/60 bg-background/60 hover:bg-muted font-semibold shadow-none"
+              >
+                <Link href="/apply">Apply to Join</Link>
+              </Button>
+            </Magnet>
           </div>
         </section>
 
@@ -152,7 +143,7 @@ export default function Page() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-left">
 
             {/* Telemetry — lg:col-span-4 */}
-            <div className="lg:col-span-4 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm ring-1 ring-border/0 hover:ring-border/40 transition-all duration-300 group relative overflow-hidden">
+            <div className="lg:col-span-4 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/50 transition-colors duration-300 group relative overflow-hidden">
               <div className="absolute top-0 right-0 p-6 opacity-[0.06] group-hover:opacity-[0.10] transition-opacity">
                 <IconMicroscope className="w-36 h-36" />
               </div>
@@ -189,7 +180,7 @@ export default function Page() {
             </div>
 
             {/* System log — lg:col-span-2 */}
-            <div className="lg:col-span-2 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:ring-1 hover:ring-border/40 transition-all duration-300">
+            <div className="lg:col-span-2 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/50 transition-colors duration-300">
               <div className="flex items-center justify-between mb-5 pb-4 border-b border-border/30">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">System.Log</span>
                 <IconTerminal2 className="w-4 h-4 text-muted-foreground" />
@@ -220,7 +211,7 @@ export default function Page() {
             </div>
 
             {/* Historical record — lg:col-span-3 */}
-            <div className="lg:col-span-3 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:ring-1 hover:ring-border/40 transition-all duration-300">
+            <div className="lg:col-span-3 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/50 transition-colors duration-300">
               <div className="flex items-center justify-between mb-4">
                 <IconTrophy className="w-5 h-5 text-foreground" />
                 <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border/60 px-2 py-1 rounded-md">Medals</span>
@@ -242,7 +233,7 @@ export default function Page() {
             </div>
 
             {/* Club directory — lg:col-span-3 */}
-            <div className="lg:col-span-3 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:ring-1 hover:ring-border/40 transition-all duration-300 relative overflow-hidden">
+            <div className="lg:col-span-3 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/50 transition-colors duration-300 relative overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <IconUsers className="w-5 h-5 text-foreground" />
                 <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border/60 px-2 py-1 rounded-md">Directory</span>

@@ -56,9 +56,9 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="flex justify-center">
-          <div className="flex size-10 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground">
+          <Link href="/" className="flex size-10 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground transition-opacity hover:opacity-80">
             <IconAtom className="size-5" />
-          </div>
+          </Link>
         </div>
 
         {/* Heading */}
