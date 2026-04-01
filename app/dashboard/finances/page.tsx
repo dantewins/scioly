@@ -50,7 +50,15 @@ export default async function FinancesPage() {
         <EmptyState icon={IconWallet} title="No active season" />
       ) : (
         <FinancesView
-          invoices={invoices}
+          invoices={invoices.map(inv => ({
+            ...inv,
+            dueAt: inv.dueAt?.toISOString() ?? null,
+            issuedAt: inv.issuedAt.toISOString(),
+            payments: inv.payments.map(p => ({
+              ...p,
+              paidAt: p.paidAt.toISOString(),
+            })),
+          }))}
           members={members}
           canCreate={canCreate(user.permissions, "finances")}
           canEdit={canView(user.permissions, "finances")}

@@ -56,7 +56,13 @@ export default async function ApplicationsPage() {
           description="New applications will appear here when members apply."
         />
       ) : (
-        <ApplicantsTable initialApplicants={applicants} canManage={canManage} />
+        <ApplicantsTable
+          initialApplicants={applicants.map(a => ({
+            ...a,
+            applicationSubmittedAt: a.applicationSubmittedAt?.toISOString() ?? null,
+          }))}
+          canManage={canManage}
+        />
       )}
     </div>
   )

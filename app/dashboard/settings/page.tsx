@@ -84,7 +84,14 @@ export default async function SettingsPage() {
             <IconCalendar className="size-4 text-muted-foreground" />
             <h2 className="text-sm font-semibold">Seasons</h2>
           </div>
-          <SeasonManager seasons={seasons} canManage={canEditSettings} />
+          <SeasonManager
+            seasons={seasons.map(s => ({
+              ...s,
+              startsAt: s.startsAt.toISOString(),
+              endsAt: s.endsAt.toISOString(),
+            }))}
+            canManage={canEditSettings}
+          />
         </section>
       )}
     </div>

@@ -38,7 +38,18 @@ export default async function HoursPage() {
     return (
       <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
         <PageHeader title="Hours" description={`${pendingEntries.length} pending review`} />
-        <AdminHoursView pendingEntries={pendingEntries} categories={categories} canManageCategories={canEdit(user.permissions, "hours")} />
+        <AdminHoursView
+          pendingEntries={pendingEntries.map(e => ({
+            ...e,
+            totalHours: Number(e.totalHours),
+            submittedAt: e.submittedAt.toISOString(),
+          }))}
+          categories={categories.map(c => ({
+            ...c,
+            requiredHours: c.requiredHours != null ? Number(c.requiredHours) : null,
+          }))}
+          canManageCategories={canEdit(user.permissions, "hours")}
+        />
       </div>
     )
   }
@@ -64,7 +75,15 @@ export default async function HoursPage() {
   return (
     <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
       <PageHeader title="My Hours" description={`${totalApproved.toFixed(1)} approved hours this season`} />
-      <MemberHoursView entries={myEntries} categories={categories} canSubmit={canCreate(user.permissions, "hours")} />
+      <MemberHoursView
+        entries={myEntries.map(e => ({
+          ...e,
+          totalHours: Number(e.totalHours),
+          submittedAt: e.submittedAt.toISOString(),
+        }))}
+        categories={categories}
+        canSubmit={canCreate(user.permissions, "hours")}
+      />
     </div>
   )
 }

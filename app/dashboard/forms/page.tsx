@@ -36,7 +36,13 @@ export default async function FormsPage() {
     return (
       <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
         <PageHeader title="Forms" description={`${formTypes.length} form type${formTypes.length !== 1 ? "s" : ""} this season`} />
-        <AdminFormsView formTypes={formTypes} canCreate={canCreate(user.permissions, "forms")} />
+        <AdminFormsView
+          formTypes={formTypes.map(ft => ({
+            ...ft,
+            dueAt: ft.dueAt?.toISOString() ?? null,
+          }))}
+          canCreate={canCreate(user.permissions, "forms")}
+        />
       </div>
     )
   }
@@ -63,7 +69,16 @@ export default async function FormsPage() {
       {formTypes.length === 0 ? (
         <EmptyState icon={IconFileCheck} title="No forms required" description="No forms have been assigned for this season." />
       ) : (
-        <MemberFormsView formTypes={formTypes} />
+        <MemberFormsView
+          formTypes={formTypes.map(ft => ({
+            ...ft,
+            dueAt: ft.dueAt?.toISOString() ?? null,
+            submissions: ft.submissions.map(s => ({
+              ...s,
+              submittedAt: s.submittedAt?.toISOString() ?? null,
+            })),
+          }))}
+        />
       )}
     </div>
   )

@@ -42,7 +42,7 @@ export default async function MemberDetailPage({ params }: Props) {
       select: {
         id: true, firstName: true, lastName: true, email: true,
         phone: true, gradeLevel: true, graduationYear: true,
-        shirtSize: true, role: true,
+        role: true,
       },
     }),
     season
@@ -120,7 +120,7 @@ export default async function MemberDetailPage({ params }: Props) {
             </Card>
             <Card>
               <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Shirt Size</CardTitle></CardHeader>
-              <CardContent><p className="text-lg font-semibold">{targetUser.shirtSize ?? "—"}</p></CardContent>
+              <CardContent><p className="text-lg font-semibold">{ms?.shirtSize ?? "—"}</p></CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Approved Hours</CardTitle></CardHeader>
