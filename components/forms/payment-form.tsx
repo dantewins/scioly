@@ -27,7 +27,7 @@ export function PaymentForm({ outstandingDollars, onSubmit, loading, onCancel }:
   const [method, setMethod] = useState("CASH")
   const [referenceNumber, setReferenceNumber] = useState("")
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ amountDollars, method, referenceNumber })
   }

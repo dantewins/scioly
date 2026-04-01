@@ -40,7 +40,7 @@ export function EventForm({
   const [maxParticipants, setMaxParticipants] = useState(defaultValues?.maxParticipants ?? 2)
   const [isTrialEvent, setIsTrialEvent] = useState(defaultValues?.isTrialEvent ?? false)
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ name, code, minParticipants, maxParticipants, isTrialEvent })
   }

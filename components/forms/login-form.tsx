@@ -18,7 +18,7 @@ export function LoginForm() {
   const [password, setPassword] = React.useState("")
   const [loading, setLoading] = React.useState(false)
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
 
@@ -34,17 +34,18 @@ export function LoginForm() {
 
       if (!res.ok) {
         toast.error(data?.message ?? "Login failed.")
+        setLoading(false)
         return
       }
 
       await refreshUser()
       router.replace("/dashboard")
+      // no setLoading(false) here on purpose
     } catch (err) {
       console.error(err)
       toast.error(
         err instanceof Error ? err.message : "Something went wrong. Please try again."
       )
-    } finally {
       setLoading(false)
     }
   }

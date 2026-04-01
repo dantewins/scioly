@@ -40,7 +40,7 @@ export function PracticeTestForm({
   const [eventId, setEventId] = useState(defaultValues?.eventId ?? "")
   const [isActive, setIsActive] = useState(defaultValues?.isActive ?? true)
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ title, pdfUrl, timeLimitMinutes, eventId, isActive })
   }

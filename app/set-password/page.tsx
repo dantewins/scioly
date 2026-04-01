@@ -23,7 +23,7 @@ export default function SetPasswordPage() {
     if (!token) setError("Invalid or missing token.")
   }, [token])
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     setError("")
 

@@ -1730,7 +1730,7 @@ export default function RegisterPage() {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     setLoading(true)
     try {
@@ -2496,7 +2496,7 @@ export function ClubSettingsForm({ club }: Props) {
     schoolDomain: club.schoolDomain ?? "",
   })
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     setLoading(true)
     try {

@@ -31,7 +31,7 @@ export function LogHoursForm({ categories, onSubmit, loading, onCancel }: LogHou
 
   const selectedCategory = categories.find((c) => c.id === categoryId)
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ categoryId, title, description, totalHours, proofUrl })
   }

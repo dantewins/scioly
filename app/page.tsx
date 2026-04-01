@@ -8,7 +8,6 @@ import {
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { BlurText } from "@/components/effects/blur-text"
-import BorderGlow from "@/components/effects/border-glow"
 
 export default function Page() {
   const [isMobile, setIsMobile] = useState(false)
@@ -262,21 +261,16 @@ export default function Page() {
                 desc: "Optimized for speed. Bulk-assign students to events without waiting on slow, bloated interfaces.",
               },
             ].map((item) => (
-              <BorderGlow
-                edgeSensitivity={30}
-                glowColor="40 80 80"
-                borderRadius={20}
-                glowRadius={40}
-                glowIntensity={1}
-                coneSpread={25}
-                animated={false}
-                colors={['#c084fc', '#f472b6', '#38bdf8']}>
-                <div className="w-9 h-9 rounded-lg border border-primary/50 bg-muted flex items-center justify-center text-foreground mb-4">
+              <div
+                key={item.title}
+                className="flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/50 transition-colors duration-300"
+              >
+                <div className="w-9 h-9 rounded-lg border border-border/60 bg-muted flex items-center justify-center text-foreground mb-4">
                   {item.icon}
                 </div>
                 <h3 className="text-base font-semibold tracking-tight text-foreground mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-              </BorderGlow>
+              </div>
             ))}
           </div>
         </section>

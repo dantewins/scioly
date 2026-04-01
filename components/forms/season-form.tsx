@@ -23,7 +23,7 @@ export function SeasonForm({ onSubmit, loading, onCancel }: SeasonFormProps) {
   const [startsAt, setStartsAt] = useState("")
   const [endsAt, setEndsAt] = useState("")
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ name, schoolYear, startsAt, endsAt })
   }

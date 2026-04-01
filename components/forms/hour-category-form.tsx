@@ -24,7 +24,7 @@ export function HourCategoryForm({ onSubmit, loading, onCancel }: HourCategoryFo
   const [requiredHours, setRequiredHours] = useState("")
   const [requiresApproval, setRequiresApproval] = useState(true)
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ name, description, requiredHours, requiresApproval })
   }

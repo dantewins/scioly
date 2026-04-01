@@ -26,7 +26,7 @@ export function TeamForm({ competitions, events, onSubmit, loading, onCancel }: 
   const [competitionId, setCompetitionId] = useState("")
   const [eventId, setEventId] = useState("")
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ label, competitionId, eventId })
   }

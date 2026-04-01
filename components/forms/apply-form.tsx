@@ -45,7 +45,7 @@ export function ApplyForm({ clubSlug, events }: Props) {
     )
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     setLoading(true)
     try {

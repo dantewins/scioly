@@ -64,7 +64,7 @@ export function ClubEventForm({
   const [categoryId, setCategoryId] = useState(defaultValues?.categoryId ?? "")
   const [notes, setNotes] = useState(defaultValues?.notes ?? "")
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ name, type, location, startsAt, endsAt, hoursValue, categoryId, notes })
   }

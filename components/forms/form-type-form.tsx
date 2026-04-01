@@ -36,7 +36,7 @@ export function FormTypeForm({ onSubmit, loading, onCancel }: FormTypeFormProps)
   const [requiresUpload, setRequiresUpload] = useState(false)
   const [dueAt, setDueAt] = useState("")
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ name, category, description, isRequired, requiresUpload, dueAt })
   }

@@ -27,7 +27,7 @@ export function InvoiceForm({ members, onSubmit, loading, onCancel }: InvoiceFor
   const [amountDollars, setAmountDollars] = useState("")
   const [dueAt, setDueAt] = useState("")
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ memberSeasonId, title, amountDollars, dueAt })
   }

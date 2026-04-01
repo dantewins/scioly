@@ -30,7 +30,7 @@ export function CompetitionForm({ onSubmit, loading, onCancel }: CompetitionForm
   const [startsAt, setStartsAt] = useState("")
   const [endsAt, setEndsAt] = useState("")
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault()
     onSubmit({ name, type, location, startsAt, endsAt })
   }
