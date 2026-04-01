@@ -8,18 +8,9 @@ import {
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { BlurText } from "@/components/effects/blur-text"
-import { StarBorder } from "@/components/effects/star-border"
-import { StarField } from "@/components/effects/star-field"
 
 export default function Page() {
-  const [scrolled, setScrolled] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60)
-    window.addEventListener("scroll", onScroll, { passive: true })
-    return () => window.removeEventListener("scroll", onScroll)
-  }, [])
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640)
@@ -42,9 +33,7 @@ export default function Page() {
 
       {/* ── Navigation ─────────────────────────────────────────────────────── */}
       <header
-        className={`sticky top-0 z-50 w-full transition-all duration-300 backdrop-blur-md bg-background/70 ${
-          scrolled ? "border-b border-border/60" : "border-b border-transparent"
-        }`}
+        className={`sticky top-0 z-50 w-full transition-all duration-300`}
       >
         <div className="container flex h-14 max-w-screen-xl items-center px-4 md:px-8 mx-auto">
           <Link href="/" className="flex items-center gap-2 group">
@@ -76,12 +65,6 @@ export default function Page() {
 
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className="relative w-full flex flex-col items-center text-center pt-28 pb-32 md:pt-40 md:pb-44 max-w-screen-xl mx-auto overflow-hidden">
-
-          {/* Star field — dark mode desktop only */}
-          <div className="hidden dark:sm:block absolute inset-0 -z-10 pointer-events-none">
-            <StarField />
-          </div>
-
           {/* Badge */}
           <Link
             href="/register"
@@ -278,13 +261,13 @@ export default function Page() {
                 desc: "Optimized for speed. Bulk-assign students to events without waiting on slow, bloated interfaces.",
               },
             ].map((item) => (
-              <StarBorder key={item.title} className="p-6">
-                <div className="w-9 h-9 rounded-lg border border-border/60 bg-muted flex items-center justify-center text-foreground mb-4">
+              <>
+                <div className="w-9 h-9 rounded-lg border border-primary/50 bg-muted flex items-center justify-center text-foreground mb-4">
                   {item.icon}
                 </div>
                 <h3 className="text-base font-semibold tracking-tight text-foreground mb-2">{item.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-              </StarBorder>
+              </>
             ))}
           </div>
         </section>
