@@ -101,7 +101,7 @@ export function AdminFormsView({ formTypes: initial, canCreate }: Props) {
       </div>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Form Type</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">

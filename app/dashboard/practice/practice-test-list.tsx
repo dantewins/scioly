@@ -1,10 +1,10 @@
 "use client"
 
 import {
-  FilePdf,
-  Timer,
-  Trophy,
-  ArrowSquareOut,
+  FilePdfIcon,
+  TimerIcon,
+  TrophyIcon,
+  ArrowSquareOutIcon,
 } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -77,9 +77,9 @@ export function PracticeTestList({ tests }: Props) {
                 </div>
                 <Button size="sm" className="shrink-0 gap-1.5" asChild>
                   <a href={test.pdfUrl} target="_blank" rel="noopener noreferrer">
-                    <FilePdf size={14} />
+                    <FilePdfIcon size={14} />
                     Take Test
-                    <ArrowSquareOut size={12} />
+                    <ArrowSquareOutIcon size={12} />
                   </a>
                 </Button>
               </div>
@@ -88,13 +88,13 @@ export function PracticeTestList({ tests }: Props) {
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 {test.timeLimitMinutes && (
                   <span className="flex items-center gap-1">
-                    <Timer size={12} />
+                    <TimerIcon size={12} />
                     {test.timeLimitMinutes} min
                   </span>
                 )}
                 {test.answerKey && attempted && best !== null && (
                   <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
-                    <Trophy size={12} />
+                    <TrophyIcon size={12} />
                     Best: {best} correct
                   </span>
                 )}

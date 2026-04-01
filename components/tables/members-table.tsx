@@ -95,6 +95,7 @@ export function MembersTable({ members }: Props) {
   })
 
   return (
+    <div className="overflow-x-auto">
     <div className="rounded-lg border overflow-hidden">
       <Table>
         <TableHeader>
@@ -128,6 +129,7 @@ export function MembersTable({ members }: Props) {
           )}
         </TableBody>
       </Table>
+    </div>
     </div>
   )
 }

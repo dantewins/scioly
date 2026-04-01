@@ -55,7 +55,7 @@ export function CreateTeamButton({ competitions, events }: Props) {
         <IconPlus className="size-4 mr-1.5" />Create Team
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Team</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">

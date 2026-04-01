@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDateOnly } from "@/lib/format"
+import { CompetitionScheduleTable } from "@/components/tables/competition-schedule-table"
 
 export const dynamic = "force-dynamic"
 
@@ -115,30 +116,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
 
         {/* Schedule Tab */}
         <TabsContent value="schedule" className="mt-4">
-          {competition.eventSchedules.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No events scheduled yet.</p>
-          ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium">Slot</th>
-                    <th className="text-left px-4 py-2 font-medium">Event</th>
-                    <th className="text-left px-4 py-2 font-medium">Label</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {competition.eventSchedules.map((s) => (
-                    <tr key={s.id} className="border-t">
-                      <td className="px-4 py-2 font-mono text-xs">{s.timeSlot}</td>
-                      <td className="px-4 py-2">{s.event.name}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{s.slotLabel ?? "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <CompetitionScheduleTable schedules={competition.eventSchedules} />
         </TabsContent>
       </Tabs>
     </div>

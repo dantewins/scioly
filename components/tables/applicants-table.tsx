@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import {
-  IconCheck, IconX, IconChevronLeft, IconChevronRight,
+  IconCheck, IconX,
 } from "@tabler/icons-react"
 import {
   useReactTable, getCoreRowModel, flexRender,
@@ -14,12 +14,8 @@ import { Badge } from "@/components/ui/badge"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { formatDateOnly } from "@/lib/format"
+import { DenyApplicationDialog } from "@/components/dialogs/deny-application-dialog"
 
 type Applicant = {
   id: string
@@ -194,29 +190,14 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
       </div>
 
       {/* Deny dialog */}
-      <Dialog open={!!denyingId} onOpenChange={(open) => { if (!open) { setDenyingId(null); setDenyReason("") } }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Deny Application</DialogTitle></DialogHeader>
-          <div className="space-y-1.5">
-            <Label>Reason (optional)</Label>
-            <Input
-              value={denyReason}
-              onChange={(e) => setDenyReason(e.target.value)}
-              placeholder="Reason for denial"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDenyingId(null); setDenyReason("") }}>Cancel</Button>
-            <Button
-              variant="destructive"
-              onClick={() => denyingId && handleDeny(denyingId, denyReason)}
-              disabled={loading}
-            >
-              Deny Application
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DenyApplicationDialog
+        open={!!denyingId}
+        reason={denyReason}
+        loading={loading}
+        onReasonChange={setDenyReason}
+        onConfirm={() => denyingId && handleDeny(denyingId, denyReason)}
+        onCancel={() => { setDenyingId(null); setDenyReason("") }}
+      />
     </div>
   )
 }

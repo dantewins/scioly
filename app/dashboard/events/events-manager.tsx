@@ -10,11 +10,9 @@ import {
   Card, CardContent,
 } from "@/components/ui/card"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+import { EventForm } from "@/components/forms/event-form"
 
 interface Event {
   id: string
@@ -135,72 +133,41 @@ export function EventsManager({ initialEvents, canManage }: Props) {
 
       {/* Create Dialog */}
       <Dialog open={creating} onOpenChange={setCreating}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Event</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Event Name</Label>
-              <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Anatomy & Physiology" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Code (optional)</Label>
-              <Input value={form.code} onChange={(e) => setForm(f => ({ ...f, code: e.target.value }))} placeholder="ANP" maxLength={10} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Min Participants</Label>
-                <Input type="number" min={1} value={form.minParticipants} onChange={(e) => setForm(f => ({ ...f, minParticipants: parseInt(e.target.value) || 1 }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Max Participants</Label>
-                <Input type="number" min={1} value={form.maxParticipants} onChange={(e) => setForm(f => ({ ...f, maxParticipants: parseInt(e.target.value) || 1 }))} />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch id="trial" checked={form.isTrialEvent} onCheckedChange={(v) => setForm(f => ({ ...f, isTrialEvent: v }))} />
-              <Label htmlFor="trial">Trial event</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreating(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={loading || !form.name.trim()}>Create</Button>
-          </DialogFooter>
+          <EventForm
+            onSubmit={(data) => {
+              setForm(f => ({ ...f, ...data }))
+              handleCreate()
+            }}
+            loading={loading}
+            onCancel={() => setCreating(false)}
+            submitLabel="Create"
+          />
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       {editing && (
         <Dialog open onOpenChange={() => setEditing(null)}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Edit Event</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>Event Name</Label>
-                <Input value={editing.name} onChange={(e) => setEditing(x => x ? { ...x, name: e.target.value } : x)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Code</Label>
-                <Input value={editing.code ?? ""} onChange={(e) => setEditing(x => x ? { ...x, code: e.target.value } : x)} maxLength={10} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Min Participants</Label>
-                  <Input type="number" min={1} value={editing.minParticipants} onChange={(e) => setEditing(x => x ? { ...x, minParticipants: parseInt(e.target.value) || 1 } : x)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Max Participants</Label>
-                  <Input type="number" min={1} value={editing.maxParticipants} onChange={(e) => setEditing(x => x ? { ...x, maxParticipants: parseInt(e.target.value) || 1 } : x)} />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch id="trial-edit" checked={editing.isTrialEvent} onCheckedChange={(v) => setEditing(x => x ? { ...x, isTrialEvent: v } : x)} />
-                <Label htmlFor="trial-edit">Trial event</Label>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={loading}>Save</Button>
-            </DialogFooter>
+            <EventForm
+              defaultValues={{
+                name: editing.name,
+                code: editing.code ?? "",
+                minParticipants: editing.minParticipants,
+                maxParticipants: editing.maxParticipants,
+                isTrialEvent: editing.isTrialEvent,
+              }}
+              onSubmit={(data) => {
+                setEditing(x => x ? { ...x, ...data } : x)
+                handleSave()
+              }}
+              loading={loading}
+              onCancel={() => setEditing(null)}
+              submitLabel="Save"
+            />
           </DialogContent>
         </Dialog>
       )}

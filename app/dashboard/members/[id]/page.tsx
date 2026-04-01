@@ -12,7 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card"
-import { formatDateOnly } from "@/lib/format"
+import { MemberEventsTable } from "@/components/tables/member-events-table"
+import { MemberHoursTable } from "@/components/tables/member-hours-table"
+import { MemberInvoicesTable } from "@/components/tables/member-invoices-table"
+import { MemberFormsTable } from "@/components/tables/member-forms-table"
 
 export const dynamic = "force-dynamic"
 
@@ -151,120 +154,22 @@ export default async function MemberDetailPage({ params }: Props) {
 
         {/* Events Tab */}
         <TabsContent value="events" className="mt-4">
-          {!ms?.eventEnrollments.length ? (
-            <p className="text-sm text-muted-foreground">No event enrollments.</p>
-          ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium">Event</th>
-                    <th className="text-left px-4 py-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ms.eventEnrollments.map((e) => (
-                    <tr key={e.id} className="border-t">
-                      <td className="px-4 py-2">{e.event.name}</td>
-                      <td className="px-4 py-2">
-                        <Badge variant="outline">{e.status}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <MemberEventsTable enrollments={ms?.eventEnrollments ?? []} />
         </TabsContent>
 
         {/* Hours Tab */}
         <TabsContent value="hours" className="mt-4">
-          {!ms?.hourEntries.length ? (
-            <p className="text-sm text-muted-foreground">No hour entries.</p>
-          ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium">Title</th>
-                    <th className="text-left px-4 py-2 font-medium">Hours</th>
-                    <th className="text-left px-4 py-2 font-medium">Status</th>
-                    <th className="text-left px-4 py-2 font-medium">Submitted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ms.hourEntries.map((h) => (
-                    <tr key={h.id} className="border-t">
-                      <td className="px-4 py-2">{h.title}</td>
-                      <td className="px-4 py-2">{Number(h.totalHours).toFixed(1)}</td>
-                      <td className="px-4 py-2"><Badge variant="outline">{h.status}</Badge></td>
-                      <td className="px-4 py-2 text-muted-foreground">{formatDateOnly(h.submittedAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <MemberHoursTable entries={ms?.hourEntries ?? []} />
         </TabsContent>
 
         {/* Dues Tab */}
         <TabsContent value="dues" className="mt-4">
-          {!ms?.invoices.length ? (
-            <p className="text-sm text-muted-foreground">No invoices.</p>
-          ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium">Invoice</th>
-                    <th className="text-left px-4 py-2 font-medium">Amount</th>
-                    <th className="text-left px-4 py-2 font-medium">Paid</th>
-                    <th className="text-left px-4 py-2 font-medium">Status</th>
-                    <th className="text-left px-4 py-2 font-medium">Due</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ms.invoices.map((inv) => (
-                    <tr key={inv.id} className="border-t">
-                      <td className="px-4 py-2">{inv.title}</td>
-                      <td className="px-4 py-2">${(inv.amountCents / 100).toFixed(2)}</td>
-                      <td className="px-4 py-2">${(inv.amountPaidCents / 100).toFixed(2)}</td>
-                      <td className="px-4 py-2"><Badge variant="outline">{inv.status}</Badge></td>
-                      <td className="px-4 py-2 text-muted-foreground">{formatDateOnly(inv.dueAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <MemberInvoicesTable invoices={ms?.invoices ?? []} />
         </TabsContent>
 
         {/* Forms Tab */}
         <TabsContent value="forms" className="mt-4">
-          {!ms?.formSubmissions.length ? (
-            <p className="text-sm text-muted-foreground">No form submissions.</p>
-          ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-2 font-medium">Form</th>
-                    <th className="text-left px-4 py-2 font-medium">Category</th>
-                    <th className="text-left px-4 py-2 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ms.formSubmissions.map((fs) => (
-                    <tr key={fs.id} className="border-t">
-                      <td className="px-4 py-2">{fs.formType.name}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{fs.formType.category}</td>
-                      <td className="px-4 py-2"><Badge variant="outline">{fs.status}</Badge></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <MemberFormsTable submissions={ms?.formSubmissions ?? []} />
         </TabsContent>
       </Tabs>
     </div>

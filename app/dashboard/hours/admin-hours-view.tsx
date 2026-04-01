@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { RejectHoursDialog } from "@/components/dialogs/reject-hours-dialog"
 
 interface Entry {
   id: string
@@ -160,25 +161,18 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
       </TabsContent>
 
       {/* Reject dialog */}
-      <Dialog open={!!rejectingId} onOpenChange={() => { setRejectingId(null); setRejectReason("") }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Reject Hours</DialogTitle></DialogHeader>
-          <div className="space-y-1.5">
-            <Label>Reason (optional)</Label>
-            <Input value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Explain why these hours are being rejected" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectingId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => rejectingId && review(rejectingId, "reject", rejectReason)} disabled={loading}>
-              Reject
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RejectHoursDialog
+        open={!!rejectingId}
+        reason={rejectReason}
+        loading={loading}
+        onReasonChange={setRejectReason}
+        onConfirm={() => rejectingId && review(rejectingId, "reject", rejectReason)}
+        onCancel={() => { setRejectingId(null); setRejectReason("") }}
+      />
 
       {/* Create category dialog */}
       <Dialog open={showCreateCat} onOpenChange={setShowCreateCat}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Hour Category</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">

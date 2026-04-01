@@ -1,60 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import {
-  Eye, Plus, PencilSimple, Trash, UserCirclePlus, X,
-} from "@phosphor-icons/react"
+import { TrashIcon, PlusIcon, FloppyDiskIcon } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { PERMISSION_AREAS, type PermissionArea } from "@/lib/permissions"
+import type { PermissionFlag } from "@/lib/permissions"
+import { ConfirmDeleteRoleDialog } from "@/components/dialogs/confirm-delete-role-dialog"
 
-const AREA_LABELS: Record<PermissionArea, string> = {
-  members: "Members",
-  teams: "Teams",
-  events: "Events",
-  competitions: "Competitions",
-  hours: "Hours",
-  finances: "Finances",
-  forms: "Forms",
-  club_events: "Club Events",
-  resources: "Resources",
-  announcements: "Announcements",
-  practice: "Practice Tests",
-  roles: "Roles",
-  club_settings: "Club Settings",
-}
-
-const AREA_GROUPS: { label: string; areas: PermissionArea[] }[] = [
-  { label: "Management", areas: ["members", "teams", "events", "competitions"] },
-  { label: "Activity", areas: ["hours", "finances", "forms", "club_events", "practice"] },
-  { label: "Config", areas: ["roles", "club_settings", "resources", "announcements"] },
-]
-
-const CRUD = ["view", "create", "edit", "delete"] as const
-type Crud = typeof CRUD[number]
-
-// Areas where create/delete don't apply
-const NO_CREATE_DELETE = new Set<PermissionArea>(["club_settings"])
-
-const CRUD_ICONS: Record<Crud, React.ElementType> = {
-  view: Eye,
-  create: Plus,
-  edit: PencilSimple,
-  delete: Trash,
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Role {
   id: string
   name: string
   description: string | null
+  color?: string | null
   permissions: Record<string, boolean>
 }
 
@@ -63,236 +33,529 @@ interface Props {
   canManage: boolean
 }
 
-function areasWithAccess(permissions: Record<string, boolean>) {
-  return PERMISSION_AREAS.filter((area) =>
-    CRUD.some((crud) => permissions[`${crud}_${area}`] === true)
-  ).length
+// ─── Permission definitions ───────────────────────────────────────────────────
+
+interface PermissionDef {
+  flag: PermissionFlag
+  label: string
+  description: string
+  /** If toggling ON, also enable this flag */
+  autoEnable?: PermissionFlag
 }
+
+interface PermissionSection {
+  label: string
+  permissions: PermissionDef[]
+}
+
+const PERMISSION_SECTIONS: PermissionSection[] = [
+  {
+    label: "GENERAL SERVER",
+    permissions: [
+      {
+        flag: "view_members",
+        label: "View Members",
+        description: "Can see the member list and profiles",
+      },
+      {
+        flag: "create_members",
+        label: "Create Members",
+        description: "Can approve applicant applications",
+      },
+      {
+        flag: "edit_members",
+        label: "Edit Members",
+        description: "Can edit member profiles and roles",
+      },
+      {
+        flag: "delete_members",
+        label: "Remove Members",
+        description: "Can remove members from the club",
+      },
+    ],
+  },
+  {
+    label: "TEAM & EVENTS",
+    permissions: [
+      {
+        flag: "view_teams",
+        label: "View Teams",
+        description: "Can see team assignments",
+      },
+      {
+        flag: "edit_teams",
+        label: "Manage Teams",
+        description: "Can create and edit teams",
+        autoEnable: "view_teams",
+      },
+      {
+        flag: "view_events",
+        label: "View Events",
+        description: "Can see Science Olympiad events",
+      },
+      {
+        flag: "edit_events",
+        label: "Manage Events",
+        description: "Can create and edit events",
+        autoEnable: "view_events",
+      },
+      {
+        flag: "view_competitions",
+        label: "View Competitions",
+        description: "Can see competition schedule",
+      },
+      {
+        flag: "edit_competitions",
+        label: "Manage Competitions",
+        description: "Can create and edit competitions",
+        autoEnable: "view_competitions",
+      },
+    ],
+  },
+  {
+    label: "ACTIVITY",
+    permissions: [
+      {
+        flag: "view_hours",
+        label: "View Hours",
+        description: "Can see member hours",
+      },
+      {
+        flag: "edit_hours",
+        label: "Manage Hours",
+        description: "Can approve and edit hours",
+        autoEnable: "view_hours",
+      },
+      {
+        flag: "view_finances",
+        label: "View Finances",
+        description: "Can see dues and invoices",
+      },
+      {
+        flag: "edit_finances",
+        label: "Manage Finances",
+        description: "Can create invoices and record payments",
+        autoEnable: "view_finances",
+      },
+      {
+        flag: "view_forms",
+        label: "View Forms",
+        description: "Can see form submissions",
+      },
+      {
+        flag: "edit_forms",
+        label: "Manage Forms",
+        description: "Can create form types and manage submissions",
+        autoEnable: "view_forms",
+      },
+      {
+        flag: "view_club_events",
+        label: "View Club Events",
+        description: "Can see club meetings and events",
+      },
+      {
+        flag: "edit_club_events",
+        label: "Manage Club Events",
+        description: "Can create and edit club events",
+        autoEnable: "view_club_events",
+      },
+      {
+        flag: "view_practice",
+        label: "View Practice",
+        description: "Can see practice tests",
+      },
+      {
+        flag: "edit_practice",
+        label: "Manage Practice",
+        description: "Can create and manage practice tests",
+        autoEnable: "view_practice",
+      },
+    ],
+  },
+  {
+    label: "ADVANCED",
+    permissions: [
+      {
+        flag: "view_roles",
+        label: "View Roles",
+        description: "Can see role definitions",
+      },
+      {
+        flag: "edit_roles",
+        label: "Manage Roles",
+        description: "Can create and edit roles",
+        autoEnable: "view_roles",
+      },
+      {
+        flag: "edit_club_settings",
+        label: "Manage Settings",
+        description: "Can edit club settings and seasons",
+      },
+      {
+        flag: "edit_announcements",
+        label: "Manage Announcements",
+        description: "Can create club announcements",
+      },
+      {
+        flag: "edit_resources",
+        label: "Manage Resources",
+        description: "Can upload and manage resources",
+      },
+    ],
+  },
+]
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function hashColor(str: string): string {
+  const colors = [
+    "#5865F2",
+    "#57F287",
+    "#FEE75C",
+    "#EB459E",
+    "#ED4245",
+    "#3498DB",
+    "#E67E22",
+    "#9B59B6",
+    "#1ABC9C",
+    "#E74C3C",
+  ]
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) >>> 0
+  }
+  return colors[hash % colors.length]
+}
+
+function permissionsEqual(
+  a: Record<string, boolean>,
+  b: Record<string, boolean>
+): boolean {
+  const allKeys = new Set([...Object.keys(a), ...Object.keys(b)])
+  for (const k of allKeys) {
+    if (!!a[k] !== !!b[k]) return false
+  }
+  return true
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function RolesManager({ roles: initialRoles, canManage }: Props) {
   const router = useRouter()
   const [roles, setRoles] = useState<Role[]>(initialRoles)
-  const [editingRole, setEditingRole] = useState<Role | null>(null)
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(
+    initialRoles[0]?.id ?? null
+  )
+  const [localPermissions, setLocalPermissions] = useState<
+    Record<string, boolean>
+  >({})
+  const [saving, setSaving] = useState(false)
+
+  // Create dialog
   const [showCreate, setShowCreate] = useState(false)
   const [newRoleName, setNewRoleName] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [newRoleColor, setNewRoleColor] = useState("#5865F2")
+  const [creating, setCreating] = useState(false)
+
+  // Delete confirm dialog
+  const [deleteTarget, setDeleteTarget] = useState<Role | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const selectedRole = roles.find((r) => r.id === selectedRoleId) ?? null
+
+  // Sync localPermissions when selected role changes
+  useEffect(() => {
+    if (selectedRole) {
+      setLocalPermissions({ ...selectedRole.permissions })
+    } else {
+      setLocalPermissions({})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoleId])
+
+  const isDirty =
+    selectedRole !== null &&
+    !permissionsEqual(localPermissions, selectedRole.permissions)
+
+  function handleToggle(
+    flag: PermissionFlag,
+    checked: boolean,
+    autoEnable?: PermissionFlag
+  ) {
+    setLocalPermissions((prev) => {
+      const next = { ...prev, [flag]: checked }
+      if (checked && autoEnable) {
+        next[autoEnable] = true
+      }
+      return next
+    })
+  }
+
+  async function handleSave() {
+    if (!selectedRole) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/admin/roles/${selectedRole.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permissions: localPermissions }),
+      })
+      if (!res.ok) {
+        toast.error((await res.json()).message ?? "Failed to save.")
+        return
+      }
+      setRoles((prev) =>
+        prev.map((r) =>
+          r.id === selectedRole.id
+            ? { ...r, permissions: { ...localPermissions } }
+            : r
+        )
+      )
+      toast.success("Permissions saved.")
+      router.refresh()
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleCreate() {
     if (!newRoleName.trim()) return
-    setLoading(true)
+    setCreating(true)
     try {
       const res = await fetch("/api/admin/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newRoleName.trim(), permissions: {} }),
+        body: JSON.stringify({
+          name: newRoleName.trim(),
+          color: newRoleColor,
+          permissions: {},
+        }),
       })
-      if (!res.ok) { toast.error((await res.json()).message ?? "Failed."); return }
-      const role = await res.json()
-      setRoles((r) => [...r, role])
+      if (!res.ok) {
+        toast.error((await res.json()).message ?? "Failed to create role.")
+        return
+      }
+      const role: Role = await res.json()
+      setRoles((prev) => [...prev, role])
+      setSelectedRoleId(role.id)
       setNewRoleName("")
       setShowCreate(false)
       toast.success("Role created.")
-    } finally { setLoading(false) }
+    } finally {
+      setCreating(false)
+    }
   }
 
-  async function handleDelete(roleId: string) {
-    if (!confirm("Delete this role? Members with this role will lose its permissions.")) return
-    const res = await fetch(`/api/admin/roles/${roleId}`, { method: "DELETE" })
-    if (!res.ok) { toast.error("Failed to delete role."); return }
-    setRoles((r) => r.filter((x) => x.id !== roleId))
-    toast.success("Role deleted.")
-  }
-
-  async function handleSave(role: Role) {
-    setLoading(true)
+  async function handleDelete(role: Role) {
+    setDeleting(true)
     try {
       const res = await fetch(`/api/admin/roles/${role.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ permissions: role.permissions }),
+        method: "DELETE",
       })
-      if (!res.ok) { toast.error("Failed to save."); return }
-      setRoles((r) => r.map((x) => (x.id === role.id ? role : x)))
-      setEditingRole(null)
-      toast.success("Permissions saved.")
-      router.refresh()
-    } finally { setLoading(false) }
-  }
-
-  function toggle(flag: string) {
-    setEditingRole((r) =>
-      r ? { ...r, permissions: { ...r.permissions, [flag]: !r.permissions[flag] } } : null
-    )
-  }
-
-  function setGroup(areas: PermissionArea[], crud: Crud, value: boolean) {
-    setEditingRole((r) => {
-      if (!r) return null
-      const next = { ...r.permissions }
-      for (const area of areas) {
-        if (NO_CREATE_DELETE.has(area) && (crud === "create" || crud === "delete")) continue
-        next[`${crud}_${area}`] = value
+      if (!res.ok) {
+        toast.error("Failed to delete role.")
+        return
       }
-      return { ...r, permissions: next }
-    })
+      const remaining = roles.filter((r) => r.id !== role.id)
+      setRoles(remaining)
+      setDeleteTarget(null)
+      if (selectedRoleId === role.id) {
+        setSelectedRoleId(remaining[0]?.id ?? null)
+      }
+      toast.success("Role deleted.")
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
-    <div className="space-y-3">
-      {roles.map((role) => {
-        const count = areasWithAccess(role.permissions)
-        return (
-          <Card key={role.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-medium">{role.name}</CardTitle>
-                  {role.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{role.description}</p>
-                  )}
-                </div>
-                {canManage && (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost" size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => setEditingRole({ ...role, permissions: { ...role.permissions } })}
-                    >
-                      Edit permissions
-                    </Button>
-                    <Button
-                      variant="ghost" size="icon"
-                      className="size-7 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDelete(role.id)}
-                    >
-                      <X size={14} />
-                    </Button>
+    <div className="flex flex-col md:flex-row h-full min-h-[480px] border border-border/50 rounded-lg overflow-hidden bg-background">
+      {/* ── Left panel ────────────────────────────────────────────────────── */}
+      <div className="w-full md:w-48 shrink-0 border-b md:border-b-0 md:border-r border-border/50 bg-muted/20 flex flex-col">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground px-3 py-2 border-b border-border/30">
+          Roles
+        </p>
+
+        <div className="flex-1 overflow-y-auto py-1 max-h-48 md:max-h-none">
+          {roles.map((role) => {
+            const color = role.color ?? hashColor(role.name)
+            const isSelected = role.id === selectedRoleId
+            return (
+              <button
+                key={role.id}
+                type="button"
+                onClick={() => setSelectedRoleId(role.id)}
+                className={[
+                  "w-full text-left px-2 py-1.5 rounded-md cursor-pointer flex items-center gap-2 mx-1 my-0.5 text-sm transition-colors",
+                  isSelected
+                    ? "bg-muted text-foreground font-medium"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                ].join(" ")}
+                style={{ width: "calc(100% - 8px)" }}
+              >
+                <span
+                  className="size-2 rounded-full shrink-0"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="truncate">{role.name}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {canManage && (
+          <div className="p-2 border-t border-border/30">
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+            >
+              <PlusIcon size={13} />
+              Add Role
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Right panel ───────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {!selectedRole ? (
+          <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
+            Select a role
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 shrink-0">
+              <h2 className="text-base font-semibold text-foreground">
+                {selectedRole.name}
+              </h2>
+              {canManage && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => setDeleteTarget(selectedRole)}
+                >
+                  <TrashIcon size={15} />
+                </Button>
+              )}
+            </div>
+
+            {/* Permissions list */}
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
+              {PERMISSION_SECTIONS.map((section) => (
+                <div key={section.label} className="mt-6">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+                    {section.label}
+                  </p>
+                  <div>
+                    {section.permissions.map((perm) => (
+                      <div
+                        key={perm.flag}
+                        className="flex items-start justify-between py-4 border-b border-border/40 gap-4"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {perm.label}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {perm.description}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={localPermissions[perm.flag] === true}
+                          onCheckedChange={(checked) =>
+                            handleToggle(perm.flag, checked, perm.autoEnable)
+                          }
+                          disabled={!canManage}
+                          className="shrink-0 data-[state=checked]:bg-green-500"
+                        />
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <p className="text-xs text-muted-foreground">
-                Access to <span className="font-medium text-foreground">{count}</span> of {PERMISSION_AREAS.length} areas
-              </p>
-            </CardContent>
-          </Card>
-        )
-      })}
+                </div>
+              ))}
 
-      {canManage && (
-        <Button variant="outline" size="sm" className="w-full" onClick={() => setShowCreate(true)}>
-          <UserCirclePlus size={15} className="mr-1.5" />
-          New Role
-        </Button>
-      )}
+              {/* Save button */}
+              {canManage && isDirty && (
+                <div className="mt-6 flex justify-end">
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    <FloppyDiskIcon size={14} />
+                    {saving ? "Saving\u2026" : "Save Changes"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
-      {/* Create dialog */}
+      {/* ── Create role dialog ────────────────────────────────────────────── */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>New Role</DialogTitle></DialogHeader>
-          <div className="space-y-1.5">
-            <Label>Role Name</Label>
-            <Input
-              value={newRoleName}
-              onChange={(e) => setNewRoleName(e.target.value)}
-              placeholder="e.g. Vice President"
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            />
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>New Role</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-role-name">Role Name</Label>
+              <Input
+                id="new-role-name"
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+                placeholder="e.g. Vice President"
+                onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="new-role-color">Color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="new-role-color"
+                  type="color"
+                  value={newRoleColor}
+                  onChange={(e) => setNewRoleColor(e.target.value)}
+                  className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0.5"
+                />
+                <span className="text-sm text-muted-foreground font-mono">
+                  {newRoleColor}
+                </span>
+              </div>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={loading || !newRoleName.trim()}>Create</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreate(false)
+                setNewRoleName("")
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreate}
+              disabled={creating || !newRoleName.trim()}
+            >
+              Create
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit permissions dialog */}
-      {editingRole && (
-        <Dialog open onOpenChange={() => setEditingRole(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Permissions — {editingRole.name}</DialogTitle>
-            </DialogHeader>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 pr-4 font-medium text-muted-foreground w-36">Area</th>
-                    {CRUD.map((crud) => {
-                      const Icon = CRUD_ICONS[crud]
-                      return (
-                        <th key={crud} className="text-center py-2 px-3 font-medium text-muted-foreground w-16">
-                          <div className="flex flex-col items-center gap-0.5">
-                            <Icon size={14} />
-                            <span className="text-[10px] capitalize">{crud}</span>
-                          </div>
-                        </th>
-                      )
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {AREA_GROUPS.map((group) => (
-                    <>
-                      <tr key={group.label} className="bg-muted/30">
-                        <td colSpan={5} className="py-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          {group.label}
-                        </td>
-                      </tr>
-                      {group.areas.map((area) => (
-                        <tr key={area} className="border-b border-border/50 hover:bg-muted/20">
-                          <td className="py-2 pr-4 text-sm">{AREA_LABELS[area]}</td>
-                          {CRUD.map((crud) => {
-                            const flag = `${crud}_${area}`
-                            const disabled = NO_CREATE_DELETE.has(area) && (crud === "create" || crud === "delete")
-                            return (
-                              <td key={crud} className="text-center py-2 px-3">
-                                {disabled ? (
-                                  <span className="text-muted-foreground/30 text-xs">—</span>
-                                ) : (
-                                  <Checkbox
-                                    checked={!!editingRole.permissions[flag]}
-                                    onCheckedChange={() => toggle(flag)}
-                                    className="mx-auto"
-                                  />
-                                )}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      ))}
-                    </>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {/* Quick-select row */}
-            <div className="flex flex-wrap gap-2 pt-2 border-t text-xs text-muted-foreground">
-              <span className="self-center">Quick select:</span>
-              {AREA_GROUPS.map((group) => (
-                <div key={group.label} className="flex items-center gap-1">
-                  <span className="font-medium">{group.label}:</span>
-                  {CRUD.map((crud) => (
-                    <button
-                      key={crud}
-                      type="button"
-                      className="underline hover:text-foreground capitalize"
-                      onClick={() => setGroup(group.areas, crud, true)}
-                    >
-                      {crud}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingRole(null)}>Cancel</Button>
-              <Button onClick={() => handleSave(editingRole)} disabled={loading}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* ── Delete confirm dialog ─────────────────────────────────────────── */}
+      <ConfirmDeleteRoleDialog
+        role={deleteTarget}
+        deleting={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

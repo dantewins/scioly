@@ -17,7 +17,7 @@ import {
   IconSettings,
   IconLayoutDashboard,
 } from "@tabler/icons-react"
-import { Atom, DotsThree, UserCircle } from "@phosphor-icons/react"
+import { AtomIcon, DotsThreeIcon, UserCircleIcon } from "@phosphor-icons/react"
 import {
   Sidebar,
   SidebarContent,
@@ -61,7 +61,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       { href: "/dashboard/applications", label: "Applications", icon: IconUserCheck },
       { href: "/dashboard/members", label: "Members", icon: IconUsers },
     ] : []),
-    ...(canView("events") ? [{ href: "/dashboard/events", label: "Events", icon: Atom }] : []),
+    ...(canView("events") ? [{ href: "/dashboard/events", label: "Events", icon: AtomIcon }] : []),
     ...(canView("competitions") ? [{ href: "/dashboard/competitions", label: "Competitions", icon: IconTrophy }] : []),
     ...(canView("teams") ? [{ href: "/dashboard/teams", label: "Teams", icon: IconChartBar }] : []),
   ]
@@ -98,7 +98,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 className="flex w-full items-center gap-2 group-data-[collapsible=icon]:justify-center"
               >
                 <div className="flex size-7 shrink-0 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground group-data-[collapsible=icon]:mx-auto">
-                  <Atom size={16} weight="bold" />
+                  <AtomIcon size={16} weight="bold" />
                 </div>
 
                 <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
@@ -209,7 +209,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="truncate text-sm text-foreground">
                     {user?.firstName} {user?.lastName}
                   </span>
-                  <DotsThree size={16} className="ml-auto text-muted-foreground" />
+                  <DotsThreeIcon size={16} className="ml-auto text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-52">

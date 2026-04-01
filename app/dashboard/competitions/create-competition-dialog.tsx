@@ -6,26 +6,16 @@ import { toast } from "sonner"
 import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
-
-const TYPES = ["PRACTICE", "INVITATIONAL", "REGIONAL", "STATE", "NATIONAL", "OTHER"] as const
+import { CompetitionForm } from "@/components/forms/competition-form"
 
 export function CreateCompetitionDialog() {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({
-    name: "", type: "INVITATIONAL" as string,
-    location: "", startsAt: "", endsAt: "",
-  })
 
-  async function handleCreate() {
+  async function handleCreate(form: { name: string; type: string; location: string; startsAt: string; endsAt: string }) {
     if (!form.name || !form.startsAt) { toast.error("Name and start date are required."); return }
     setLoading(true)
     try {
@@ -53,41 +43,13 @@ export function CreateCompetitionDialog() {
         <IconPlus className="size-4 mr-1.5" />Add Competition
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>New Competition</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Name</Label>
-              <Input placeholder="Spring Invitational 2026" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Type</Label>
-              <Select value={form.type} onValueChange={(v) => setForm(f => ({ ...f, type: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Location (optional)</Label>
-              <Input value={form.location} onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Start Date</Label>
-                <Input type="date" value={form.startsAt} onChange={(e) => setForm(f => ({ ...f, startsAt: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>End Date (optional)</Label>
-                <Input type="date" value={form.endsAt} onChange={(e) => setForm(f => ({ ...f, endsAt: e.target.value }))} />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={loading || !form.name}>{loading ? "Creating..." : "Create"}</Button>
-          </DialogFooter>
+          <CompetitionForm
+            onSubmit={handleCreate}
+            loading={loading}
+            onCancel={() => setOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </>

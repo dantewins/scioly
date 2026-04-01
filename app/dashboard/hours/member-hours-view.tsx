@@ -114,7 +114,7 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
       </div>
 
       <Dialog open={showSubmit} onOpenChange={setShowSubmit}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Log Hours</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
