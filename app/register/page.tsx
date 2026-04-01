@@ -97,6 +97,7 @@ export default function RegisterPage() {
                 <Input
                   id="firstName"
                   value={form.firstName}
+                  placeholder="Danny"
                   onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
                   required
                 />
@@ -106,6 +107,7 @@ export default function RegisterPage() {
                 <Input
                   id="lastName"
                   value={form.lastName}
+                  placeholder="Kim"
                   onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
                   required
                 />
