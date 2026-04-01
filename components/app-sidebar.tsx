@@ -7,17 +7,18 @@ import { usePathname } from "next/navigation"
 import {
   IconAtom,
   IconCalendarEvent,
-  IconChartBar,
-  IconClock,
   IconFileCheck,
-  IconSettings,
+  IconClock,
+  IconWallet,
   IconTrophy,
   IconUsers,
   IconUserCheck,
-  IconWallet,
+  IconChartBar,
   IconBooks,
+  IconSettings,
+  IconLayoutDashboard,
+  IconDots,
 } from "@tabler/icons-react"
-
 import {
   Sidebar,
   SidebarContent,
@@ -30,117 +31,87 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from "@/components/ui/sidebar"
-import { NavUser, type NavUserData } from "@/components/nav-user"
 import { useAuth } from "@/context/AuthContext"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-function buildNavUser(user: { email: string; displayName: string | null; firstName: string; lastName: string } | null): NavUserData | null {
-  if (!user) return null
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ")
-  return {
-    name: user.displayName || fullName || user.email,
-    email: user.email,
-    avatarUrl: null,
-  }
+interface NavItem {
+  href: string
+  label: string
+  icon: React.ElementType
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, signOut, canView, canEdit, isOwner } = useAuth()
+  const { user, signOut, canView, isOwner } = useAuth()
   const pathname = usePathname()
-  const navUser = React.useMemo(() => buildNavUser(user), [user])
 
   function active(href: string) {
-    return pathname === href || pathname.startsWith(href + "/")
+    if (href === "/dashboard") return pathname === "/dashboard"
+    return pathname.startsWith(href)
   }
 
-  const managementItems = [
-    canView("members") && {
-      href: "/dashboard/applications",
-      label: "Applications",
-      icon: IconUserCheck,
-    },
-    canView("members") && {
-      href: "/dashboard/members",
-      label: "Members",
-      icon: IconUsers,
-    },
-    canView("events") && {
-      href: "/dashboard/events",
-      label: "Events",
-      icon: IconAtom,
-    },
-    canView("competitions") && {
-      href: "/dashboard/competitions",
-      label: "Competitions",
-      icon: IconTrophy,
-    },
-    canView("teams") && {
-      href: "/dashboard/teams",
-      label: "Teams",
-      icon: IconChartBar,
-    },
-  ].filter(Boolean) as { href: string; label: string; icon: React.ElementType }[]
+  const navItems: NavItem[] = [
+    { href: "/dashboard", label: "Overview", icon: IconLayoutDashboard },
+    ...(canView("members") ? [
+      { href: "/dashboard/applications", label: "Applications", icon: IconUserCheck },
+      { href: "/dashboard/members", label: "Members", icon: IconUsers },
+    ] : []),
+    ...(canView("events") ? [{ href: "/dashboard/events", label: "Events", icon: IconAtom }] : []),
+    ...(canView("competitions") ? [{ href: "/dashboard/competitions", label: "Competitions", icon: IconTrophy }] : []),
+    ...(canView("teams") ? [{ href: "/dashboard/teams", label: "Teams", icon: IconChartBar }] : []),
+  ]
 
-  const activityItems = [
-    canView("hours") && {
-      href: "/dashboard/hours",
-      label: "Hours",
-      icon: IconClock,
-    },
-    canView("finances") && {
-      href: "/dashboard/finances",
-      label: "Finances",
-      icon: IconWallet,
-    },
-    canView("club_events") && {
-      href: "/dashboard/club-events",
-      label: "Club Events",
-      icon: IconCalendarEvent,
-    },
-    canView("forms") && {
-      href: "/dashboard/forms",
-      label: "Forms",
-      icon: IconFileCheck,
-    },
-    canView("practice") && {
-      href: "/dashboard/practice",
-      label: "Practice Tests",
-      icon: IconBooks,
-    },
-  ].filter(Boolean) as { href: string; label: string; icon: React.ElementType }[]
+  const activityItems: NavItem[] = [
+    ...(canView("hours") ? [{ href: "/dashboard/hours", label: "Hours", icon: IconClock }] : []),
+    ...(canView("finances") ? [{ href: "/dashboard/finances", label: "Finances", icon: IconWallet }] : []),
+    ...(canView("forms") ? [{ href: "/dashboard/forms", label: "Forms", icon: IconFileCheck }] : []),
+    ...(canView("club_events") ? [{ href: "/dashboard/club-events", label: "Club Events", icon: IconCalendarEvent }] : []),
+    ...(canView("practice") ? [{ href: "/dashboard/practice", label: "Practice Tests", icon: IconBooks }] : []),
+  ]
+
+  const initials = user
+    ? `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase()
+    : "?"
 
   return (
-    <Sidebar variant="inset" {...props}>
-      <SidebarHeader>
+    <Sidebar variant="inset" collapsible="icon" {...props}>
+      {/* Logo */}
+      <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <IconAtom className="size-4" />
+            <SidebarMenuButton size="sm" asChild>
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <div className="flex size-6 shrink-0 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground">
+                  <IconAtom className="size-3.5" />
                 </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold text-sm">Science Olympiad</span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[130px]">
-                    {user?.email ?? ""}
-                  </span>
-                </div>
+                <span className="font-semibold text-sm text-foreground truncate">Scioly</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        {managementItems.length > 0 && (
+      <SidebarContent className="py-2">
+        {/* Main nav */}
+        {navItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Management</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {managementItems.map((item) => (
+                {navItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={active(item.href)}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active(item.href)}
+                      className="h-8 text-sm"
+                    >
                       <Link href={item.href}>
-                        <item.icon />
+                        <item.icon className="size-4" />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -151,16 +122,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
 
+        {/* Activity nav */}
         {activityItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Activity</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 h-6">
+              Activity
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {activityItems.map((item) => (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={active(item.href)}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active(item.href)}
+                      className="h-8 text-sm"
+                    >
                       <Link href={item.href}>
-                        <item.icon />
+                        <item.icon className="size-4" />
                         <span>{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -171,15 +149,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroup>
         )}
 
-        {(isOwner || canEdit("club_settings")) && (
+        {/* Settings */}
+        {(isOwner || canView("club_settings")) && (
           <SidebarGroup>
-            <SidebarGroupLabel>Club</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={active("/dashboard/settings")}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={active("/dashboard/settings")}
+                    className="h-8 text-sm"
+                  >
                     <Link href="/dashboard/settings">
-                      <IconSettings />
+                      <IconSettings className="size-4" />
                       <span>Settings</span>
                     </Link>
                   </SidebarMenuButton>
@@ -190,8 +172,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
       </SidebarContent>
 
-      <SidebarFooter>
-        {navUser && <NavUser user={navUser} onSignOut={signOut} />}
+      {/* User footer */}
+      <SidebarFooter className="border-t border-sidebar-border py-2">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton className="h-8 data-[state=open]:bg-sidebar-accent">
+                  <Avatar className="size-5 shrink-0">
+                    <AvatarFallback className="text-[10px] bg-muted text-muted-foreground">{initials}</AvatarFallback>
+                  </Avatar>
+                  <span className="truncate text-sm text-foreground">
+                    {user?.firstName} {user?.lastName}
+                  </span>
+                  <IconDots className="ml-auto size-4 text-muted-foreground" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-52">
+                <div className="px-2 py-1.5">
+                  <p className="text-xs font-medium text-foreground">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                  onClick={() => signOut()}
+                >
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   )

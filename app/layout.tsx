@@ -1,37 +1,38 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext";
-import { getCurrentUser } from "@/lib/auth";
-import { Toaster } from "sonner";
+import type { Metadata } from "next"
+import { Geist, Geist_Mono } from "next/font/google"
+import "./globals.css"
+import { AuthProvider } from "@/context/AuthContext"
+import { getCurrentUser } from "@/lib/auth"
+import { Toaster } from "sonner"
 
-const inter = Inter({
-  variable: "--font-inter",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-});
+})
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+})
 
 export const metadata: Metadata = {
   title: "Scioly",
   description: "Science Olympiad club management platform",
-};
+}
 
 export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const user = await getCurrentUser();
+}: {
+  children: React.ReactNode
+}) {
+  const user = await getCurrentUser()
 
   return (
-    <html lang="en">
-      <body
-        className={`${inter.variable} antialiased`}
-      >
-        <Toaster position="top-center" />
-        <AuthProvider initialUser={user}>
-          {children}
-        </AuthProvider>
+    <html lang="en" data-density="comfortable" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+        <Toaster position="top-right" richColors />
+        <AuthProvider initialUser={user}>{children}</AuthProvider>
       </body>
     </html>
-  );
+  )
 }

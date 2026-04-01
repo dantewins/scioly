@@ -1,52 +1,51 @@
 "use client"
 
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-
 import { usePathname } from "next/navigation"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { DensityToggle } from "@/components/ui/density-toggle"
 
-const PAGE_TITLES: Record<string, string> = {
+const ROUTE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
-  events: "Events",
-  competitions: "Competitions",
-  "club-events": "Club Events",
-  teams: "Teams",
   members: "Members",
   applications: "Applications",
-  tests: "Tests",
+  events: "Events",
+  competitions: "Competitions",
+  teams: "Teams",
+  hours: "Hours",
+  finances: "Finances",
+  forms: "Forms",
+  "club-events": "Club Events",
+  practice: "Practice Tests",
+  settings: "Settings",
 }
 
-function getPageTitle(pathname: string): string {
-  const segments = pathname.split("/").filter(Boolean)
-  const last = segments[segments.length - 1] ?? ""
-  const secondLast = segments[segments.length - 2] ?? ""
-
-  // /dashboard/competitions/[uuid] → "Team Builder"
-  if (secondLast === "competitions" && last !== "competitions") {
-    return "Team Builder"
+function resolveTitle(pathname: string): string {
+  const segs = pathname.split("/").filter(Boolean)
+  // /dashboard/competitions/[id] → "Competition"
+  for (let i = segs.length - 1; i >= 0; i--) {
+    const seg = segs[i]
+    if (ROUTE_LABELS[seg]) return ROUTE_LABELS[seg]
   }
-
-  // /dashboard/club-events/[uuid] → "Club Event"
-  if (secondLast === "club-events" && last !== "club-events") {
-    return "Club Event"
-  }
-
-  return PAGE_TITLES[last] ?? (last.charAt(0).toUpperCase() + last.slice(1))
+  return "Dashboard"
 }
 
 export function SiteHeader() {
   const pathname = usePathname()
-  const title = getPageTitle(pathname)
+  const title = resolveTitle(pathname)
 
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-        <SidebarTrigger className="-ml-1" />
-        <Separator
-          orientation="vertical"
-          className="mx-2 data-[orientation=vertical]:h-4"
-        />
-        <h1 className="text-base font-medium">{title}</h1>
+    <header
+      className="flex shrink-0 items-center gap-2 border-b border-border bg-background px-4"
+      style={{ height: "var(--topbar-h)" }}
+    >
+      <SidebarTrigger className="size-7 text-muted-foreground hover:text-foreground" />
+      <Separator orientation="vertical" className="h-4 mx-1" />
+      <span className="text-sm font-medium text-foreground flex-1">{title}</span>
+      <div className="flex items-center gap-0.5">
+        <DensityToggle />
+        <ThemeToggle />
       </div>
     </header>
   )

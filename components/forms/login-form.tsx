@@ -1,95 +1,71 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { IconAtom, IconLoader2 } from "@tabler/icons-react";
+import * as React from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { IconAtom, IconLoader2 } from "@tabler/icons-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+export function LoginForm() {
+  const router = useRouter()
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
-  const router = useRouter();
-
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
+  const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
+  const [loading, setLoading] = React.useState(false)
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+        body: JSON.stringify({ email, password }),
+      })
 
-      const data = await res.json().catch(() => null);
+      const data = await res.json().catch(() => null)
 
       if (!res.ok) {
-        toast.error(data?.message ?? "Login failed.");
-        return;
+        toast.error(data?.message ?? "Login failed.")
+        return
       }
 
-      router.push("/dashboard");
+      router.push("/dashboard")
     } catch (err) {
-      console.error(err);
+      console.error(err)
       toast.error(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong. Please try again."
-      );
+        err instanceof Error ? err.message : "Something went wrong. Please try again."
+      )
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form onSubmit={onSubmit}>
-        <FieldGroup className="gap-6">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <Link
-              href="/"
-              className="flex flex-col items-center gap-2 font-medium"
-            >
-              <div className="flex size-8 items-center justify-center rounded-md">
-                <IconAtom className="size-8" />
-              </div>
-              <span className="sr-only">Science Olympiad.</span>
-            </Link>
+    <div className="w-full max-w-sm space-y-6">
+      {/* Logo */}
+      <div className="flex justify-center">
+        <div className="flex size-10 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground">
+          <IconAtom className="size-5" />
+        </div>
+      </div>
 
-            <h1 className="text-xl font-bold">Welcome to Science Olympiad.</h1>
+      {/* Heading */}
+      <div className="text-center space-y-1">
+        <h1 className="text-lg font-semibold text-foreground">Sign in to Scioly</h1>
+        <p className="text-sm text-muted-foreground">Enter your credentials to continue</p>
+      </div>
 
-            <FieldDescription>
-              New school?{" "}
-              <Link href="/register" className="text-foreground underline underline-offset-4">
-                Register your club
-              </Link>
-            </FieldDescription>
-          </div>
-
-          <Field>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+      {/* Form card */}
+      <div className="rounded-[var(--radius)] border border-border bg-card p-6 space-y-4">
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               name="email"
@@ -100,10 +76,10 @@ export function LoginForm({
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-          </Field>
+          </div>
 
-          <Field>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               name="password"
@@ -114,16 +90,28 @@ export function LoginForm({
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </Field>
+          </div>
 
-          <Field>
-            <Button type="submit" disabled={loading} className="w-full">
-              Login {loading ? <IconLoader2 className="size-4 animate-spin" /> : null}
-            </Button>
-          </Field>
-        </FieldGroup>
-      </form>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? (
+              <>
+                <IconLoader2 className="size-4 animate-spin" />
+                Signing in…
+              </>
+            ) : (
+              "Continue"
+            )}
+          </Button>
+        </form>
+      </div>
 
+      {/* Footer link */}
+      <p className="text-center text-xs text-muted-foreground">
+        New here?{" "}
+        <Link href="/register" className="text-foreground underline underline-offset-4">
+          Register your club
+        </Link>
+      </p>
     </div>
-  );
+  )
 }

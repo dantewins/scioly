@@ -5,17 +5,10 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { IconAtom } from "@tabler/icons-react"
+import { IconAtom, IconLoader2 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -59,18 +52,23 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/30">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-2">
-            <IconAtom className="size-8 text-primary" />
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-sm space-y-6">
+        {/* Logo */}
+        <div className="flex justify-center">
+          <div className="flex size-10 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground">
+            <IconAtom className="size-5" />
           </div>
-          <CardTitle>Register Your Club</CardTitle>
-          <CardDescription>
-            Create a Science Olympiad club management account for your school.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        </div>
+
+        {/* Heading */}
+        <div className="text-center space-y-1">
+          <h1 className="text-lg font-semibold text-foreground">Register your club</h1>
+          <p className="text-sm text-muted-foreground">Create a Science Olympiad management account</p>
+        </div>
+
+        {/* Form card */}
+        <div className="rounded-[var(--radius)] border border-border bg-card p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="clubName">Club Name</Label>
@@ -159,18 +157,26 @@ export default function RegisterPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating club..." : "Create Club"}
+              {loading ? (
+                <>
+                  <IconLoader2 className="size-4 animate-spin" />
+                  Creating club…
+                </>
+              ) : (
+                "Create Club"
+              )}
             </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link href="/login" className="text-foreground underline underline-offset-4">
-                Sign in
-              </Link>
-            </p>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Footer link */}
+        <p className="text-center text-xs text-muted-foreground">
+          Already have an account?{" "}
+          <Link href="/login" className="text-foreground underline underline-offset-4">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }
