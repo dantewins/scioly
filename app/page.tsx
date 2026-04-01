@@ -1,101 +1,186 @@
-import Link from "next/link"
-import { IconAtom, IconMicroscope, IconTerminal2, IconTrophy, IconUsers, IconDatabase, IconLock, IconBolt } from "@tabler/icons-react"
+"use client"
 
+import Link from "next/link"
+import { useEffect, useState } from "react"
+import {
+  IconAtom, IconMicroscope, IconTerminal2, IconTrophy,
+  IconUsers, IconDatabase, IconLock, IconBolt,
+} from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { Aurora } from "@/components/effects/aurora"
+import { BlurText } from "@/components/effects/blur-text"
+import { SpotlightCard } from "@/components/effects/spotlight-card"
 
 export default function Page() {
-  return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground selection:bg-primary/20 relative">
+  const [scrolled, setScrolled] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
-      {/* Intricate Grid Background */}
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60)
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener("resize", check, { passive: true })
+    return () => window.removeEventListener("resize", check)
+  }, [])
+
+  return (
+    <div className="flex min-h-svh flex-col bg-background text-foreground selection:bg-primary/20 relative overflow-x-hidden">
+
+      {/* Subtle grid pattern */}
       <div
-        className="absolute inset-0 z-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+        className="fixed inset-0 z-0 pointer-events-none opacity-[0.025] dark:opacity-[0.04]"
         style={{
           backgroundImage: `linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)`,
-          backgroundSize: '24px 24px',
-          maskImage: 'radial-gradient(ellipse 60% 60% at 50% 0%, black 20%, transparent 100%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 60% 60% at 50% 0%, black 20%, transparent 100%)',
+          backgroundSize: "32px 32px",
         }}
       />
 
-      {/* Top Navigation Bar / Header */}
-      <header className="top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 max-w-screen-2xl items-center px-4 md:px-8 mx-auto">
-          <div className="flex items-center space-x-2">
-            <IconAtom className="h-6 w-6" />
-            <span className="font-semibold text-lg tracking-tight text-foreground">Scioly</span>
-          </div>
-          <div className="flex flex-1 items-center justify-end space-x-4">
-            <nav className="flex items-center space-x-4 text-sm font-medium">
-              <Link href="/login" className="text-muted-foreground transition-colors hover:text-foreground">
-                Log in
-              </Link>
-              <Button asChild size="sm" className="h-8 shadow-none border border-border bg-card hover:bg-accent rounded-md text-foreground">
-                <Link href="/apply">Apply to Join</Link>
-              </Button>
-            </nav>
+      {/* ── Navigation ─────────────────────────────────────────────────────── */}
+      <header
+        className={`sticky top-0 z-50 w-full transition-all duration-300 backdrop-blur-md bg-background/70 ${
+          scrolled ? "border-b border-border/60" : "border-b border-transparent"
+        }`}
+      >
+        <div className="container flex h-14 max-w-screen-xl items-center px-4 md:px-8 mx-auto">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background">
+              <IconAtom className="h-4 w-4" />
+            </div>
+            <span className="font-semibold text-sm tracking-tight text-foreground">Scioly</span>
+          </Link>
+          <div className="flex flex-1 items-center justify-end gap-4">
+            <Link
+              href="/login"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Log in
+            </Link>
+            <Button
+              asChild
+              size="sm"
+              className="h-8 px-4 text-xs rounded-md bg-foreground text-background hover:bg-foreground/90 font-medium shadow-none"
+            >
+              <Link href="/apply">Apply to Join</Link>
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center px-4 sm:px-6 lg:px-8 text-center pt-24 pb-24 relative z-10">
-        <div className="flex flex-col items-center max-w-5xl mx-auto space-y-10 w-full">
+      {/* ── Main ───────────────────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col items-center px-4 sm:px-6 lg:px-8 relative z-10">
+
+        {/* ── Hero ─────────────────────────────────────────────────────────── */}
+        <section className="relative w-full flex flex-col items-center text-center pt-28 pb-32 md:pt-40 md:pb-44 max-w-screen-xl mx-auto overflow-hidden">
+
+          {/* Aurora — desktop only */}
+          <div
+            className="pointer-events-none hidden sm:block absolute inset-x-0 top-0 h-[600px] -z-10"
+            style={{
+              maskImage: "radial-gradient(ellipse 85% 70% at 50% 0%, black 30%, transparent 100%)",
+              WebkitMaskImage: "radial-gradient(ellipse 85% 70% at 50% 0%, black 30%, transparent 100%)",
+            }}
+          >
+            <Aurora
+              colorStops={["#0d0d2b", "#2a1f6e", "#1a0e3d"]}
+              amplitude={1.2}
+              blend={0.6}
+              speed={0.6}
+            />
+          </div>
+
+          {/* Static glow fallback — always present, Aurora layers on top on desktop */}
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-96 -z-10 opacity-40"
+            style={{
+              background: "radial-gradient(ellipse 70% 50% at 50% 0%, oklch(0.55 0.18 254 / 0.25) 0%, transparent 100%)",
+            }}
+          />
 
           {/* Badge */}
-          <Link href="/apply" className="inline-flex items-center px-4 py-1.5 rounded-full border border-border/60 bg-muted/40 text-xs font-mono tracking-wider uppercase text-muted-foreground transition-all hover:bg-muted hover:border-border">
-            <span className="flex h-1.5 w-1.5 rounded-full bg-primary mr-3"></span>
+          <Link
+            href="/apply"
+            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-xs font-mono tracking-wider uppercase text-muted-foreground transition-all hover:bg-primary/10 hover:border-primary/40 mb-8 ring-1 ring-primary/10"
+          >
+            <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
             Season 2026 Ready
           </Link>
 
-          {/* Hero Content */}
-          <div className="space-y-6 max-w-4xl mx-auto flex flex-col items-center">
-            <h1 className="text-6xl md:text-7xl lg:text-[5.5rem] font-semibold tracking-tighter text-foreground leading-[1.0] font-sans">
-              The modern standard for <span className="text-primary">Science</span> Olympiad.
-            </h1>
-            <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl font-normal mt-3">
-              A highly-structured platform engineered to process rosters, event schedules, and tournament statistics with absolute precision.
-            </p>
+          {/* Headline */}
+          <div className="max-w-4xl mx-auto mb-7">
+            <BlurText
+              text="The modern standard for Science Olympiad."
+              delay={70}
+              animateBy="words"
+              direction="top"
+              disabled={isMobile}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.05] text-foreground justify-center"
+            />
           </div>
+
+          {/* Subheadline */}
+          <p className="max-w-lg text-base sm:text-lg leading-relaxed text-muted-foreground mb-10">
+            A platform built for Science Olympiad teams — handling rosters, event schedules, hours, and tournament logistics in one place.
+          </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto pt-3">
-            <Button asChild size="lg" className="h-10 md:h-12 px-8 text-sm shadow-none rounded-lg border border-foreground bg-foreground text-background hover:bg-foreground/90 transition-none font-semibold">
-              <Link href="/login">Initialize Setup</Link>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              asChild
+              size="lg"
+              className="h-11 px-7 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10"
+            >
+              <Link href="/login">Get Started</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="h-10 md:h-12 px-8 text-sm rounded-lg shadow-none bg-background border border-border hover:bg-muted transition-none text-foreground font-semibold">
-              <Link href="/apply">Apply Access</Link>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-11 px-7 text-sm rounded-lg border-border/60 bg-background/60 hover:bg-muted font-semibold shadow-none"
+            >
+              <Link href="/apply">Apply to Join</Link>
             </Button>
           </div>
+        </section>
 
-          {/* Active Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 pt-24 w-full max-w-5xl mx-auto text-left">
+        {/* ── Bento grid ───────────────────────────────────────────────────── */}
+        <section className="w-full max-w-5xl mx-auto pb-32">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-left">
 
-            {/* Bento Row 1: Large Performance Tracker (Spans 4 cols) */}
-            <div className="md:col-span-4 flex flex-col p-6 border border-border bg-card group hover:border-primary/50 transition-colors relative overflow-hidden rounded-lg">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <IconMicroscope className="w-32 h-32" />
+            {/* Telemetry — lg:col-span-4 */}
+            <div className="lg:col-span-4 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm ring-1 ring-border/0 hover:ring-border/40 transition-all duration-300 group relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 opacity-[0.06] group-hover:opacity-[0.10] transition-opacity">
+                <IconMicroscope className="w-36 h-36" />
               </div>
-              <div className="flex items-center space-x-2 text-xs font-mono uppercase tracking-widest text-primary mb-6">
-                <span className="w-2 h-2 bg-primary"></span>
-                <span>Telemetry</span>
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-primary mb-5">
+                <span className="w-1.5 h-1.5 bg-primary rounded-full" />
+                Telemetry
               </div>
-              <div className="space-y-4 z-10">
-                <h3 className="text-2xl font-medium tracking-tight text-foreground">Advanced Event Telemetry</h3>
-                <p className="text-sm text-muted-foreground max-w-md">
-                  Aggregate and visualize mock tournament scores in real-time. Uncover weak points in event categories before Regionals.
+              <div className="space-y-3 z-10">
+                <h3 className="text-xl font-semibold tracking-tight text-foreground">Advanced Event Telemetry</h3>
+                <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
+                  Visualize tournament scores in real-time. Identify weak events before Regionals with aggregate performance data.
                 </p>
-
-                {/* Mock Chart / Data Structure */}
-                <div className="mt-6 space-y-3 pt-6 border-t border-border/40">
-                  {['Anatomy & Physiology', 'Wright Stuff', 'Disease Detectives'].map((event, i) => (
-                    <div key={event} className="flex items-center justify-between text-sm font-mono">
-                      <span className="text-muted-foreground">{event}</span>
-                      <div className="flex items-center space-x-3 w-1/2">
-                        <div className="h-1.5 flex-1 bg-muted overflow-hidden relative">
-                          <div className="absolute top-0 left-0 bottom-0 bg-foreground transition-all duration-1000 ease-out" style={{ width: `${85 - i * 15}%` }}></div>
+                <div className="mt-4 space-y-3 pt-5 border-t border-border/30">
+                  {[
+                    ["Anatomy & Physiology", 85],
+                    ["Wright Stuff", 70],
+                    ["Disease Detectives", 55],
+                  ].map(([event, score]) => (
+                    <div key={event} className="flex items-center justify-between text-sm font-mono gap-4">
+                      <span className="text-muted-foreground truncate">{event}</span>
+                      <div className="flex items-center gap-3 w-2/5 shrink-0">
+                        <div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary/80 rounded-full transition-all duration-1000"
+                            style={{ width: `${score}%` }}
+                          />
                         </div>
-                        <span className="text-foreground font-semibold">{85 - i * 15}pt</span>
+                        <span className="text-foreground font-semibold w-8 text-right">{score}pt</span>
                       </div>
                     </div>
                   ))}
@@ -103,152 +188,169 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Bento Row 1: Small Log (Spans 2 cols) */}
-            <div className="md:col-span-2 flex flex-col p-6 border border-border bg-card hover:border-primary/50 rounded-lg">
-              <div className="flex items-center justify-between mb-6 border-b border-border/40 pb-4">
-                <span className="text-xs font-mono uppercase text-muted-foreground">System.Log</span>
+            {/* System log — lg:col-span-2 */}
+            <div className="lg:col-span-2 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:ring-1 hover:ring-border/40 transition-all duration-300">
+              <div className="flex items-center justify-between mb-5 pb-4 border-b border-border/30">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">System.Log</span>
                 <IconTerminal2 className="w-4 h-4 text-muted-foreground" />
               </div>
-              <div className="space-y-4 font-mono text-[11px] text-muted-foreground leading-relaxed break-all">
-                <div className="flex space-x-2">
-                  <span className="text-primary">{'>'}</span>
+              <div className="space-y-3 font-mono text-[11px] text-muted-foreground leading-relaxed">
+                <div className="flex gap-2">
+                  <span className="text-primary shrink-0">›</span>
                   <span className="text-foreground">POST /v1/roster</span>
                 </div>
-                <div className="flex space-x-2">
-                  <span className="opacity-50"># Assigning events...</span>
+                <div className="flex gap-2">
+                  <span className="opacity-40">#</span>
+                  <span className="opacity-60">Assigning events…</span>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex gap-2">
                   <span className="text-foreground">Alice M.</span>
-                  <span>{'->'}</span>
+                  <span className="opacity-40">→</span>
                   <span className="text-primary">Forestry</span>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex gap-2">
                   <span className="text-foreground">Bob J.</span>
-                  <span>{'->'}</span>
+                  <span className="opacity-40">→</span>
                   <span className="text-primary">Microbes</span>
                 </div>
-                <div className="flex space-x-2 mt-4 text-foreground border-l-2 border-primary pl-2">
+                <div className="mt-3 text-foreground border-l-2 border-primary/60 pl-2.5 py-0.5">
                   Status: 200 OK
                 </div>
               </div>
             </div>
 
-            {/* Bento Row 2: Achievements (Spans 3 cols) */}
-            <div className="md:col-span-3 flex flex-col p-6 border border-border bg-card hover:border-primary/50 rounded-lg">
+            {/* Historical record — lg:col-span-3 */}
+            <div className="lg:col-span-3 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:ring-1 hover:ring-border/40 transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
                 <IconTrophy className="w-5 h-5 text-foreground" />
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border px-2 py-1">Medals</span>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border/60 px-2 py-1 rounded-md">Medals</span>
               </div>
-              <div className="space-y-2 mb-6">
-                <h3 className="text-lg font-medium tracking-tight text-foreground">Historical Record</h3>
-                <p className="text-sm text-muted-foreground">Permanent ledger of all medals earned across all competitive seasons and tournaments.</p>
+              <div className="space-y-1.5 mb-5">
+                <h3 className="text-base font-semibold tracking-tight text-foreground">Historical Record</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Permanent ledger of all medals earned across competitive seasons and tournaments.</p>
               </div>
               <div className="flex gap-2 font-mono text-xs mt-auto flex-wrap">
-                <div className="bg-muted px-2 py-1 flex items-center gap-2 border border-border/50 hover:bg-background transition-colors"><span className="w-1.5 h-1.5 rounded-full bg-foreground"></span> MIT Inv. (1st)</div>
-                <div className="bg-muted px-2 py-1 flex items-center gap-2 border border-border/50 hover:bg-background transition-colors"><span className="w-1.5 h-1.5 rounded-full bg-primary"></span> Regionals (3rd)</div>
+                <div className="bg-muted/60 px-2.5 py-1.5 rounded-md flex items-center gap-2 border border-border/40 hover:bg-muted transition-colors">
+                  <span className="w-1.5 h-1.5 rounded-full bg-foreground" />
+                  MIT Inv. (1st)
+                </div>
+                <div className="bg-muted/60 px-2.5 py-1.5 rounded-md flex items-center gap-2 border border-border/40 hover:bg-muted transition-colors">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Regionals (3rd)
+                </div>
               </div>
             </div>
 
-            {/* Bento Row 2: Members (Spans 3 cols) */}
-            <div className="md:col-span-3 flex flex-col p-6 border border-border bg-card relative overflow-hidden hover:border-primary/50 rounded-lg">
+            {/* Club directory — lg:col-span-3 */}
+            <div className="lg:col-span-3 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:ring-1 hover:ring-border/40 transition-all duration-300 relative overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <IconUsers className="w-5 h-5 text-foreground" />
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border px-2 py-1">Directory</span>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border/60 px-2 py-1 rounded-md">Directory</span>
               </div>
-              <div className="space-y-2 mb-6 z-10 relative">
-                <h3 className="text-lg font-medium tracking-tight text-foreground">Club Directory Access</h3>
-                <p className="text-sm text-muted-foreground">Manage thousands of student members, assign roles, and review pending club applications instantly.</p>
+              <div className="space-y-1.5 mb-5 relative z-10">
+                <h3 className="text-base font-semibold tracking-tight text-foreground">Club Directory Access</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Manage members, assign roles, and review pending applications instantly.</p>
               </div>
-              <div className="mt-auto border-t border-border/40 pt-4 z-10 relative bg-card">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-none border border-border bg-muted flex items-center justify-center">
-                    <span className="text-xs font-mono font-medium">JD</span>
+              <div className="mt-auto pt-4 border-t border-border/30 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg border border-border bg-muted flex items-center justify-center">
+                    <span className="text-xs font-mono font-semibold">JD</span>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium leading-none">John Doe</span>
-                    <span className="text-xs font-mono text-muted-foreground mt-1 text-primary">Captain</span>
+                  <div>
+                    <p className="text-sm font-medium leading-none">John Doe</p>
+                    <p className="text-xs font-mono text-primary mt-1">Captain</p>
                   </div>
                 </div>
               </div>
             </div>
 
           </div>
+        </section>
 
-          <div className="w-full my-12 border-t border-border/40" />
-
-          {/* New Section: Infrastructure Specs */}
-          <div className="w-full max-w-5xl mx-auto text-left pt-8">
-            <div className="mb-12">
-              <span className="text-xs font-mono uppercase tracking-widest text-primary mb-2 block">Infrastructure</span>
-              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">Built for the long haul.</h2>
-              <p className="text-muted-foreground mt-4 max-w-2xl text-lg">
-                Stop managing your club with fragmented spreadsheets. Move to a persistent, unified database strictly architected for Science Olympiad logistics.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="flex flex-col space-y-3">
-                <div className="w-10 h-10 border border-border bg-card flex items-center justify-center text-foreground mb-2">
-                  <IconDatabase className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-medium tracking-tight text-foreground">Unified Schema</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Track members, roles, competition scores, and attendance in one relational schema. No more broken VLOOKUPs.
-                </p>
-              </div>
-              <div className="flex flex-col space-y-3">
-                <div className="w-10 h-10 border border-border bg-card flex items-center justify-center text-foreground mb-2">
-                  <IconLock className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-medium tracking-tight text-foreground">Role-Based Access</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Delegate tasks securely. Coaches see everything, captains manage rosters, and members track their own personal study metrics.
-                </p>
-              </div>
-              <div className="flex flex-col space-y-3">
-                <div className="w-10 h-10 border border-border bg-card flex items-center justify-center text-foreground mb-2">
-                  <IconBolt className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-medium tracking-tight text-foreground">High-Speed Workflows</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Optimized for speed. Quickly bulk-assign students to their events without waiting on slow, bloated interfaces.
-                </p>
-              </div>
-            </div>
+        {/* ── Infrastructure ───────────────────────────────────────────────── */}
+        <section className="w-full max-w-5xl mx-auto pb-36">
+          <div className="mb-12">
+            <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-3">Infrastructure</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
+              Built for the long haul.
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-xl leading-relaxed">
+              Replace fragmented spreadsheets with a unified database strictly architected for Science Olympiad logistics.
+            </p>
           </div>
 
-          {/* New Section: Final CTA */}
-          <div className="w-full pt-32 pb-16">
-            <div className="bg-card border border-border p-12 text-center flex flex-col items-center">
-              <h2 className="text-3xl md:text-5xl font-semibold tracking-tighter text-foreground mb-6">
-                Ready to deploy?
-              </h2>
-              <p className="text-muted-foreground text-lg mb-6 max-w-md">
-                Get your club running on the premier Science Olympiad management platform today.
-              </p>
-              <Button asChild size="lg" className="h-12 px-8 text-sm shadow-none rounded-lg border border-foreground bg-foreground text-background hover:bg-foreground/90 transition-all font-semibold uppercase tracking-wide">
-                <Link href="/apply">Initialize Application</Link>
-              </Button>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                icon: <IconDatabase className="w-5 h-5" />,
+                title: "Unified Schema",
+                desc: "Track members, roles, competition scores, and attendance in one relational schema. No more broken VLOOKUPs.",
+              },
+              {
+                icon: <IconLock className="w-5 h-5" />,
+                title: "Role-Based Access",
+                desc: "Delegate tasks securely. Coaches see everything, captains manage rosters, members track their own metrics.",
+              },
+              {
+                icon: <IconBolt className="w-5 h-5" />,
+                title: "High-Speed Workflows",
+                desc: "Optimized for speed. Bulk-assign students to events without waiting on slow, bloated interfaces.",
+              },
+            ].map((item) => (
+              <SpotlightCard
+                key={item.title}
+                className="rounded-2xl border border-border/60 bg-card p-6"
+                spotlightColor="rgba(99, 102, 241, 0.10)"
+              >
+                <div className="w-9 h-9 rounded-lg border border-border/60 bg-muted flex items-center justify-center text-foreground mb-4">
+                  {item.icon}
+                </div>
+                <h3 className="text-base font-semibold tracking-tight text-foreground mb-2">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+              </SpotlightCard>
+            ))}
           </div>
+        </section>
 
-        </div>
+        {/* ── Final CTA ────────────────────────────────────────────────────── */}
+        <section className="w-full max-w-5xl mx-auto pb-24">
+          <div className="relative rounded-2xl border border-border/60 bg-card overflow-hidden px-8 py-16 text-center flex flex-col items-center">
+            {/* Subtle background glow */}
+            <div
+              className="pointer-events-none absolute inset-0 opacity-30"
+              style={{
+                background: "radial-gradient(ellipse 60% 50% at 50% 100%, oklch(0.55 0.18 254 / 0.2) 0%, transparent 100%)",
+              }}
+            />
+            <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-4 relative z-10">Ready?</p>
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tighter text-foreground mb-5 relative z-10">
+              Run your club, not spreadsheets.
+            </h2>
+            <p className="text-muted-foreground text-base sm:text-lg mb-8 max-w-sm relative z-10 leading-relaxed">
+              Get your Science Olympiad team onto a platform built exactly for this.
+            </p>
+            <Button
+              asChild
+              size="lg"
+              className="relative z-10 h-11 px-8 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10"
+            >
+              <Link href="/apply">Apply to Join</Link>
+            </Button>
+          </div>
+        </section>
+
       </main>
 
-      {/* Footer */}
-      <footer className="mt-auto py-8 px-6 text-xs font-mono uppercase tracking-widest text-muted-foreground border-t border-border/40 bg-background z-10 relative">
-        <div className="flex flex-col sm:flex-row justify-between items-center max-w-screen-2xl mx-auto">
-          <div className="flex items-center space-x-2">
-            <IconAtom className="h-4 w-4 text-muted-foreground" />
-            <span>&copy; {new Date().getFullYear()} Scioly System</span>
+      {/* ── Footer ───────────────────────────────────────────────────────────── */}
+      <footer className="py-8 px-6 border-t border-border/40 bg-background z-10 relative">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 max-w-screen-xl mx-auto text-xs font-mono uppercase tracking-widest text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <IconAtom className="h-4 w-4" />
+            <span>&copy; {new Date().getFullYear()} Scioly</span>
           </div>
-          <div className="flex items-center gap-8 mt-4 sm:mt-0">
-            <Link href="/terms" className="hover:text-foreground transition-colors">
-              [ Terms ]
-            </Link>
-            <Link href="/privacy" className="hover:text-foreground transition-colors">
-              [ Privacy ]
-            </Link>
+          <div className="flex items-center gap-6">
+            <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
           </div>
         </div>
       </footer>
