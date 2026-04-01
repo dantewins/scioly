@@ -72,7 +72,6 @@ export function AuthProvider({
       method: "POST",
       credentials: "include",
     })
-    setUser(null)
     window.location.href = "/login"
   }, [])
 
