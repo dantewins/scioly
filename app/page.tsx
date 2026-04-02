@@ -134,7 +134,7 @@ export default function Page() {
               className="h-8 w-8 md:h-9 md:w-9 text-muted-foreground hover:text-foreground"
               aria-label="Toggle theme"
             >
-              {isDark ? <IconSun className="h-4 w-4" /> : <IconMoon className="h-4 w-4" />}
+              {isDark ? <IconSun className="h-5 w-5" /> : <IconMoon className="!h-5 !w-5" />}
             </Button>
             <Button
               asChild
@@ -189,21 +189,25 @@ export default function Page() {
             </motion.div>
 
             <motion.h1
-              className="text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] tracking-tight leading-[1.05] text-foreground mb-8 text-center" 
+              className="text-6xl sm:text-6xl md:text-7xl lg:text-[6rem] tracking-tight leading-[1.1] text-foreground mb-6 text-center"
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.07, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              The <span className="text-primary font-semibold">diamond</span> standard for Scioly.
+              The{" "}
+              <span className="text-white bg-primary px-3 py-1 rounded-3xl inline-block">
+                diamond
+              </span>{" "}
+              standard for Scioly.
             </motion.h1>
 
             <motion.p
-              className={`text-base md:text-2xl ${isDark ? 'text-white' : 'text-muted-foreground'} mb-8 max-w-2xl text-center`}
+              className={`text-base md:text-2xl ${isDark ? 'text-white/70' : 'text-muted-foreground'} mb-10 max-w-md sm:max-w-lg md:max-w-2xl text-center leading-relaxed`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.16, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              Replace fragmented spreadsheet for the platform for your entire Science Olympiad operation.
+              One platform to replace every spreadsheet, group chat, and lost email built exclusively for Science Olympiad.
             </motion.p>
 
             <motion.div
@@ -215,20 +219,21 @@ export default function Page() {
               <Button
                 asChild
                 size="lg"
-                className="h-10 px-4 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/20 animate-pulse"
+                className="h-11 px-6 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/15 group"
               >
                 <Link href="/login">
-                  Get Started
+                  Get started
+                  <IconArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </Button>
               <Button
                 asChild
                 variant="outline"
                 size="lg"
-                className="h-10 px-4 text-sm rounded-lg border-border/60 bg-transparent hover:bg-muted font-semibold shadow-none"
+                className="h-11 px-6 text-sm rounded-lg border-border/60 bg-transparent hover:bg-muted font-medium shadow-none text-muted-foreground hover:text-foreground"
               >
                 <Link href="#features">
-                  Learn More
+                  See how it works
                 </Link>
               </Button>
             </motion.div>
