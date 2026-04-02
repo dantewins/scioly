@@ -195,9 +195,26 @@ export default function Page() {
               transition={{ duration: 0.55, delay: 0.07, ease: [0.25, 0.1, 0.25, 1] }}
             >
               The{" "}
-              <span className="text-primary font-semibold underline decoration-wavy inline-block">
+              <motion.span
+                className="font-semibold inline-block"
+                style={{
+                  backgroundImage: isDark
+                    ? "linear-gradient(110deg, #2d6bbf 0%, #3a78cc 12%, #4a90e2 25%, #6aabf0 38%, #8dc0f8 46%, #bfdbfe 50%, #8dc0f8 54%, #6aabf0 62%, #4a90e2 75%, #3a78cc 88%, #2d6bbf 100%)"
+                    : "linear-gradient(110deg, #1d4ed8 0%, #2563eb 12%, #3b82f6 25%, #60a5fa 38%, #93c5fd 46%, #bfdbfe 50%, #93c5fd 54%, #60a5fa 62%, #3b82f6 75%, #2563eb 88%, #1d4ed8 100%)",
+                  backgroundSize: "400px 100%",
+                  backgroundRepeat: "repeat",
+                  backgroundClip: "text",
+                  WebkitBackgroundClip: "text",
+                  color: "transparent",
+                  filter: isDark
+                    ? "drop-shadow(0 0 16px rgba(74, 144, 226, 0.5)) drop-shadow(0 2px 8px rgba(30, 88, 168, 0.35))"
+                    : "drop-shadow(0 0 10px rgba(37, 99, 235, 0.35)) drop-shadow(0 2px 5px rgba(30, 58, 138, 0.25))",
+                }}
+                animate={{ backgroundPosition: ["0px 50%", "-400px 50%"] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+              >
                 diamond
-              </span>{" "}
+              </motion.span>{" "}
               standard for Scioly.
             </motion.h1>
 
