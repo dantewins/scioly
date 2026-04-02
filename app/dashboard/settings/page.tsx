@@ -47,7 +47,7 @@ export default async function SettingsPage() {
   if (!club) redirect("/dashboard")
 
   return (
-    <div className="flex flex-col gap-8 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-8 px-0 sm:px-4 py-4 lg:px-6 md:py-6">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">

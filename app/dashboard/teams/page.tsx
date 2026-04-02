@@ -46,7 +46,7 @@ export default async function TeamsPage() {
   const canManage = canCreate(user.permissions, "teams")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="Teams" description={`${teams.length} team${teams.length !== 1 ? "s" : ""} this season`}>
         {canManage && season && (
           <CreateTeamButton competitions={competitions} events={events} />

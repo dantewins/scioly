@@ -270,7 +270,7 @@ export default async function EventsPage() {
   const canManage = canCreate(user.permissions, "events")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="Events" description={season ? `${events.length} events in ${season.name ?? "active season"}` : "No active season"}>
         {/* Create button rendered client-side in EventsManager */}
       </PageHeader>
@@ -786,7 +786,7 @@ export default async function CompetitionsPage() {
   const canManage = canCreate(user.permissions, "competitions")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="Competitions" description={`${competitions.length} competition${competitions.length !== 1 ? "s" : ""}`}>
         {canManage && season && <CreateCompetitionDialog />}
       </PageHeader>
@@ -986,7 +986,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
   const canManage = canEdit(user.permissions, "competitions")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/dashboard/competitions"><IconArrowLeft className="size-4" /></Link>
@@ -1384,7 +1384,7 @@ export default async function TeamsPage() {
   const canManage = canCreate(user.permissions, "teams")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="Teams" description={`${teams.length} team${teams.length !== 1 ? "s" : ""} this season`}>
         {canManage && season && (
           <CreateTeamButton competitions={competitions} events={events} />
@@ -1481,7 +1481,7 @@ export default async function TeamDetailPage({ params }: Props) {
   const canManage = canEdit(user.permissions, "teams")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/dashboard/teams"><IconArrowLeft className="size-4" /></Link>

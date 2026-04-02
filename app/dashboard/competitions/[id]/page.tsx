@@ -48,7 +48,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
   const canManage = canEdit(user.permissions, "competitions")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/dashboard/competitions"><IconArrowLeft className="size-4" /></Link>

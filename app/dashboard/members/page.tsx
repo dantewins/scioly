@@ -39,7 +39,7 @@ export default async function MembersPage() {
     : []
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader
         title="Members"
         description={`${members.length} member${members.length !== 1 ? "s" : ""} this season`}

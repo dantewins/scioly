@@ -371,7 +371,7 @@ export default async function HoursPage() {
     ]) : [[], []]
 
     return (
-      <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+      <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
         <PageHeader title="Hours" description={`${pendingEntries.length} pending review`} />
         <AdminHoursView pendingEntries={pendingEntries} categories={categories} canManageCategories={canEdit(user.permissions, "hours")} />
       </div>
@@ -397,7 +397,7 @@ export default async function HoursPage() {
     .reduce((s, e) => s + Number(e.totalHours), 0)
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="My Hours" description={`${totalApproved.toFixed(1)} approved hours this season`} />
       <MemberHoursView entries={myEntries} categories={categories} canSubmit={canCreate(user.permissions, "hours")} />
     </div>
@@ -1009,7 +1009,7 @@ export default async function FinancesPage() {
     .reduce((s, i) => s + (i.amountCents - i.amountPaidCents), 0)
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader
         title="Finances"
         description={`$${(totalOwed / 100).toFixed(2)} outstanding across ${invoices.filter((i) => i.status !== "PAID" && i.status !== "VOID").length} invoices`}
@@ -1296,7 +1296,7 @@ export default async function FormsPage() {
     }) : []
 
     return (
-      <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+      <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
         <PageHeader title="Forms" description={`${formTypes.length} form type${formTypes.length !== 1 ? "s" : ""} this season`} />
         <AdminFormsView formTypes={formTypes} canCreate={canCreate(user.permissions, "forms")} />
       </div>
@@ -1320,7 +1320,7 @@ export default async function FormsPage() {
   const completed = formTypes.filter((f) => f.submissions[0]?.status === "VERIFIED").length
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="Forms" description={`${completed} / ${formTypes.length} completed`} />
       {formTypes.length === 0 ? (
         <EmptyState icon={IconFileCheck} title="No forms required" description="No forms have been assigned for this season." />
@@ -1630,7 +1630,7 @@ export default async function ClubEventsPage() {
   ]) : [[], [], []]
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="Club Events" description={`${events.length} event${events.length !== 1 ? "s" : ""} this season`} />
 
       {!season ? (

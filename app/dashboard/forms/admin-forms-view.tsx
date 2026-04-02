@@ -69,7 +69,7 @@ export function AdminFormsView({ formTypes: initial, canCreate }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {canCreate && (
         <Button onClick={() => setShowCreate(true)}>
           <IconPlus className="size-4 mr-1.5" />New Form Type

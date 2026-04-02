@@ -41,7 +41,7 @@ export default async function CompetitionsPage() {
   const canManage = canCreate(user.permissions, "competitions")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="Competitions" description={`${competitions.length} competition${competitions.length !== 1 ? "s" : ""}`}>
         {canManage && season && <CreateCompetitionDialog />}
       </PageHeader>

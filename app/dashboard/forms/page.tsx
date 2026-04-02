@@ -34,7 +34,7 @@ export default async function FormsPage() {
     }) : []
 
     return (
-      <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+      <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
         <PageHeader title="Forms" description={`${formTypes.length} form type${formTypes.length !== 1 ? "s" : ""} this season`} />
         <AdminFormsView
           formTypes={formTypes.map(ft => ({
@@ -64,7 +64,7 @@ export default async function FormsPage() {
   const completed = formTypes.filter((f) => f.submissions[0]?.status === "VERIFIED").length
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="Forms" description={`${completed} / ${formTypes.length} completed`} />
       {formTypes.length === 0 ? (
         <EmptyState icon={IconFileCheck} title="No forms required" description="No forms have been assigned for this season." />

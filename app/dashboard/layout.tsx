@@ -17,7 +17,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <SidebarInset className="flex flex-col min-h-screen">
         <SiteHeader />
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-screen-xl px-[var(--page-px)] py-[var(--page-py)]">
+          <div className="mx-auto max-w-screen-xl px-4 sm:px-[var(--page-px)] py-[var(--page-py)]">
             {children}
           </div>
         </main>

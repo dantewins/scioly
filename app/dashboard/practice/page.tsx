@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import { PracticeManager } from "./practice-manager"
 import { PracticeTestList } from "./practice-test-list"
+import { PageHeader } from "@/components/page-header"
 
 export const dynamic = "force-dynamic"
 
@@ -35,7 +36,7 @@ export default async function PracticePage() {
     ]) : [[], []]
 
     return (
-      <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+      <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
         <div>
           <h1 className="text-xl font-semibold">Practice Tests</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{tests.length} test{tests.length !== 1 ? "s" : ""} this season</p>
@@ -71,11 +72,11 @@ export default async function PracticePage() {
   }) : []
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
-      <div>
-        <h1 className="text-xl font-semibold">Practice Tests</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{tests.length} available test{tests.length !== 1 ? "s" : ""}</p>
-      </div>
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+      <PageHeader
+        title="Practice Tests"
+        description={`${tests.length} available test${tests.length !== 1 ? "s" : ""}`}
+      />
       <PracticeTestList
         tests={tests.map(t => ({
           ...t,

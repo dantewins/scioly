@@ -4,6 +4,7 @@ import { canView, canCreate, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
 import { ClubEventsManager } from "./club-events-manager"
+import { PageHeader } from "@/components/page-header"
 
 export const dynamic = "force-dynamic"
 
@@ -29,13 +30,11 @@ export default async function ClubEventsPage() {
   }) : []
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
-      <div>
-        <h1 className="text-xl font-semibold">Club Events</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {season ? `${events.length} event${events.length !== 1 ? "s" : ""} this season` : "No active season"}
-        </p>
-      </div>
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+      <PageHeader
+        title="Club Events"
+        description={season ? `${events.length} event${events.length !== 1 ? "s" : ""} this season` : "No active season"}
+      />
       <ClubEventsManager
         initialEvents={events.map(e => ({
           ...e,

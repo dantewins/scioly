@@ -954,7 +954,7 @@ export default async function ApplicationsPage() {
   const canManage = user.role === "WEBSITE_OWNER" || canView(user.permissions, "members")
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader
         title="Applications"
         description={`${applicants.length} pending application${applicants.length !== 1 ? "s" : ""}`}
@@ -1043,7 +1043,7 @@ export default async function MembersPage() {
     : []
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader
         title="Members"
         description={`${members.length} member${members.length !== 1 ? "s" : ""} this season`}
@@ -1185,7 +1185,7 @@ export default async function MemberDetailPage({ params }: Props) {
     .reduce((sum, h) => sum + Number(h.totalHours), 0) ?? 0
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>

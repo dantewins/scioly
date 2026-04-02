@@ -79,7 +79,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     : "?"
 
   const domainLabel = user?.clubDomain
-    ? user.clubDomain.split(".")[0].toUpperCase()
+    ? user.clubDomain.split(".")[0].charAt(0).toUpperCase() + user.clubDomain.split(".")[0].slice(1)
     : "Club Management"
 
   return (

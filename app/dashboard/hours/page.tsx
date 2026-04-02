@@ -36,7 +36,7 @@ export default async function HoursPage() {
     ]) : [[], []]
 
     return (
-      <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+      <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
         <PageHeader title="Hours" description={`${pendingEntries.length} pending review`} />
         <AdminHoursView
           pendingEntries={pendingEntries.map(e => ({
@@ -73,7 +73,7 @@ export default async function HoursPage() {
     .reduce((s, e) => s + Number(e.totalHours), 0)
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-4 lg:px-6 md:py-6">
+    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
       <PageHeader title="My Hours" description={`${totalApproved.toFixed(1)} approved hours this season`} />
       <MemberHoursView
         entries={myEntries.map(e => ({

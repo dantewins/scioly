@@ -185,7 +185,7 @@ export function PracticeManager({ initialTests, events, canCreate }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       {canCreate && (
         <Button size="sm" onClick={() => setShowCreate(true)}>
           <PlusIcon size={15} className="mr-1.5" />
