@@ -189,20 +189,20 @@ export default function Page() {
             </motion.div>
 
             <motion.h1
-              className="text-6xl sm:text-6xl md:text-7xl lg:text-[6rem] tracking-tight leading-[1.1] text-foreground mb-6 text-center"
+              className="text-6xl md:text-7xl lg:text-[6rem] tracking-tighter leading-[1.1] text-foreground mb-6 text-center"
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.07, ease: [0.25, 0.1, 0.25, 1] }}
             >
               The{" "}
-              <span className="text-white bg-primary px-3 py-1 rounded-3xl inline-block">
+              <span className="text-primary font-semibold underline decoration-wavy inline-block">
                 diamond
               </span>{" "}
               standard for Scioly.
             </motion.h1>
 
             <motion.p
-              className={`text-base md:text-2xl ${isDark ? 'text-white/70' : 'text-muted-foreground'} mb-10 max-w-md sm:max-w-lg md:max-w-2xl text-center leading-relaxed`}
+              className={`text-base md:text-2xl ${isDark ? 'text-white/70' : 'text-muted-foreground'} mb-10 max-w-md sm:max-w-lg md:max-w-2xl text-center leading-relaxed tracking-tight`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.16, ease: [0.25, 0.1, 0.25, 1] }}
@@ -219,7 +219,7 @@ export default function Page() {
               <Button
                 asChild
                 size="lg"
-                className="h-11 px-6 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/15 group"
+                className="h-11 px-6 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/15 animate-pulse group"
               >
                 <Link href="/login">
                   Get started
