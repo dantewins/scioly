@@ -57,7 +57,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="flex justify-center">
           <Link href="/" className="flex size-10 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground transition-opacity hover:opacity-80">
-            <IconAtom className="size-5" />
+            <IconAtom className="size-6" strokeWidth={1.75} />
           </Link>
         </div>
 

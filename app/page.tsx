@@ -1,75 +1,146 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import Image from "next/image"
+import { motion, useReducedMotion } from "motion/react"
 import {
-  IconAtom, IconMicroscope, IconTerminal2, IconTrophy,
-  IconUsers, IconDatabase, IconLock, IconBolt, IconArrowRight,
+  IconAtom, IconArrowRight, IconChartLine, IconUsers, IconHistory,
+  IconDatabase, IconLock, IconBolt, IconClipboardList, IconCalendarEvent, IconClock,
+  IconSun, IconMoon,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 
-function useTypewriter(text: string, speed = 22, startDelay = 900) {
-  const [displayed, setDisplayed] = useState("")
-  const [done, setDone] = useState(false)
-
-  useEffect(() => {
-    let i = 0
-    const timeout = setTimeout(() => {
-      const interval = setInterval(() => {
-        i++
-        setDisplayed(text.slice(0, i))
-        if (i >= text.length) {
-          setDone(true)
-          clearInterval(interval)
-        }
-      }, speed)
-      return () => clearInterval(interval)
-    }, startDelay)
-    return () => clearTimeout(timeout)
-  }, [text, speed, startDelay])
-
-  return { displayed, done }
+function FadeIn({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: React.ReactNode
+  className?: string
+  delay?: number
+}) {
+  const reduce = useReducedMotion()
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{
+        duration: reduce ? 0 : 0.5,
+        delay: reduce ? 0 : delay,
+        ease: [0.25, 0.1, 0.25, 1],
+      }}
+    >
+      {children}
+    </motion.div>
+  )
 }
 
-export default function Page() {
-  const { displayed: subtitle, done: subtitleDone } = useTypewriter(
-    "Replace fragmented spreadsheets. One platform for your entire Science Olympiad operation.",
+// SVG tracing border — stroke is drawn OUTSIDE the component bounds (overflow:visible)
+// so it never overlaps with or gets covered by the card content
+function TracingBorder({
+  children,
+  className = "",
+  contentClassName = "",
+  duration = 5,
+  radius = 16,
+}: {
+  children: React.ReactNode
+  className?: string
+  contentClassName?: string
+  duration?: number
+  radius?: number
+}) {
+  const reduce = useReducedMotion()
+  return (
+    <div className={`relative ${className}`} style={{ borderRadius: `${radius}px` }}>
+      {/* SVG draws its rect with x="-1" so the stroke bleeds 1px outside the div
+          and 1px inside — but since overflow:visible is on the SVG (not the div),
+          only the outer portion renders; the inner portion is behind the content z-layer */}
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        style={{ overflow: "visible" }}
+        aria-hidden="true"
+      >
+        {/* Static dim ring */}
+        <rect
+          x="-1" y="-1"
+          width="calc(100% + 2px)"
+          height="calc(100% + 2px)"
+          rx={radius + 1}
+          fill="none"
+          stroke="oklch(0.65 0.18 254 / 0.28)"
+          strokeWidth="2"
+        />
+        {/* Animated bright sweep */}
+        <motion.rect
+          x="-1" y="-1"
+          width="calc(100% + 2px)"
+          height="calc(100% + 2px)"
+          rx={radius + 1}
+          fill="none"
+          stroke="oklch(0.65 0.18 254)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          pathLength={1}
+          strokeDasharray="0.12 0.88"
+          initial={{ strokeDashoffset: 0 }}
+          animate={reduce ? undefined : { strokeDashoffset: -1 }}
+          transition={
+            reduce ? undefined : { duration, ease: "linear", repeat: Infinity }
+          }
+        />
+      </svg>
+      {/* Content is always above the SVG, never obscures the border */}
+      <div className={`relative z-10 ${contentClassName}`} style={{ borderRadius: `${radius}px` }}>
+        {children}
+      </div>
+    </div>
   )
+}
+
+const panelStyle = {
+  boxShadow: "inset 0 0 0 1px oklch(0.65 0.18 254 / 0.1)",
+} as React.CSSProperties
+
+export default function Page() {
+  const [isDark, setIsDark] = useState(false)
 
   return (
-    <div className="flex min-h-svh flex-col bg-background text-foreground selection:bg-primary/20 relative overflow-x-hidden">
+    <div
+      className={`${isDark ? "dark" : ""} text-foreground min-h-svh flex flex-col overflow-x-hidden selection:bg-primary/20 relative`}
+      style={isDark
+        ? { backgroundColor: "oklch(0.10 0 0)" }
+        : { backgroundColor: "white" }
+      }
+    >
 
-      {/* Subtle grid */}
-      <div
-        className="fixed inset-0 z-0 pointer-events-none opacity-[0.025] dark:opacity-[0.04]"
-        style={{
-          backgroundImage: `linear-gradient(to right, currentColor 1px, transparent 1px),linear-gradient(to bottom, currentColor 1px, transparent 1px)`,
-          backgroundSize: "40px 40px",
-        }}
-      />
-
-      {/* Hero glow */}
-      <div
-        className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[700px] z-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse 70% 45% at 50% 0%, oklch(0.55 0.18 254 / 0.10) 0%, transparent 70%)",
-        }}
-      />
-
-      {/* ── Navigation ── */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/50 backdrop-blur-md bg-background/75">
-        <div className="container flex h-14 max-w-screen-xl items-center px-4 md:px-8 mx-auto">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-foreground text-background">
-              <IconAtom className="h-4 w-4" />
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-50 w-full border-b border-border/50 backdrop-blur-md bg-background/80">
+        <div className="max-w-screen-xl mx-auto flex h-14 md:h-16 items-center px-4 md:px-10">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-md bg-foreground text-background flex items-center justify-center shrink-0">
+              <IconAtom className="h-5 w-5" strokeWidth={2} />
             </div>
-            <span className="font-semibold text-sm tracking-tight">Scioly</span>
+            <span className="font-semibold text-sm md:text-base tracking-tight">Scioly</span>
           </Link>
-          <div className="flex flex-1 items-center justify-end gap-5">
-            <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Log in
-            </Link>
-            <Button asChild size="sm" className="h-8 px-4 text-xs rounded-md bg-foreground text-background hover:bg-foreground/90 font-medium shadow-none">
+          <div className="flex flex-1 items-center justify-end gap-3 md:gap-5">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsDark((d) => !d)}
+              className="h-8 w-8 md:h-9 md:w-9 text-muted-foreground hover:text-foreground"
+              aria-label="Toggle theme"
+            >
+              {isDark ? <IconSun className="h-4 w-4" /> : <IconMoon className="h-4 w-4" />}
+            </Button>
+            <Button
+              asChild
+              size="sm"
+              className="h-8 md:h-9 px-4 text-xs md:text-sm rounded-md bg-foreground text-background hover:bg-foreground/90 font-medium shadow-none"
+            >
               <Link href="/register">Apply to Join</Link>
             </Button>
           </div>
@@ -77,323 +148,419 @@ export default function Page() {
       </header>
 
       {/* ── Main ── */}
-      <main className="flex-1 flex flex-col items-center px-4 sm:px-6 lg:px-8 relative z-10">
+      <main className="flex-1 flex flex-col items-center relative z-10">
 
         {/* ── Hero ── */}
-        <section className="relative w-full flex flex-col items-center text-center pt-24 pb-0 md:pt-36 max-w-screen-xl mx-auto">
+        <section className="relative w-full flex flex-col items-center text-center overflow-hidden pb-0">
 
-          {/* Badge */}
-          <Link
-            href="/register"
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/5 text-[11px] font-mono tracking-widest uppercase hover:bg-primary/10 transition-colors mb-9"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-            Season 2026 Ready
-          </Link>
-
-          {/* Gradient serif headline */}
-          <h1
-            className="max-w-4xl mx-auto mb-7 text-5xl sm:text-6xl md:text-[5rem] lg:text-[6rem] leading-[1.0] tracking-tight"
+          {/* Dot grid — scientific notebook feel */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0"
             style={{
-              fontFamily: "var(--font-display, var(--font-geist-sans))",
-              backgroundImage: "linear-gradient(175deg, var(--foreground) 30%, oklch(0.55 0.18 254 / 0.70) 100%)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
-              fontWeight: 400,
+              backgroundImage: "radial-gradient(circle, oklch(0.55 0.18 254 / 0.07) 1.5px, transparent 1.5px)",
+              backgroundSize: "28px 28px",
             }}
-          >
-            The modern standard for Science Olympiad.
-          </h1>
+          />
+          {/* Fade grid out toward the bottom and center */}
+          <div
+            className="absolute inset-0 pointer-events-none z-0"
+            style={{
+              background: "radial-gradient(ellipse 80% 65% at 50% 20%, var(--background) 25%, transparent 75%)",
+            }}
+          />
+          <div
+            className="absolute bottom-0 inset-x-0 h-1/2 pointer-events-none z-0"
+            style={{ background: "linear-gradient(to bottom, transparent, var(--background))" }}
+          />
 
-          {/* Typewriter subtitle */}
-          <p className="max-w-md text-sm sm:text-base font-mono text-muted-foreground mb-10 min-h-[2.5rem] leading-relaxed">
-            {subtitle}
-            {!subtitleDone && (
-              <span className="inline-block w-[2px] h-[1.1em] bg-primary ml-0.5 animate-pulse align-middle rounded-full" />
-            )}
-          </p>
+          {/* Text block */}
+          <div className="relative z-10 flex flex-col items-center pt-24 md:pt-32 pb-14 px-4 w-full max-w-4xl mx-auto">
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-16">
-            <Button asChild size="lg" className="h-11 px-7 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10 group">
-              <Link href="/login">
-                Get Started
-                <IconArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="h-11 px-7 text-sm rounded-lg border-border/60 bg-background/60 hover:bg-muted font-semibold shadow-none">
-              <Link href="/register">Apply to Join</Link>
-            </Button>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
+              className="mb-8"
+            >
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-[11px] font-mono tracking-[0.2em] text-primary uppercase">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                Season 2026 Ready
+              </div>
+            </motion.div>
+
+            <motion.h1
+              className="text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] tracking-tight leading-[1.05] text-foreground mb-8 text-center" 
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.07, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              The <span className="text-primary font-semibold">diamond</span> standard for Scioly.
+            </motion.h1>
+
+            <motion.p
+              className={`text-base md:text-2xl ${isDark ? 'text-white' : 'text-muted-foreground'} mb-8 max-w-2xl text-center`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.16, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              Replace fragmented spreadsheet for the platform for your entire Science Olympiad operation.
+            </motion.p>
+
+            <motion.div
+              className="flex flex-col sm:flex-row gap-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.23, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <Button
+                asChild
+                size="lg"
+                className="h-10 px-4 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/20 animate-pulse"
+              >
+                <Link href="/login">
+                  Get Started
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="h-10 px-4 text-sm rounded-lg border-border/60 bg-transparent hover:bg-muted font-semibold shadow-none"
+              >
+                <Link href="#features">
+                  Learn More
+                </Link>
+              </Button>
+            </motion.div>
           </div>
 
-          {/* Product mockup — no bottom border, bleeds into next section */}
-          <div className="w-full max-w-4xl mx-auto rounded-t-2xl border border-b-0 border-border/60 bg-card overflow-hidden shadow-2xl shadow-black/[0.07] ring-1 ring-black/[0.04]">
-            {/* Browser chrome */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 bg-muted/30">
-              <div className="flex gap-1.5 shrink-0">
-                <div className="w-2.5 h-2.5 rounded-full bg-border/80" />
-                <div className="w-2.5 h-2.5 rounded-full bg-border/80" />
-                <div className="w-2.5 h-2.5 rounded-full bg-border/80" />
-              </div>
-              <div className="flex-1 flex justify-center">
-                <div className="h-5 w-56 rounded bg-background border border-border/50 text-[10px] font-mono text-muted-foreground flex items-center px-2.5 gap-1.5">
-                  <span className="text-primary/60">●</span>
-                  app.scioly.io/dashboard
-                </div>
-              </div>
-            </div>
+          {/* Product image — perspective tilted, rises on load */}
+          <div className="relative z-10 w-full px-4 sm:px-8 lg:px-16 pb-0">
+            {/* Blue atmospheric glow behind the image */}
+            <div
+              className="absolute inset-x-[5%] inset-y-[10%] pointer-events-none"
+              style={{
+                background: "radial-gradient(ellipse 80% 60% at 50% 60%, oklch(0.65 0.18 254 / 0.14) 0%, transparent 80%)",
+                filter: "blur(40px)",
+              }}
+            />
 
-            {/* App UI */}
-            <div className="flex min-h-[300px] md:min-h-[340px] divide-x divide-border/40 text-left">
-              {/* Sidebar */}
-              <div className="w-44 shrink-0 p-4 bg-muted/20 hidden sm:block">
-                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Navigation</p>
-                {["Dashboard", "Roster", "Events", "Tournaments", "Medals"].map((item, i) => (
-                  <div
-                    key={item}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs mb-0.5 ${i === 0 ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground"}`}
-                  >
-                    {item}
-                  </div>
-                ))}
+            <motion.div
+              className="mx-auto max-w-6xl relative rounded-t-2xl overflow-hidden border-t border-border/20"
+              style={{
+                transformPerspective: 1600,
+                transformOrigin: "center bottom",
+                boxShadow: "0 40px 120px -30px oklch(0 0 0 / 0.22), 0 0 0 1px oklch(0.65 0.18 254 / 0.07)",
+              }}
+              initial={{ rotateX: 22, opacity: 0, y: 32 }}
+              animate={{ rotateX: 14, opacity: 1, y: 0 }}
+              transition={{ duration: 1.1, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {/* Subtle shine along top edge */}
+              <div
+                className="absolute top-0 inset-x-0 h-px z-10 pointer-events-none"
+                style={{ background: "linear-gradient(to right, transparent 5%, oklch(1 0 0 / 0.2) 40%, oklch(1 0 0 / 0.2) 60%, transparent 95%)" }}
+              />
+
+              <div className="relative aspect-[1920/958]">
+                <Image
+                  src="/showcase.png"
+                  alt="Scioly dashboard — roster, events, and score tracking"
+                  fill
+                  className="object-cover object-top"
+                  priority
+                  unoptimized
+                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1152px"
+                />
               </div>
 
-              {/* Main content */}
-              <div className="flex-1 p-4 md:p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h3 className="text-sm font-semibold">Jefferson Science Olympiad</h3>
-                    <p className="text-[11px] text-muted-foreground font-mono mt-0.5">B Division · Season 2025–26</p>
-                  </div>
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-primary border border-primary/30 bg-primary/5 px-2 py-0.5 rounded">
-                    Active
-                  </div>
-                </div>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-3 mb-5">
-                  {[["15", "Members"], ["23", "Events"], ["8", "Medals"]].map(([val, label]) => (
-                    <div key={label} className="p-3 rounded-lg border border-border/50 bg-background/60">
-                      <p className="text-lg font-bold font-mono">{val}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">{label}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Event bars */}
-                <p className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground mb-3">Event Performance</p>
-                <div className="space-y-2.5">
-                  {[
-                    ["Anatomy & Phys.", 88],
-                    ["Forestry", 92],
-                    ["Wright Stuff", 71],
-                    ["Disease Detectives", 58],
-                  ].map(([name, val]) => (
-                    <div key={name} className="flex items-center gap-3">
-                      <span className="text-muted-foreground font-mono w-36 shrink-0 truncate text-[11px]">{name}</span>
-                      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary/70 rounded-full" style={{ width: `${val}%` }} />
-                      </div>
-                      <span className="font-mono font-semibold text-[11px] w-6 text-right tabular-nums">{val}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+              {/* Bottom fade blends into page */}
+              <div
+                className="absolute bottom-0 inset-x-0 h-2/5 pointer-events-none z-10"
+                style={{ background: "linear-gradient(to bottom, transparent 0%, var(--background) 100%)" }}
+              />
+            </motion.div>
           </div>
         </section>
 
-        {/* ── Bento grid ── */}
-        <section className="w-full max-w-5xl mx-auto pt-24 pb-32">
-          <div className="mb-14 text-center">
-            <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-3">Platform</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">Everything your team needs.</h2>
-          </div>
+        {/* ── Value intro ── */}
+        <section id="features" className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20">
+          <FadeIn>
+            <div className="max-w-2xl mb-12">
+              <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-3">Why Scioly?</p>
+              <h2 className="text-4xl sm:text-5xl font-normal tracking-tight text-foreground mb-5 leading-[1.1]">
+                Built for Science Olympiad. Nothing less.
+              </h2>
+              <p className="text-muted-foreground text-lg leading-relaxed">
+                Most clubs manage their entire season across a patchwork of Google Sheets, group chats, and lost
+                emails. Scioly consolidates every workflow—rosters, events, scores, and histories—into one unified
+                platform built exactly for this.
+              </p>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.1}>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 border-t border-border/40 pt-10">
+              {[
+                { icon: <IconChartLine className="w-5 h-5" />, label: "Live Score Tracking" },
+                { icon: <IconUsers className="w-5 h-5" />, label: "Roster Management" },
+                { icon: <IconHistory className="w-5 h-5" />, label: "Season History" },
+              ].map(({ icon, label }) => (
+                <div key={label} className="flex items-center gap-3 text-sm font-medium text-foreground">
+                  <span className="text-primary shrink-0">{icon}</span>
+                  {label}
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+        </section>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 text-left">
-
-            {/* Telemetry */}
-            <div className="lg:col-span-4 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-colors duration-300 group relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-6 opacity-[0.05] group-hover:opacity-[0.09] transition-opacity duration-500">
-                <IconMicroscope className="w-36 h-36" />
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-primary mb-5">
-                <span className="w-1.5 h-1.5 bg-primary rounded-full" />
-                Telemetry
-              </div>
-              <div className="space-y-3 z-10">
-                <h3 className="text-xl font-semibold tracking-tight">Advanced Event Telemetry</h3>
-                <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-                  Visualize tournament scores in real-time. Identify weak events before Regionals with aggregate performance data.
+        {/* ── Feature A: Event Telemetry ── */}
+        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-border/40">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <FadeIn>
+              <div>
+                <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-3">Telemetry</p>
+                <h2 className="text-3xl sm:text-4xl font-normal tracking-tight mb-4 leading-[1.1]">
+                  Track every event, live.
+                </h2>
+                <p className="text-muted-foreground leading-relaxed mb-6">
+                  Aggregate performance data across tournaments and identify weak events before Regionals.
+                  Real-time score visualization for every member of your roster.
                 </p>
-                <div className="mt-4 space-y-3 pt-5 border-t border-border/30">
-                  {[["Anatomy & Physiology", 85], ["Wright Stuff", 70], ["Disease Detectives", 55]].map(([event, score]) => (
-                    <div key={event} className="flex items-center justify-between text-sm font-mono gap-4">
-                      <span className="text-muted-foreground truncate">{event}</span>
-                      <div className="flex items-center gap-3 w-2/5 shrink-0">
-                        <div className="h-1 flex-1 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-primary/80 rounded-full" style={{ width: `${score}%` }} />
-                        </div>
-                        <span className="text-foreground font-semibold w-8 text-right tabular-nums">{score}pt</span>
-                      </div>
-                    </div>
+                <ul className="space-y-3">
+                  {[
+                    "Per-event percentile rankings across tournaments",
+                    "Tournament-over-tournament trend lines",
+                    "Coach and captain annotation support",
+                  ].map((pt) => (
+                    <li key={pt} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <span className="mt-2 w-1 h-1 rounded-full bg-primary shrink-0" />
+                      {pt}
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
-            </div>
-
-            {/* System log */}
-            <div className="lg:col-span-2 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-colors duration-300">
-              <div className="flex items-center justify-between mb-5 pb-4 border-b border-border/30">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">System.Log</span>
-                <IconTerminal2 className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <div className="space-y-3 font-mono text-[11px] text-muted-foreground leading-relaxed">
-                <div className="flex gap-2">
-                  <span className="text-primary shrink-0">›</span>
-                  <span className="text-foreground">POST /v1/roster</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="opacity-40">#</span>
-                  <span className="opacity-60">Assigning events…</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-foreground">Alice M.</span>
-                  <span className="opacity-40">→</span>
-                  <span className="text-primary">Forestry</span>
-                </div>
-                <div className="flex gap-2">
-                  <span className="text-foreground">Bob J.</span>
-                  <span className="opacity-40">→</span>
-                  <span className="text-primary">Microbes</span>
-                </div>
-                <div className="mt-3 text-foreground border-l-2 border-primary/60 pl-2.5 py-0.5">
-                  Status: 200 OK
-                </div>
-              </div>
-            </div>
-
-            {/* Historical record */}
-            <div className="lg:col-span-3 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-colors duration-300">
-              <div className="flex items-center justify-between mb-4">
-                <IconTrophy className="w-5 h-5 text-foreground" />
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border/60 px-2 py-1 rounded-md">Medals</span>
-              </div>
-              <div className="space-y-1.5 mb-5">
-                <h3 className="text-base font-semibold tracking-tight">Historical Record</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Permanent ledger of all medals earned across competitive seasons and tournaments.</p>
-              </div>
-              <div className="flex gap-2 font-mono text-xs mt-auto flex-wrap">
-                <div className="bg-muted/60 px-2.5 py-1.5 rounded-md flex items-center gap-2 border border-border/40">
-                  <span className="w-1.5 h-1.5 rounded-full bg-foreground" />
-                  MIT Inv. (1st)
-                </div>
-                <div className="bg-muted/60 px-2.5 py-1.5 rounded-md flex items-center gap-2 border border-border/40">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  Regionals (3rd)
-                </div>
-              </div>
-            </div>
-
-            {/* Club directory */}
-            <div className="lg:col-span-3 flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-colors duration-300 relative overflow-hidden">
-              <div className="flex items-center justify-between mb-4">
-                <IconUsers className="w-5 h-5 text-foreground" />
-                <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border/60 px-2 py-1 rounded-md">Directory</span>
-              </div>
-              <div className="space-y-1.5 mb-5 relative z-10">
-                <h3 className="text-base font-semibold tracking-tight">Club Directory Access</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Manage members, assign roles, and review pending applications instantly.</p>
-              </div>
-              <div className="mt-auto pt-4 border-t border-border/30 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg border border-border bg-muted flex items-center justify-center">
-                    <span className="text-xs font-mono font-semibold">JD</span>
+            </FadeIn>
+            <FadeIn delay={0.1}>
+              <TracingBorder className="rounded-2xl" contentClassName="bg-card/80" duration={6}>
+                <div className="rounded-2xl" style={panelStyle}>
+                  <div className="px-5 py-4 border-b border-border/40">
+                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Event Performance</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium leading-none">John Doe</p>
-                    <p className="text-xs font-mono text-primary mt-1">Captain</p>
+                  <div className="p-5 space-y-4">
+                    {[
+                      ["Anatomy & Physiology", 88],
+                      ["Forestry", 92],
+                      ["Wright Stuff", 71],
+                      ["Disease Detectives", 58],
+                      ["Microbe Mission", 79],
+                    ].map(([name, val]) => (
+                      <div key={name} className="flex items-center gap-3">
+                        <span className="font-mono text-[11px] text-muted-foreground w-40 shrink-0 truncate">{name}</span>
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary/80 rounded-full" style={{ width: `${val}%` }} />
+                        </div>
+                        <span className="font-mono font-semibold text-[11px] tabular-nums w-6 text-right">{val}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </div>
-
+              </TracingBorder>
+            </FadeIn>
           </div>
         </section>
 
-        {/* ── Infrastructure ── */}
-        <section className="w-full max-w-5xl mx-auto pb-36">
-          <div className="mb-12">
-            <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-3">Infrastructure</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-4">
-              Built for the long haul.
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-xl leading-relaxed">
-              Replace fragmented spreadsheets with a unified database strictly architected for Science Olympiad logistics.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              {
-                icon: <IconDatabase className="w-5 h-5" />,
-                title: "Unified Schema",
-                desc: "Track members, roles, competition scores, and attendance in one relational schema. No more broken VLOOKUPs.",
-              },
-              {
-                icon: <IconLock className="w-5 h-5" />,
-                title: "Role-Based Access",
-                desc: "Delegate tasks securely. Coaches see everything, captains manage rosters, members track their own metrics.",
-              },
-              {
-                icon: <IconBolt className="w-5 h-5" />,
-                title: "High-Speed Workflows",
-                desc: "Optimized for speed. Bulk-assign students to events without waiting on slow, bloated interfaces.",
-              },
-            ].map((item) => (
-              <div key={item.title} className="flex flex-col p-6 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm hover:border-primary/40 transition-colors duration-300">
-                <div className="w-9 h-9 rounded-lg border border-border/60 bg-muted flex items-center justify-center text-foreground mb-4">
-                  {item.icon}
+        {/* ── Feature B: Roster Management ── */}
+        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-border/40">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <FadeIn className="order-last lg:order-first">
+              <TracingBorder className="rounded-2xl" contentClassName="bg-card/80" duration={7}>
+                <div className="rounded-2xl" style={panelStyle}>
+                  <div className="px-5 py-4 border-b border-border/40">
+                    <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Roster — Jefferson SciOly</p>
+                  </div>
+                  <div className="divide-y divide-border/30">
+                    {[
+                      { initials: "AM", name: "Alice M.", role: "Captain", event: "Forestry" },
+                      { initials: "BJ", name: "Bob J.", role: "Member", event: "Microbe Mission" },
+                      { initials: "CS", name: "Carol S.", role: "Member", event: "Anatomy" },
+                      { initials: "DL", name: "David L.", role: "Alt", event: "Wright Stuff" },
+                    ].map(({ initials, name, role, event }) => (
+                      <div key={name} className="flex items-center gap-3 px-5 py-3.5">
+                        <div className="w-8 h-8 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-xs font-mono font-semibold shrink-0">
+                          {initials}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{name}</p>
+                          <p className="text-[11px] font-mono text-muted-foreground">{event}</p>
+                        </div>
+                        <span className={`text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border shrink-0 ${role === "Captain" ? "border-primary/30 text-primary bg-primary/5" : "border-border/50 text-muted-foreground"}`}>
+                          {role}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <h3 className="text-base font-semibold tracking-tight mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+              </TracingBorder>
+            </FadeIn>
+            <FadeIn delay={0.1}>
+              <div>
+                <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-3">Roster</p>
+                <h2 className="text-3xl sm:text-4xl font-normal tracking-tight mb-4 leading-[1.1]">
+                  Full control over your roster.
+                </h2>
+                <p className="text-muted-foreground leading-relaxed mb-6">
+                  Manage members, assign roles, and review pending applications in seconds.
+                  Bulk-assign students to events without spreadsheet gymnastics.
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    "Role-based permissions for coaches, captains, and members",
+                    "One-click bulk event assignment with conflict detection",
+                    "Application review with approve, deny, and waitlist flows",
+                  ].map((pt) => (
+                    <li key={pt} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <span className="mt-2 w-1 h-1 rounded-full bg-primary shrink-0" />
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ))}
+            </FadeIn>
           </div>
+        </section>
+
+        {/* ── Feature C: Tournament History ── */}
+        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-border/40">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <FadeIn>
+              <div>
+                <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-3">History</p>
+                <h2 className="text-3xl sm:text-4xl font-normal tracking-tight mb-4 leading-[1.1]">
+                  Every medal, every season.
+                </h2>
+                <p className="text-muted-foreground leading-relaxed mb-6">
+                  A permanent ledger of every result across all competitive seasons. Never lose track of
+                  your team's achievements again — from invitationals to State.
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    "Full tournament result history by season",
+                    "Per-event placement records and personal bests",
+                    "Exportable for college applications and club reports",
+                  ].map((pt) => (
+                    <li key={pt} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                      <span className="mt-2 w-1 h-1 rounded-full bg-primary shrink-0" />
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </FadeIn>
+            <FadeIn delay={0.1}>
+              <TracingBorder className="rounded-2xl" contentClassName="bg-card/80" duration={5}>
+                <div className="rounded-2xl" style={panelStyle}>
+                  <div className="px-5 py-4 border-b border-border/40">
+                    <div className="grid grid-cols-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                      <span>Tournament</span>
+                      <span className="text-center">Place</span>
+                      <span className="text-right">Date</span>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-border/30">
+                    {[
+                      { name: "MIT Invitational", place: "1st", date: "Oct 2025" },
+                      { name: "Cornell Scioly", place: "2nd", date: "Nov 2025" },
+                      { name: "Regionals", place: "3rd", date: "Feb 2026" },
+                      { name: "State Championship", place: "5th", date: "Mar 2026" },
+                    ].map(({ name, place, date }) => (
+                      <div key={name} className="grid grid-cols-3 items-center px-5 py-3.5 text-sm">
+                        <span className="font-medium truncate pr-2">{name}</span>
+                        <span className={`text-center text-[11px] font-mono font-semibold ${place === "1st" ? "text-primary" : "text-foreground"}`}>
+                          {place}
+                        </span>
+                        <span className="text-right text-[11px] font-mono text-muted-foreground">{date}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </TracingBorder>
+            </FadeIn>
+          </div>
+        </section>
+
+        {/* ── Dense feature grid ── */}
+        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-border/40">
+          <FadeIn>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-normal tracking-tight text-foreground">
+                So much more to love.
+              </h2>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.1}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { icon: <IconDatabase className="w-4 h-4" />, title: "Unified Schema", desc: "Track members, roles, scores, and attendance in one relational schema. No more broken VLOOKUPs." },
+                { icon: <IconLock className="w-4 h-4" />, title: "Role-Based Access", desc: "Coaches see everything, captains manage rosters, members track their own metrics." },
+                { icon: <IconBolt className="w-4 h-4" />, title: "High-Speed Workflows", desc: "Bulk-assign students to events without waiting on slow, bloated interfaces." },
+                { icon: <IconClipboardList className="w-4 h-4" />, title: "Practice Tests", desc: "Upload, organize, and track completion of practice materials by event and member." },
+                { icon: <IconCalendarEvent className="w-4 h-4" />, title: "Event Assignments", desc: "Assign members to events with conflict detection and automatic alternates." },
+                { icon: <IconClock className="w-4 h-4" />, title: "Hours Tracking", desc: "Log and approve practice hours with category breakdowns for coach review." },
+              ].map(({ icon, title, desc }) => (
+                <div key={title} className="bg-card border border-border/60 rounded-xl p-5 hover:border-primary/40 transition-colors duration-300 flex flex-col gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-foreground shrink-0">
+                    {icon}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm mb-1.5">{title}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </FadeIn>
         </section>
 
         {/* ── Final CTA ── */}
-        <section className="w-full max-w-5xl mx-auto pb-24">
-          <div className="relative rounded-2xl border border-border/60 bg-card overflow-hidden px-8 py-20 text-center flex flex-col items-center">
+        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pb-28">
+          <FadeIn>
             <div
-              className="pointer-events-none absolute inset-0 opacity-40"
-              style={{
-                background: "radial-gradient(ellipse 60% 50% at 50% 100%, oklch(0.55 0.18 254 / 0.15) 0%, transparent 100%)",
-              }}
-            />
-            <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-5 relative z-10">Ready?</p>
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mb-5 relative z-10 leading-[1.1]">
-              Run your club,<br />not spreadsheets.
-            </h2>
-            <p className="text-muted-foreground text-base sm:text-lg mb-9 max-w-sm relative z-10 leading-relaxed">
-              Get your Science Olympiad team onto a platform built exactly for this.
-            </p>
-            <Button asChild size="lg" className="relative z-10 h-11 px-8 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/10 group">
-              <Link href="/register">
-                Apply to Join
-                <IconArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </Button>
-          </div>
+              className="relative rounded-2xl border border-border/60 bg-card overflow-hidden px-8 py-20 text-center flex flex-col items-center"
+              style={{ boxShadow: "0 0 80px 20px oklch(0.65 0.18 254 / 0.06)" }}
+            >
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{ background: "radial-gradient(ellipse 70% 60% at 50% 100%, oklch(0.65 0.18 254 / 0.12) 0%, transparent 100%)" }}
+              />
+              <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-5 relative z-10">Ready?</p>
+              <h2 className="text-4xl md:text-5xl font-normal tracking-tight text-foreground mb-5 relative z-10 leading-[1.1]">
+                Run your club,<br />not spreadsheets.
+              </h2>
+              <p className="text-muted-foreground text-base sm:text-lg mb-8 max-w-sm relative z-10 leading-relaxed">
+                Get your Science Olympiad team onto a platform built exactly for this.
+              </p>
+              <Button
+                asChild
+                size="lg"
+                className="relative z-10 h-11 px-8 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/20 group"
+              >
+                <Link href="/register">
+                  Start now
+                  <IconArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </Button>
+            </div>
+          </FadeIn>
         </section>
 
       </main>
 
       {/* ── Footer ── */}
-      <footer className="py-8 px-6 border-t border-border/40 bg-background z-10 relative">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 max-w-screen-xl mx-auto text-xs font-mono uppercase tracking-widest text-muted-foreground">
+      <footer className="py-8 px-6 border-t border-border/40 bg-background relative z-10">
+        <div className="max-w-screen-xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-mono uppercase tracking-widest text-muted-foreground">
           <div className="flex items-center gap-2">
-            <IconAtom className="h-4 w-4" />
+            <IconAtom className="h-4 w-4" strokeWidth={2} />
             <span>&copy; {new Date().getFullYear()} Scioly</span>
           </div>
           <div className="flex items-center gap-6">

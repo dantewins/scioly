@@ -26,7 +26,7 @@ export default async function ApplyPage({ params }: Props) {
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="text-center space-y-1">
           <div className="flex justify-center">
-            <IconAtom className="size-8 text-primary" />
+            <IconAtom className="size-8 text-primary" strokeWidth={1.5} />
           </div>
           <h1 className="text-2xl font-semibold">{club.name}</h1>
           {club.schoolName && (

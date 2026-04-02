@@ -178,6 +178,12 @@
   }
 }
 
+@keyframes gradient-drift {
+  0%, 100% { background-position: 0% 50%; }
+  33%       { background-position: 100% 0%; }
+  66%       { background-position: 50% 100%; }
+}
+
 @layer utilities {
   .page-px {
     padding-left: var(--page-px);
