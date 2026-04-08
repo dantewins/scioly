@@ -1479,7 +1479,7 @@ import { err, ok } from "@/lib/api"
 export const dynamic = "force-dynamic"
 
 const schema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(1),
 })
 
@@ -1573,7 +1573,7 @@ const schema = z.object({
     .toLowerCase(),
   firstName: z.string().min(1).max(50),
   lastName: z.string().min(1).max(50),
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(8),
 })
 

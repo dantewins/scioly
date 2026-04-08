@@ -76,7 +76,7 @@ export function ClubEventForm({
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Weekly Meeting"
+          placeholder="Saturday build lab"
         />
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -93,11 +93,11 @@ export function ClubEventForm({
         </div>
         <div className="space-y-1.5">
           <Label>Location</Label>
-          <Input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Room 204"
-          />
+        <Input
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          placeholder="Room 204 or Robotics Lab"
+        />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -151,7 +151,7 @@ export function ClubEventForm({
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Optional notes…"
+          placeholder="Add agenda details, what to bring, or attendance notes."
           rows={2}
         />
       </div>

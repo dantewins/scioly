@@ -48,7 +48,7 @@ export function InvoiceForm({ members, onSubmit, loading, onCancel }: InvoiceFor
       <div className="space-y-1.5">
         <Label>Invoice Title</Label>
         <Input
-          placeholder="Spring Season Dues"
+          placeholder="2025-2026 membership dues"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
@@ -60,7 +60,7 @@ export function InvoiceForm({ members, onSubmit, loading, onCancel }: InvoiceFor
             type="number"
             min={0}
             step={0.01}
-            placeholder="50.00"
+            placeholder="85.00"
             value={amountDollars}
             onChange={(e) => setAmountDollars(e.target.value)}
           />

@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation"
-import { getCurrentUser } from "@/lib/auth"
+import { getUserId } from "@/lib/auth"
+import { AuthPageShell } from "@/components/auth/auth-page-shell"
 import { LoginForm } from "@/components/forms/login-form"
 
 export default async function LoginPage() {
-  const user = await getCurrentUser()
-  if (user) redirect("/dashboard")
+  const userId = await getUserId(undefined, { strict: false })
+  if (userId) redirect("/dashboard")
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <AuthPageShell>
       <LoginForm />
-    </div>
+    </AuthPageShell>
   )
 }

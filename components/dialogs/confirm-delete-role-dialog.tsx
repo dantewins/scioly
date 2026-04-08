@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { TrashIcon } from "@phosphor-icons/react"
+import { IconTrash } from "@tabler/icons-react"
 
 interface Role {
   id: string
@@ -59,7 +59,7 @@ export function ConfirmDeleteRoleDialog({
             onClick={() => role && onConfirm(role)}
             disabled={deleting}
           >
-            <TrashIcon size={14} className="mr-1.5" />
+            <IconTrash size={14} className="mr-1.5" />
             {deleting ? "Deleting\u2026" : "Delete Role"}
           </Button>
         </DialogFooter>

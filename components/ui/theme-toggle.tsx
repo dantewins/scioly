@@ -1,28 +1,31 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 import { IconSun, IconMoon } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  applyThemePreference,
+  readThemePreference,
+  subscribeThemePreference,
+  writeThemePreference,
+} from "@/lib/ui-preferences"
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false)
+  const dark = useSyncExternalStore(
+    subscribeThemePreference,
+    readThemePreference,
+    () => false,
+  )
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const isDark = stored === "dark" || (!stored && prefersDark)
-    setDark(isDark)
-    document.documentElement.classList.toggle("dark", isDark)
-  }, [])
+    applyThemePreference(dark)
+  }, [dark])
 
   function toggle() {
-    const next = !dark
-    setDark(next)
-    localStorage.setItem("theme", next ? "dark" : "light")
-    document.documentElement.classList.toggle("dark", next)
+    writeThemePreference(!dark)
   }
 
   return (

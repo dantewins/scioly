@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { listCanonicalCompetitionRosters } from "@/lib/competition-ontology"
 
 export const dynamic = "force-dynamic"
 
@@ -18,18 +19,6 @@ export const GET = withPermission(
     const competition = await prisma.competition.findFirst({
       where: { id, season: { clubId: user.clubId } },
       include: {
-        teams: {
-          include: {
-            assignments: {
-              include: {
-                memberSeason: {
-                  include: { user: { select: { id: true, firstName: true, lastName: true } } },
-                },
-              },
-            },
-            event: { select: { id: true, name: true, code: true } },
-          },
-        },
         eventSchedules: {
           include: { event: { select: { id: true, name: true, code: true } } },
           orderBy: { timeSlot: "asc" },
@@ -37,7 +26,8 @@ export const GET = withPermission(
       },
     })
     if (!competition) return err("Competition not found.", 404)
-    return ok(competition)
+    const rosters = await listCanonicalCompetitionRosters(competition.id)
+    return ok({ ...competition, rosters })
   },
 )
 

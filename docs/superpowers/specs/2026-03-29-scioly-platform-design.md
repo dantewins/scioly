@@ -2,6 +2,8 @@
 **Date:** 2026-03-29
 **Status:** Approved
 
+> Superseded in key ontology areas by [2026-04-06-scioly-platform-architecture-reset.md](/Users/musung/Desktop/scioly/docs/superpowers/specs/2026-04-06-scioly-platform-architecture-reset.md). The March spec is still useful for stack and UI conventions, but applications, rosters, assessment modeling, and finance scope have been revised.
+
 ---
 
 ## Overview

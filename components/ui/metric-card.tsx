@@ -14,7 +14,7 @@ interface MetricCardProps {
 export function MetricCard({ label, value, sub, icon: IconComponent, trend, className }: MetricCardProps) {
   return (
     <div className={cn(
-      "rounded-[var(--radius)] border border-border bg-card px-[var(--card-px)] py-[var(--card-py)]",
+      "surface surface-pad",
       className,
     )}>
       <div className="flex items-start justify-between gap-3">
@@ -34,7 +34,7 @@ export function MetricCard({ label, value, sub, icon: IconComponent, trend, clas
           )}
         </div>
         {IconComponent && (
-          <div className="shrink-0 rounded-[var(--radius)] bg-muted p-2">
+          <div className="shrink-0 rounded-[var(--control-radius)] bg-muted p-2">
             <IconComponent className="size-4 text-muted-foreground" />
           </div>
         )}

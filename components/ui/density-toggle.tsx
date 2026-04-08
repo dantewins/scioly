@@ -1,30 +1,32 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 import { IconBaselineDensitySmall, IconBaselineDensityLarge } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip"
-
-type Density = "comfortable" | "compact"
+import {
+  applyDensityPreference,
+  readDensityPreference,
+  subscribeDensityPreference,
+  writeDensityPreference,
+  type DensityPreference,
+} from "@/lib/ui-preferences"
 
 export function DensityToggle() {
-  const [density, setDensity] = useState<Density>("comfortable")
+  const density = useSyncExternalStore(
+    subscribeDensityPreference,
+    readDensityPreference,
+    () => "comfortable" as DensityPreference,
+  )
 
   useEffect(() => {
-    const stored = localStorage.getItem("density") as Density | null
-    if (stored === "comfortable" || stored === "compact") {
-      setDensity(stored)
-      document.documentElement.setAttribute("data-density", stored)
-    }
-  }, [])
+    applyDensityPreference(density)
+  }, [density])
 
   function toggle() {
-    const next: Density = density === "comfortable" ? "compact" : "comfortable"
-    setDensity(next)
-    localStorage.setItem("density", next)
-    document.documentElement.setAttribute("data-density", next)
+    writeDensityPreference(density === "comfortable" ? "compact" : "comfortable")
   }
 
   return (

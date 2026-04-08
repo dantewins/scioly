@@ -26,6 +26,15 @@ async function main() {
     },
   })
 
+  await prisma.clubEmailDomain.create({
+    data: {
+      clubId: club.id,
+      domain: "mast.edu",
+      isPrimary: true,
+      isActive: true,
+    },
+  })
+
   // Create WEBSITE_OWNER
   const owner = await prisma.user.create({
     data: {
@@ -72,7 +81,7 @@ async function main() {
       data: {
         clubId: club.id,
         name: "Member",
-        description: "View access plus ability to submit hours and attempt practice tests.",
+        description: "View access plus ability to submit hours and attempt practice assessments.",
         permissions: memberPermissions(),
       },
     }),

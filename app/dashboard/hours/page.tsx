@@ -4,11 +4,10 @@ import { getCurrentUser } from "@/lib/auth"
 import { canView, canEdit, canCreate } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader } from "@/components/ui/page-header"
 import { AdminHoursView } from "./admin-hours-view"
 import { MemberHoursView } from "./member-hours-view"
 
-export const dynamic = "force-dynamic"
 
 export default async function HoursPage() {
   const user = await getCurrentUser()
@@ -36,7 +35,7 @@ export default async function HoursPage() {
     ]) : [[], []]
 
     return (
-      <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+      <div className="layout-page">
         <PageHeader title="Hours" description={`${pendingEntries.length} pending review`} />
         <AdminHoursView
           pendingEntries={pendingEntries.map(e => ({
@@ -73,7 +72,7 @@ export default async function HoursPage() {
     .reduce((s, e) => s + Number(e.totalHours), 0)
 
   return (
-    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+    <div className="layout-page">
       <PageHeader title="My Hours" description={`${totalApproved.toFixed(1)} approved hours this season`} />
       <MemberHoursView
         entries={myEntries.map(e => ({

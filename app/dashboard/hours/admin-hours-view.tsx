@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { RejectHoursDialog } from "@/components/dialogs/reject-hours-dialog"
+import { apiCall } from "@/lib/api-client"
 
 interface Entry {
   id: string
@@ -56,16 +57,16 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
   async function review(entryId: string, action: "approve" | "reject", reason?: string) {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/hours", {
+      await apiCall("/api/admin/hours", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ entryId, action, rejectionReason: reason }),
       })
-      if (!res.ok) { toast.error("Failed to update."); return }
       setEntries((e) => e.filter((x) => x.id !== entryId))
       setRejectingId(null)
       setRejectReason("")
       toast.success(action === "approve" ? "Hours approved." : "Hours rejected.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update.")
     } finally { setLoading(false) }
   }
 
@@ -73,20 +74,19 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
     if (!catForm.name) { toast.error("Name required."); return }
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/hour-categories", {
+      const data = await apiCall<Category>("/api/admin/hour-categories", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...catForm,
           requiredHours: catForm.requiredHours ? parseFloat(catForm.requiredHours) : undefined,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) { toast.error(data.message ?? "Failed."); return }
       setCategories((c) => [...c, { ...data, _count: { hourEntries: 0 } }])
       setShowCreateCat(false)
       setCatForm({ name: "", description: "", requiredHours: "", requiresApproval: true })
       toast.success("Category created.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create category.")
     } finally { setLoading(false) }
   }
 
@@ -103,7 +103,7 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
         ) : (
           entries.map((entry) => (
             <Card key={entry.id}>
-              <CardContent className="pt-4 flex items-start gap-4">
+              <CardContent className="flex items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm truncate">{entry.title}</p>
@@ -121,10 +121,10 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
                   )}
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <Button size="icon" variant="outline" className="size-8 text-green-600" onClick={() => review(entry.id, "approve")} disabled={loading}>
+                  <Button size="icon-sm" variant="outline" className="text-green-600" onClick={() => review(entry.id, "approve")} disabled={loading}>
                     <IconCheck className="size-4" />
                   </Button>
-                  <Button size="icon" variant="outline" className="size-8 text-destructive" onClick={() => setRejectingId(entry.id)} disabled={loading}>
+                  <Button size="icon-sm" variant="outline" className="text-destructive" onClick={() => setRejectingId(entry.id)} disabled={loading}>
                     <IconX className="size-4" />
                   </Button>
                 </div>
@@ -137,7 +137,7 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
       <TabsContent value="categories" className="mt-4 space-y-3">
         {categories.map((cat) => (
           <Card key={cat.id}>
-            <CardContent className="pt-4">
+            <CardContent>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-sm">{cat.name}</p>
@@ -154,8 +154,9 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
         ))}
 
         {canManageCategories && (
-          <Button variant="outline" onClick={() => setShowCreateCat(true)}>
-            <IconPlus className="size-4 mr-1.5" />Add Category
+          <Button size="sm" onClick={() => setShowCreateCat(true)}>
+            <IconPlus className="mr-1.5 size-[15px]" />
+            New Category
           </Button>
         )}
       </TabsContent>

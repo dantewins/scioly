@@ -75,21 +75,23 @@ export function AuthProvider({
     window.location.href = "/login"
   }, [])
 
-  const perms = user?.permissions ?? {}
-
   const value: AuthContextValue = useMemo(
-    () => ({
-      user,
-      isOwner: user?.role === UserRole.WEBSITE_OWNER,
-      signOut,
-      refreshUser,
-      hasPermission: (flag) => hasPermission(perms, flag),
-      canView: (area) => canView(perms, area),
-      canCreate: (area) => canCreate(perms, area),
-      canEdit: (area) => canEdit(perms, area),
-      canDelete: (area) => canDelete(perms, area),
-    }),
-    [user, perms, signOut, refreshUser]
+    () => {
+      const permissions = user?.permissions ?? {}
+
+      return {
+        user,
+        isOwner: user?.role === UserRole.WEBSITE_OWNER,
+        signOut,
+        refreshUser,
+        hasPermission: (flag) => hasPermission(permissions, flag),
+        canView: (area) => canView(permissions, area),
+        canCreate: (area) => canCreate(permissions, area),
+        canEdit: (area) => canEdit(permissions, area),
+        canDelete: (area) => canDelete(permissions, area),
+      }
+    },
+    [user, signOut, refreshUser]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

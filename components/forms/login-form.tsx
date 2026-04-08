@@ -3,12 +3,14 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { IconAtom, IconLoader2 } from "@tabler/icons-react"
+import { IconLoader2 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { useAuth } from "@/context/AuthContext"
+import { apiCall } from "@/lib/api-client"
+import { AuthFormShell } from "./auth-form-shell"
 
 export function LoginForm() {
   const router = useRouter()
@@ -23,26 +25,15 @@ export function LoginForm() {
     setLoading(true)
 
     try {
-      const res = await fetch("/api/auth/login", {
+      await apiCall("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email, password }),
       })
-
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok) {
-        toast.error(data?.message ?? "Login failed.")
-        setLoading(false)
-        return
-      }
-
       await refreshUser()
       router.replace("/dashboard")
       // no setLoading(false) here on purpose
     } catch (err) {
-      console.error(err)
+      if (process.env.NODE_ENV !== "production") console.error(err)
       toast.error(
         err instanceof Error ? err.message : "Something went wrong. Please try again."
       )
@@ -51,19 +42,19 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-sm space-y-6">
-      <div className="flex justify-center">
-        <Link href="/" className="flex size-10 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground transition-opacity hover:opacity-80">
-          <IconAtom className="size-6" strokeWidth={1.75} />
-        </Link>
-      </div>
-
-      <div className="text-center space-y-1">
-        <h1 className="text-lg font-semibold text-foreground">Sign in to Scioly</h1>
-        <p className="text-sm text-muted-foreground">Enter your credentials to continue</p>
-      </div>
-
-      <div className="rounded-[var(--radius)] border border-border bg-card p-6 space-y-4">
+    <AuthFormShell
+      title="Sign in to Scioly"
+      description="Use your school email and password to continue."
+      footer={(
+        <>
+          New here?{" "}
+          <Link href="/register" className="text-foreground underline underline-offset-4">
+            Register your club
+          </Link>
+        </>
+      )}
+    >
+      <div className="space-y-4">
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
@@ -71,7 +62,7 @@ export function LoginForm() {
               id="email"
               name="email"
               type="email"
-              placeholder="m@example.com"
+              placeholder="name@school.edu"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -105,13 +96,6 @@ export function LoginForm() {
           </Button>
         </form>
       </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        New here?{" "}
-        <Link href="/register" className="text-foreground underline underline-offset-4">
-          Register your club
-        </Link>
-      </p>
-    </div>
+    </AuthFormShell>
   )
 }

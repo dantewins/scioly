@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { apiCall } from "@/lib/api-client"
 
 interface Season {
   id: string
@@ -37,17 +38,19 @@ export function SeasonManager({ seasons: initial, canManage }: Props) {
   const [form, setForm] = useState({ name: "", schoolYear: "", startsAt: "", endsAt: "" })
 
   async function toggleActive(seasonId: string, active: boolean) {
-    const res = await fetch(`/api/admin/seasons/${seasonId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: active }),
-    })
-    if (!res.ok) { toast.error("Failed to update season."); return }
-    setSeasons((s) =>
-      s.map((x) => ({ ...x, isActive: active ? x.id === seasonId : x.id === seasonId ? false : x.isActive })),
-    )
-    toast.success(active ? "Season activated." : "Season deactivated.")
-    router.refresh()
+    try {
+      await apiCall(`/api/admin/seasons/${seasonId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive: active }),
+      })
+      setSeasons((s) =>
+        s.map((x) => ({ ...x, isActive: active ? x.id === seasonId : x.id === seasonId ? false : x.isActive })),
+      )
+      toast.success(active ? "Season activated." : "Season deactivated.")
+      router.refresh()
+    } catch {
+      toast.error("Failed to update season.")
+    }
   }
 
   async function handleCreate() {
@@ -56,21 +59,20 @@ export function SeasonManager({ seasons: initial, canManage }: Props) {
     }
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/seasons", {
+      const data = await apiCall<Season>("/api/admin/seasons", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           startsAt: new Date(form.startsAt).toISOString(),
           endsAt: new Date(form.endsAt).toISOString(),
         }),
       })
-      const data = await res.json()
-      if (!res.ok) { toast.error(data.message ?? "Failed to create."); return }
       setSeasons((s) => [{ ...data, _count: { members: 0 } }, ...s])
       setShowCreate(false)
       setForm({ name: "", schoolYear: "", startsAt: "", endsAt: "" })
       toast.success("Season created.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create.")
     } finally { setLoading(false) }
   }
 
@@ -78,7 +80,7 @@ export function SeasonManager({ seasons: initial, canManage }: Props) {
     <div className="space-y-3">
       {seasons.map((s) => (
         <Card key={s.id}>
-          <CardContent className="pt-4 flex items-center gap-4">
+          <CardContent className="flex items-center gap-4">
             <IconCalendar className="size-4 text-muted-foreground shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{s.name}</p>
@@ -105,8 +107,9 @@ export function SeasonManager({ seasons: initial, canManage }: Props) {
       )}
 
       {canManage && (
-        <Button variant="outline" className="w-full" onClick={() => setShowCreate(true)}>
-          <IconPlus className="size-4 mr-1.5" />New Season
+        <Button size="sm" onClick={() => setShowCreate(true)} variant="outline" className="w-full">
+          <IconPlus className="mr-1.5 size-[15px]" />
+          New Season
         </Button>
       )}
 

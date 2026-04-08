@@ -5,11 +5,10 @@ import { getCurrentUser } from "@/lib/auth"
 import { canView } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
 import { MembersTable } from "@/components/tables/members-table"
 
-export const dynamic = "force-dynamic"
 
 export default async function MembersPage() {
   const user = await getCurrentUser()
@@ -39,7 +38,7 @@ export default async function MembersPage() {
     : []
 
   return (
-    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+    <div className="layout-page">
       <PageHeader
         title="Members"
         description={`${members.length} member${members.length !== 1 ? "s" : ""} this season`}

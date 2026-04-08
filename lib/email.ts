@@ -6,17 +6,24 @@ function getResend() {
   return new Resend(key)
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-const FROM = process.env.EMAIL_FROM ?? "Science Olympiad <noreply@yourdomain.com>"
+function getAppUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000"
+}
+
+function getEmailFrom() {
+  const from = process.env.EMAIL_FROM?.trim()
+  if (!from) throw new Error("EMAIL_FROM is not set.")
+  return from
+}
 
 export async function sendPasswordSetupEmail(
   to: string,
   token: string,
   firstName: string
 ) {
-  const url = `${APP_URL}/set-password?token=${token}`
+  const url = `${getAppUrl()}/set-password?token=${token}`
   return getResend().emails.send({
-    from: FROM,
+    from: getEmailFrom(),
     to,
     subject: "Welcome! Set up your account",
     html: `
@@ -36,7 +43,7 @@ export async function sendHoursWarningEmail(
 ) {
   const remaining = Math.max(0, requiredHours - earnedHours)
   return getResend().emails.send({
-    from: FROM,
+    from: getEmailFrom(),
     to,
     subject: "Reminder: Club hour requirement",
     html: `
@@ -60,7 +67,7 @@ export async function sendDuesReminderEmail(
     ? ` due on <strong>${dueAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</strong>`
     : ""
   return getResend().emails.send({
-    from: FROM,
+    from: getEmailFrom(),
     to,
     subject: "Reminder: Dues payment required",
     html: `
@@ -81,7 +88,7 @@ export async function sendFormReminderEmail(
     ? ` by <strong>${dueAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</strong>`
     : ""
   return getResend().emails.send({
-    from: FROM,
+    from: getEmailFrom(),
     to,
     subject: `Action required: ${formName}`,
     html: `

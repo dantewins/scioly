@@ -2,6 +2,7 @@
 import { notFound } from "next/navigation"
 import { IconAtom } from "@tabler/icons-react"
 import { ApplyForm } from "@/components/forms/apply-form"
+import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
 
@@ -12,17 +13,30 @@ interface Props {
 export default async function ApplyPage({ params }: Props) {
   const { clubSlug } = await params
 
-  // Validate club exists server-side (for 404 on bad slugs)
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL}/api/public/club/${clubSlug}`,
-    { cache: "no-store" },
-  )
-  if (!res.ok) notFound()
+  const club = await prisma.club.findUnique({
+    where: { slug: clubSlug },
+    select: {
+      id: true,
+      name: true,
+      schoolName: true,
+    },
+  })
+  if (!club) notFound()
 
-  const { club, season } = await res.json()
+  const season = await prisma.season.findFirst({
+    where: { clubId: club.id, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      events: {
+        select: { id: true, name: true, code: true, isTrialEvent: true, sortOrder: true },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  })
 
   return (
-    <div className="min-h-screen bg-muted/20 py-10 px-4">
+    <div className="min-h-screen bg-muted/20 py-[var(--page-py)] px-[var(--page-px)]">
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="text-center space-y-1">
           <div className="flex justify-center">
@@ -40,14 +54,11 @@ export default async function ApplyPage({ params }: Props) {
         </div>
 
         {!season ? (
-          <div className="rounded-lg border p-8 text-center text-muted-foreground text-sm">
+          <div className="rounded-[var(--radius)] border p-8 text-center text-sm text-muted-foreground">
             Applications are not currently open. Please check back later.
           </div>
         ) : (
-          <ApplyForm
-            clubSlug={clubSlug}
-            events={season.events}
-          />
+            <ApplyForm clubSlug={clubSlug} events={season.events} />
         )}
       </div>
     </div>

@@ -5,12 +5,14 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { IconCheck } from "@tabler/icons-react"
+import { apiCall } from "@/lib/api-client"
 
 interface EventOption {
   id: string
@@ -49,9 +51,8 @@ export function ApplyForm({ clubSlug, events }: Props) {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch("/api/public/apply", {
+      await apiCall("/api/public/apply", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clubSlug,
           ...form,
@@ -59,12 +60,9 @@ export function ApplyForm({ clubSlug, events }: Props) {
           eventChoices: selectedEvents,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error ?? "Submission failed.")
-        return
-      }
       setSubmitted(true)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Submission failed.")
     } finally {
       setLoading(false)
     }
@@ -97,26 +95,47 @@ export function ApplyForm({ clubSlug, events }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>First Name</Label>
-              <Input value={form.firstName} onChange={(e) => setForm(f => ({ ...f, firstName: e.target.value }))} required />
+              <Input
+                value={form.firstName}
+                onChange={(e) => setForm(f => ({ ...f, firstName: e.target.value }))}
+                placeholder="Avery"
+                required
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Last Name</Label>
-              <Input value={form.lastName} onChange={(e) => setForm(f => ({ ...f, lastName: e.target.value }))} required />
+              <Input
+                value={form.lastName}
+                onChange={(e) => setForm(f => ({ ...f, lastName: e.target.value }))}
+                placeholder="Nguyen"
+                required
+              />
             </div>
           </div>
           <div className="space-y-1.5">
             <Label>Email</Label>
-            <Input type="email" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} required />
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
+              placeholder="name@school.edu"
+              required
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Phone (optional)</Label>
-              <Input type="tel" value={form.phone} onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))} />
+              <Input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="(555) 123-4567"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Grade Level</Label>
               <Select value={form.gradeLevel} onValueChange={(v) => setForm(f => ({ ...f, gradeLevel: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Choose your grade" /></SelectTrigger>
                 <SelectContent>
                   {["9","10","11","12"].map(g => <SelectItem key={g} value={g}>Grade {g}</SelectItem>)}
                 </SelectContent>
@@ -127,7 +146,7 @@ export function ApplyForm({ clubSlug, events }: Props) {
             <div className="space-y-1.5">
               <Label>Shirt Size</Label>
               <Select value={form.shirtSize} onValueChange={(v) => setForm(f => ({ ...f, shirtSize: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select size" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Choose a size" /></SelectTrigger>
                 <SelectContent>
                   {["XS","S","M","L","XL","XXL"].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
@@ -194,10 +213,19 @@ export function ApplyForm({ clubSlug, events }: Props) {
           ).map(([field, label]) => (
             <div key={field} className="space-y-1.5">
               <Label>{label}</Label>
-              <textarea
-                className="w-full min-h-[80px] rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
+              <Textarea
+                className="min-h-[96px] resize-y"
                 value={form[field] as string}
                 onChange={(e) => setForm(f => ({ ...f, [field]: e.target.value }))}
+                placeholder={
+                  field === "whyJoin" ? "Share what excites you about Science Olympiad." :
+                  field === "contributionIdeas" ? "Explain how you plan to help your team, events, or club culture." :
+                  field === "previousEvents" ? "List past Science Olympiad events, if any." :
+                  field === "scienceClasses" ? "Examples: Honors Chemistry, AP Biology, Physics." :
+                  field === "mathClasses" ? "Examples: Algebra II, Precalculus, AP Calculus AB." :
+                  field === "awards" ? "List competitions, honor roll, awards, or relevant recognitions." :
+                  "Add anything else your officers should know."
+                }
               />
             </div>
           ))}

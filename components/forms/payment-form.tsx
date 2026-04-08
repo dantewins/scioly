@@ -63,7 +63,7 @@ export function PaymentForm({ outstandingDollars, onSubmit, loading, onCancel }:
         <Input
           value={referenceNumber}
           onChange={(e) => setReferenceNumber(e.target.value)}
-          placeholder="Check #123, Venmo ID..."
+          placeholder="Check 1042 or Venmo transaction ID"
         />
       </div>
       <DialogFooter>

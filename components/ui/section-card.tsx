@@ -14,7 +14,7 @@ export function SectionCard({
   title, description, action, children, className, flush = false,
 }: SectionCardProps) {
   return (
-    <div className={cn("rounded-[var(--radius)] border border-border bg-card", className)}>
+    <div className={cn("surface", className)}>
       {(title || action) && (
         <div className="flex items-center justify-between gap-4 border-b border-border px-[var(--card-px)] py-[var(--card-py)]">
           <div className="min-w-0">

@@ -4,10 +4,14 @@ import { canView, canEdit, canCreate } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import { PracticeManager } from "./practice-manager"
-import { PracticeTestList } from "./practice-test-list"
-import { PageHeader } from "@/components/page-header"
+import { PracticeFeed } from "./practice-feed"
+import { PageHeader } from "@/components/ui/page-header"
+import {
+  listPracticeAssessmentsForAdmin,
+  getMemberPracticeFeed,
+  type MemberPracticeFeed,
+} from "@/lib/practice-assessments"
 
-export const dynamic = "force-dynamic"
 
 export default async function PracticePage() {
   const user = await getCurrentUser()
@@ -19,36 +23,25 @@ export default async function PracticePage() {
 
   if (isAdmin) {
     const [tests, events] = season ? await Promise.all([
-      prisma.practiceTest.findMany({
-        where: { seasonId: season.id },
-        include: {
-          event: { select: { id: true, name: true } },
-          answerKey: { select: { id: true } },
-          _count: { select: { attempts: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      }),
+      listPracticeAssessmentsForAdmin(season.id),
       prisma.event.findMany({
         where: { seasonId: season.id },
         orderBy: { sortOrder: "asc" },
-        select: { id: true, name: true },
+        select: { id: true, name: true, code: true },
       }),
     ]) : [[], []]
 
     return (
-      <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
-        <div>
-          <h1 className="text-xl font-semibold">Practice Tests</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{tests.length} test{tests.length !== 1 ? "s" : ""} this season</p>
-        </div>
+      <div className="layout-page">
+        <PageHeader
+          title="Assessments"
+          description={`${tests.length} assessment${tests.length !== 1 ? "s" : ""} this season`}
+        />
         <PracticeManager
-          initialTests={tests.map(t => ({
-            ...t,
-            createdAt: t.createdAt.toISOString(),
-            updatedAt: t.updatedAt.toISOString(),
-          }))}
+          initialTests={tests}
           events={events}
-          canCreate={canCreate(user.permissions, "practice")}
+          canManage={canEdit(user.permissions, "practice")}
+          canCreate={canEdit(user.permissions, "practice") || canCreate(user.permissions, "practice")}
         />
       </div>
     )
@@ -56,39 +49,16 @@ export default async function PracticePage() {
 
   // Member view
   const ms = season ? await getMemberSeason(user.id, user.clubId) : null
-  const tests = ms && season ? await prisma.practiceTest.findMany({
-    where: { seasonId: season.id, isActive: true },
-    include: {
-      event: { select: { id: true, name: true } },
-      answerKey: { select: { id: true } },
-      attempts: {
-        where: { memberSeasonId: ms.id },
-        orderBy: { startedAt: "desc" },
-        take: 3,
-        select: { id: true, score: true, startedAt: true, submittedAt: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  }) : []
+  const emptyFeed: MemberPracticeFeed = { assessments: [], continueAttempts: [], recommendedAssessments: [], recentAttempts: [] }
+  const feed = season ? await getMemberPracticeFeed(season.id, ms?.id ?? null) : emptyFeed
 
   return (
-    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+    <div className="layout-page">
       <PageHeader
-        title="Practice Tests"
-        description={`${tests.length} available test${tests.length !== 1 ? "s" : ""}`}
+        title="Assessments"
+        description={`${feed.assessments.length} available assessment${feed.assessments.length !== 1 ? "s" : ""}`}
       />
-      <PracticeTestList
-        tests={tests.map(t => ({
-          ...t,
-          createdAt: t.createdAt.toISOString(),
-          updatedAt: t.updatedAt.toISOString(),
-          attempts: t.attempts.map(a => ({
-            ...a,
-            startedAt: a.startedAt.toISOString(),
-            submittedAt: a.submittedAt?.toISOString() ?? null,
-          })),
-        }))}
-      />
+      <PracticeFeed feed={feed} />
     </div>
   )
 }

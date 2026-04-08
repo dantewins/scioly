@@ -1,6 +1,7 @@
 // app/api/public/club/[slug]/route.ts
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getAllowedClubDomains } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
@@ -12,11 +13,18 @@ export async function GET(
 
   const club = await prisma.club.findUnique({
     where: { slug },
-    select: { id: true, name: true, schoolName: true, slug: true },
+    select: {
+      id: true,
+      name: true,
+      schoolName: true,
+      slug: true,
+    },
   })
   if (!club) {
     return NextResponse.json({ error: "Club not found." }, { status: 404 })
   }
+
+  const allowedDomains = await getAllowedClubDomains(club.id)
 
   const season = await prisma.season.findFirst({
     where: { clubId: club.id, isActive: true },
@@ -31,5 +39,14 @@ export async function GET(
     },
   })
 
-  return NextResponse.json({ club, season })
+  return NextResponse.json({
+    club: {
+      id: club.id,
+      name: club.name,
+      schoolName: club.schoolName,
+      slug: club.slug,
+      allowedDomains,
+    },
+    season,
+  })
 }

@@ -46,7 +46,7 @@ export function FormTypeForm({ onSubmit, loading, onCancel }: FormTypeFormProps)
       <div className="space-y-1.5">
         <Label>Name</Label>
         <Input
-          placeholder="Parent Permission Slip"
+          placeholder="States travel waiver"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -65,6 +65,7 @@ export function FormTypeForm({ onSubmit, loading, onCancel }: FormTypeFormProps)
         <Input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          placeholder="Required before students attend invitationals or states."
         />
       </div>
       <div className="space-y-1.5">

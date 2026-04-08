@@ -33,7 +33,7 @@ export function SeasonForm({ onSubmit, loading, onCancel }: SeasonFormProps) {
       <div className="space-y-1.5">
         <Label>Season Name</Label>
         <Input
-          placeholder="2025-2026 Season"
+          placeholder="2026 competition season"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />

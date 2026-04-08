@@ -38,13 +38,11 @@ interface Props {
 }
 
 export function InvoicesTable({ invoices, canEdit, onRecordPayment, onVoid }: Props) {
-  if (invoices.length === 0) {
-    return <p className="text-sm text-muted-foreground">No invoices yet.</p>
-  }
+  if (invoices.length === 0) return null
 
   return (
     <div className="overflow-x-auto">
-    <div className="rounded-lg border overflow-hidden">
+    <div className="overflow-hidden rounded-[var(--radius)] border">
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr>
@@ -79,9 +77,9 @@ export function InvoicesTable({ invoices, canEdit, onRecordPayment, onVoid }: Pr
                   <div className="flex gap-1">
                     {["OPEN", "PARTIALLY_PAID"].includes(inv.status) && (
                       <Button
-                        size="sm"
+                        size="xs"
                         variant="outline"
-                        className="h-7 text-xs"
+                        className="text-xs"
                         onClick={() => onRecordPayment(inv)}
                       >
                         <IconCreditCard className="size-3 mr-1" />Record
@@ -89,9 +87,9 @@ export function InvoicesTable({ invoices, canEdit, onRecordPayment, onVoid }: Pr
                     )}
                     {inv.status !== "VOID" && inv.status !== "PAID" && (
                       <Button
-                        size="sm"
+                        size="xs"
                         variant="ghost"
-                        className="h-7 text-xs text-muted-foreground"
+                        className="text-xs text-muted-foreground"
                         onClick={() => onVoid(inv.id)}
                       >
                         Void

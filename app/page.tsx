@@ -10,6 +10,7 @@ import {
   IconSun, IconMoon,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 function FadeIn({
   children,
@@ -118,10 +119,10 @@ export default function Page() {
     >
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/50 backdrop-blur-md bg-background/80">
-        <div className="max-w-screen-xl mx-auto flex h-14 md:h-16 items-center px-4 md:px-10">
+      <header className="sticky top-0 z-50 w-full border-b border-border/50 backdrop-blur-md">
+        <div className="max-w-screen-xl mx-auto flex h-14 md:h-16 items-center px-[var(--page-px)]">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-md bg-foreground text-background flex items-center justify-center shrink-0">
+            <div className="h-8 w-8 rounded-[var(--radius)] bg-foreground text-background flex items-center justify-center shrink-0">
               <IconAtom className="h-5 w-5" strokeWidth={2} />
             </div>
             <span className="font-semibold text-sm md:text-base tracking-tight">Scioly</span>
@@ -139,7 +140,7 @@ export default function Page() {
             <Button
               asChild
               size="sm"
-              className="h-8 md:h-9 px-4 text-xs md:text-sm rounded-md bg-foreground text-background hover:bg-foreground/90 font-medium shadow-none"
+              className="h-8 md:h-9 px-4 text-xs md:text-sm rounded-[var(--radius)] bg-foreground text-background hover:bg-foreground/90 font-medium shadow-none"
             >
               <Link href="/register">Apply to Join</Link>
             </Button>
@@ -153,43 +154,17 @@ export default function Page() {
         {/* ── Hero ── */}
         <section className="relative w-full flex flex-col items-center text-center overflow-hidden pb-0">
 
-          {/* Dot grid — scientific notebook feel */}
-          <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={{
-              backgroundImage: "radial-gradient(circle, oklch(0.55 0.18 254 / 0.07) 1.5px, transparent 1.5px)",
-              backgroundSize: "28px 28px",
-            }}
-          />
-          {/* Fade grid out toward the bottom and center */}
-          <div
-            className="absolute inset-0 pointer-events-none z-0"
-            style={{
-              background: "radial-gradient(ellipse 80% 65% at 50% 20%, var(--background) 25%, transparent 75%)",
-            }}
-          />
-          <div
-            className="absolute bottom-0 inset-x-0 h-1/2 pointer-events-none z-0"
-            style={{ background: "linear-gradient(to bottom, transparent, var(--background))" }}
-          />
-
           {/* Text block */}
-          <div className="relative z-10 flex flex-col items-center pt-24 md:pt-32 pb-14 px-4 w-full max-w-4xl mx-auto">
+          <div className="relative z-10 flex flex-col items-center pt-24 md:pt-32 pb-14 px-[var(--page-px)] w-full max-w-4xl mx-auto">
+            {/* Soft blue glow in hero center */}
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{ background: "radial-gradient(ellipse 70% 55% at 50% 50%, oklch(0.65 0.18 254 / 0.11) 0%, transparent 100%)", filter: "blur(20px)" }}
+            />
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }}
-              className="mb-8"
-            >
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-[11px] font-mono tracking-[0.2em] text-primary uppercase">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                Season 2026 Ready
-              </div>
-            </motion.div>
 
             <motion.h1
-              className="text-6xl md:text-7xl lg:text-[6rem] tracking-tighter leading-[1.1] text-foreground mb-6 text-center"
+              className="mt-12 md:mt-16 text-6xl md:text-7xl lg:text-[6rem] tracking-tighter leading-[1.1] text-foreground mb-6 text-center"
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.07, ease: [0.25, 0.1, 0.25, 1] }}
@@ -219,7 +194,7 @@ export default function Page() {
             </motion.h1>
 
             <motion.p
-              className={`text-base md:text-2xl ${isDark ? 'text-white/70' : 'text-muted-foreground'} mb-10 max-w-md sm:max-w-lg md:max-w-2xl text-center leading-relaxed tracking-tight`}
+              className={`text-base md:text-2xl ${isDark ? 'text-white/85' : 'text-black/85'} mb-10.5 max-w-md sm:max-w-lg md:max-w-2xl text-center leading-relaxed tracking-tight`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.16, ease: [0.25, 0.1, 0.25, 1] }}
@@ -236,7 +211,7 @@ export default function Page() {
               <Button
                 asChild
                 size="lg"
-                className="h-11 px-6 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/15 animate-pulse group"
+                className="h-11 px-6 text-sm rounded-[var(--radius)] bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/15 animate-pulse group"
               >
                 <Link href="/login">
                   Get started
@@ -247,7 +222,7 @@ export default function Page() {
                 asChild
                 variant="outline"
                 size="lg"
-                className="h-11 px-6 text-sm rounded-lg border-border/60 bg-transparent hover:bg-muted font-medium shadow-none text-muted-foreground hover:text-foreground"
+                className="h-11 px-6 text-sm rounded-[var(--radius)] border-border/60 bg-transparent hover:bg-muted font-medium shadow-none text-muted-foreground hover:text-foreground"
               >
                 <Link href="#features">
                   See how it works
@@ -257,7 +232,7 @@ export default function Page() {
           </div>
 
           {/* Product image — perspective tilted, rises on load */}
-          <div className="relative z-10 w-full px-4 sm:px-8 lg:px-16 pb-0">
+          <div className="relative z-10 w-full px-[var(--page-px)] pb-0">
             {/* Blue atmospheric glow behind the image */}
             <div
               className="absolute inset-x-[5%] inset-y-[10%] pointer-events-none"
@@ -291,7 +266,6 @@ export default function Page() {
                   fill
                   className="object-cover object-top"
                   priority
-                  unoptimized
                   sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1152px"
                 />
               </div>
@@ -306,7 +280,7 @@ export default function Page() {
         </section>
 
         {/* ── Value intro ── */}
-        <section id="features" className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20">
+        <section id="features" className="w-full max-w-5xl mx-auto px-[var(--page-px)] pt-16 pb-20">
           <FadeIn>
             <div className="max-w-2xl mb-12">
               <p className="text-xs font-mono uppercase tracking-widest text-primary/70 mb-3">Why Scioly?</p>
@@ -337,7 +311,7 @@ export default function Page() {
         </section>
 
         {/* ── Feature A: Event Telemetry ── */}
-        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-border/40">
+        <section className="w-full max-w-5xl mx-auto px-[var(--page-px)] py-20 border-t border-border/40">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <FadeIn>
               <div>
@@ -364,8 +338,8 @@ export default function Page() {
               </div>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <TracingBorder className="rounded-2xl" contentClassName="bg-card/80" duration={6}>
-                <div className="rounded-2xl" style={panelStyle}>
+              <TracingBorder className="rounded-[var(--radius)]" contentClassName="bg-card/80" duration={6}>
+                <div className="rounded-[var(--radius)]" style={panelStyle}>
                   <div className="px-5 py-4 border-b border-border/40">
                     <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Event Performance</p>
                   </div>
@@ -393,11 +367,11 @@ export default function Page() {
         </section>
 
         {/* ── Feature B: Roster Management ── */}
-        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-border/40">
+        <section className="w-full max-w-5xl mx-auto px-[var(--page-px)] py-20 border-t border-border/40">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <FadeIn className="order-last lg:order-first">
-              <TracingBorder className="rounded-2xl" contentClassName="bg-card/80" duration={7}>
-                <div className="rounded-2xl" style={panelStyle}>
+              <TracingBorder className="rounded-[var(--radius)]" contentClassName="bg-card/80" duration={7}>
+                <div className="rounded-[var(--radius)]" style={panelStyle}>
                   <div className="px-5 py-4 border-b border-border/40">
                     <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Roster — Jefferson SciOly</p>
                   </div>
@@ -409,7 +383,7 @@ export default function Page() {
                       { initials: "DL", name: "David L.", role: "Alt", event: "Wright Stuff" },
                     ].map(({ initials, name, role, event }) => (
                       <div key={name} className="flex items-center gap-3 px-5 py-3.5">
-                        <div className="w-8 h-8 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-xs font-mono font-semibold shrink-0">
+                        <div className="w-8 h-8 rounded-[var(--radius)] bg-muted border border-border/60 flex items-center justify-center text-xs font-mono font-semibold shrink-0">
                           {initials}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -453,7 +427,7 @@ export default function Page() {
         </section>
 
         {/* ── Feature C: Tournament History ── */}
-        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-border/40">
+        <section className="w-full max-w-5xl mx-auto px-[var(--page-px)] py-20 border-t border-border/40">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <FadeIn>
               <div>
@@ -463,7 +437,7 @@ export default function Page() {
                 </h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   A permanent ledger of every result across all competitive seasons. Never lose track of
-                  your team's achievements again — from invitationals to State.
+                  your team&apos;s achievements again — from invitationals to State.
                 </p>
                 <ul className="space-y-3">
                   {[
@@ -480,8 +454,8 @@ export default function Page() {
               </div>
             </FadeIn>
             <FadeIn delay={0.1}>
-              <TracingBorder className="rounded-2xl" contentClassName="bg-card/80" duration={5}>
-                <div className="rounded-2xl" style={panelStyle}>
+              <TracingBorder className="rounded-[var(--radius)]" contentClassName="bg-card/80" duration={5}>
+                <div className="rounded-[var(--radius)]" style={panelStyle}>
                   <div className="px-5 py-4 border-b border-border/40">
                     <div className="grid grid-cols-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                       <span>Tournament</span>
@@ -512,7 +486,7 @@ export default function Page() {
         </section>
 
         {/* ── Dense feature grid ── */}
-        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-border/40">
+        <section className="w-full max-w-5xl mx-auto px-[var(--page-px)] py-20 border-t border-border/40">
           <FadeIn>
             <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-normal tracking-tight text-foreground">
@@ -526,29 +500,29 @@ export default function Page() {
                 { icon: <IconDatabase className="w-4 h-4" />, title: "Unified Schema", desc: "Track members, roles, scores, and attendance in one relational schema. No more broken VLOOKUPs." },
                 { icon: <IconLock className="w-4 h-4" />, title: "Role-Based Access", desc: "Coaches see everything, captains manage rosters, members track their own metrics." },
                 { icon: <IconBolt className="w-4 h-4" />, title: "High-Speed Workflows", desc: "Bulk-assign students to events without waiting on slow, bloated interfaces." },
-                { icon: <IconClipboardList className="w-4 h-4" />, title: "Practice Tests", desc: "Upload, organize, and track completion of practice materials by event and member." },
+                { icon: <IconClipboardList className="w-4 h-4" />, title: "Assessments", desc: "Upload, organize, and track completion of practice materials by event and member." },
                 { icon: <IconCalendarEvent className="w-4 h-4" />, title: "Event Assignments", desc: "Assign members to events with conflict detection and automatic alternates." },
                 { icon: <IconClock className="w-4 h-4" />, title: "Hours Tracking", desc: "Log and approve practice hours with category breakdowns for coach review." },
               ].map(({ icon, title, desc }) => (
-                <div key={title} className="bg-card border border-border/60 rounded-xl p-5 hover:border-primary/40 transition-colors duration-300 flex flex-col gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-muted border border-border/60 flex items-center justify-center text-foreground shrink-0">
+                <Card key={title} className="p-5 hover:border-primary/40 transition-colors duration-300 flex flex-col gap-3">
+                  <div className="w-8 h-8 rounded-[var(--radius)] bg-muted border border-border/60 flex items-center justify-center text-foreground shrink-0">
                     {icon}
                   </div>
                   <div>
                     <p className="font-semibold text-sm mb-1.5">{title}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           </FadeIn>
         </section>
 
         {/* ── Final CTA ── */}
-        <section className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 pb-28">
+        <section className="w-full max-w-5xl mx-auto px-[var(--page-px)] py-20 pb-28">
           <FadeIn>
-            <div
-              className="relative rounded-2xl border border-border/60 bg-card overflow-hidden px-8 py-20 text-center flex flex-col items-center"
+            <Card
+              className="relative overflow-hidden px-8 py-20 text-center items-center gap-0 border-border/60"
               style={{ boxShadow: "0 0 80px 20px oklch(0.65 0.18 254 / 0.06)" }}
             >
               <div
@@ -565,14 +539,14 @@ export default function Page() {
               <Button
                 asChild
                 size="lg"
-                className="relative z-10 h-11 px-8 text-sm rounded-lg bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/20 group"
+                className="relative z-10 h-11 px-8 text-sm rounded-[var(--radius)] bg-foreground text-background hover:bg-foreground/90 font-semibold shadow-lg shadow-black/20 group"
               >
                 <Link href="/register">
                   Start now
                   <IconArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </Button>
-            </div>
+            </Card>
           </FadeIn>
         </section>
 

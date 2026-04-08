@@ -1,7 +1,7 @@
 // app/api/admin/forms/route.ts
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { withPermission, ok, err } from "@/lib/api"
+import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
@@ -29,7 +29,7 @@ const createSchema = z.object({
   dueAt: z.string().datetime().optional(),
 })
 
-export const POST = withPermission("create_forms", async (req, _ctx, user) => {
+export const POST = withAnyPermission(["create_forms", "edit_forms"], async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid.", 400)

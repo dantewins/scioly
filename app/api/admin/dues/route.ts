@@ -1,7 +1,7 @@
 // app/api/admin/dues/route.ts
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { withPermission, ok, err } from "@/lib/api"
+import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
@@ -38,7 +38,7 @@ const createSchema = z.object({
   notes: z.string().max(500).optional(),
 })
 
-export const POST = withPermission("create_finances", async (req, _ctx, user) => {
+export const POST = withAnyPermission(["create_finances", "edit_finances"], async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)

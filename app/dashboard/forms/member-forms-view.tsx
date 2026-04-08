@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatDateOnly } from "@/lib/format"
+import { apiCall } from "@/lib/api-client"
 
 interface Submission {
   id: string
@@ -50,13 +51,10 @@ export function MemberFormsView({ formTypes: initial }: Props) {
   async function handleSubmit(formTypeId: string) {
     setLoading(true)
     try {
-      const res = await fetch("/api/member/forms", {
+      const data = await apiCall<{ id: string }>("/api/member/forms", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ formTypeId, action: "submit", fileUrl: fileUrl || undefined }),
       })
-      const data = await res.json()
-      if (!res.ok) { toast.error(data.message ?? "Failed to submit."); return }
       setFormTypes((fts) =>
         fts.map((ft) =>
           ft.id === formTypeId
@@ -67,6 +65,8 @@ export function MemberFormsView({ formTypes: initial }: Props) {
       setSubmitting(null)
       setFileUrl("")
       toast.success("Form submitted successfully.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit.")
     } finally { setLoading(false) }
   }
 

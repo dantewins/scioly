@@ -52,7 +52,7 @@ export function EventForm({
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Anatomy & Physiology"
+          placeholder="Anatomy and Physiology"
         />
       </div>
       <div className="space-y-1.5">
@@ -60,7 +60,7 @@ export function EventForm({
         <Input
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="ANP"
+          placeholder="ANAT"
           maxLength={10}
         />
       </div>

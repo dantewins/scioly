@@ -20,7 +20,7 @@ export function MemberHoursTable({ entries }: Props) {
 
   return (
     <div className="overflow-x-auto">
-    <div className="rounded-lg border overflow-hidden">
+    <div className="overflow-hidden rounded-[var(--radius)] border">
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr>

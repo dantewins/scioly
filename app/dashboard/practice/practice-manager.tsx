@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { PlusIcon, CheckCircleIcon } from "@phosphor-icons/react"
+import { IconPlus, IconCircleCheck } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { apiCall } from "@/lib/api-client"
 import {
   Dialog,
   DialogContent,
@@ -11,14 +12,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { PracticeTestCard, type PracticeTestCardData } from "@/components/cards/practice-test-card"
 import { PracticeTestForm } from "@/components/forms/practice-test-form"
 
+type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
+type AssessmentPartType = "SECTION" | "STATION"
+
 interface SciEvent {
   id: string
   name: string
+  code?: string | null
 }
 
 interface PracticeTest extends PracticeTestCardData {
@@ -29,18 +33,31 @@ interface PracticeTest extends PracticeTestCardData {
 interface Props {
   initialTests: PracticeTest[]
   events: SciEvent[]
+  canManage: boolean
   canCreate: boolean
 }
 
 interface FormState {
   title: string
-  pdfUrl: string
+  description: string
+  format: AssessmentFormat
+  instructions: string
+  sourcePdfUrl: string
+  answerKeyPdfUrl: string
   timeLimitMinutes: string
   eventId: string
-  isActive: boolean
+  isPublished: boolean
+  parts: Array<{
+    title: string
+    type: AssessmentPartType
+    instructions: string
+    pageFrom: string
+    pageTo: string
+    timeLimitMinutes: string
+  }>
 }
 
-export function PracticeManager({ initialTests, events, canCreate }: Props) {
+export function PracticeManager({ initialTests, events, canManage, canCreate }: Props) {
   const [tests, setTests] = useState<PracticeTest[]>(initialTests)
   const [showCreate, setShowCreate] = useState(false)
   const [editingTest, setEditingTest] = useState<PracticeTest | null>(null)
@@ -70,40 +87,48 @@ export function PracticeManager({ initialTests, events, canCreate }: Props) {
 
   async function handleCreate(form: FormState) {
     if (!form.title.trim()) { toast.error("Title is required."); return }
-    if (!form.pdfUrl.trim()) { toast.error("PDF URL is required."); return }
+    if (!form.sourcePdfUrl.trim()) { toast.error("Packet URL is required."); return }
     setLoading(true)
     try {
       const body: Record<string, unknown> = {
         title: form.title.trim(),
-        pdfUrl: form.pdfUrl.trim(),
-        isActive: form.isActive,
+        description: form.description.trim() || null,
+        format: form.format,
+        instructions: form.instructions.trim() || null,
+        sourcePdfUrl: form.sourcePdfUrl.trim(),
+        answerKeyPdfUrl: form.answerKeyPdfUrl.trim() || null,
+        isPublished: form.isPublished,
+        parts: form.parts
+          .filter((part) => part.title.trim())
+          .map((part) => ({
+            title: part.title.trim(),
+            type: part.type,
+            instructions: part.instructions.trim() || null,
+            pageFrom: part.pageFrom ? parseInt(part.pageFrom, 10) : null,
+            pageTo: part.pageTo ? parseInt(part.pageTo, 10) : null,
+            timeLimitMinutes: part.timeLimitMinutes ? parseInt(part.timeLimitMinutes, 10) : null,
+          })),
       }
       if (form.timeLimitMinutes) body.timeLimitMinutes = parseInt(form.timeLimitMinutes)
       if (form.eventId) body.eventId = form.eventId
 
-      const res = await fetch("/api/admin/practice", {
+      const created = await apiCall<PracticeTest & { eventId: string | null }>("/api/admin/practice", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        toast.error(data.message ?? "Failed to create test.")
-        return
-      }
-      const created = await res.json()
       const event = events.find((e) => e.id === created.eventId) ?? null
       setTests((t) => [
         {
           ...created,
           event,
-          answerKey: null,
-          _count: { attempts: 0 },
+          attempts: [],
         },
         ...t,
       ])
       closeDialogs()
-      toast.success("Practice test created.")
+      toast.success("Assessment created.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create test.")
     } finally {
       setLoading(false)
     }
@@ -112,49 +137,61 @@ export function PracticeManager({ initialTests, events, canCreate }: Props) {
   async function handleUpdate(form: FormState) {
     if (!editingTest) return
     if (!form.title.trim()) { toast.error("Title is required."); return }
-    if (!form.pdfUrl.trim()) { toast.error("PDF URL is required."); return }
+    if (!form.sourcePdfUrl.trim()) { toast.error("Packet URL is required."); return }
     setLoading(true)
     try {
       const body: Record<string, unknown> = {
         title: form.title.trim(),
-        pdfUrl: form.pdfUrl.trim(),
-        isActive: form.isActive,
+        description: form.description.trim() || null,
+        format: form.format,
+        instructions: form.instructions.trim() || null,
+        sourcePdfUrl: form.sourcePdfUrl.trim(),
+        answerKeyPdfUrl: form.answerKeyPdfUrl.trim() || null,
+        isPublished: form.isPublished,
         timeLimitMinutes: form.timeLimitMinutes ? parseInt(form.timeLimitMinutes) : null,
         eventId: form.eventId || null,
+        parts: form.parts
+          .filter((part) => part.title.trim())
+          .map((part) => ({
+            title: part.title.trim(),
+            type: part.type,
+            instructions: part.instructions.trim() || null,
+            pageFrom: part.pageFrom ? parseInt(part.pageFrom, 10) : null,
+            pageTo: part.pageTo ? parseInt(part.pageTo, 10) : null,
+            timeLimitMinutes: part.timeLimitMinutes ? parseInt(part.timeLimitMinutes, 10) : null,
+          })),
       }
 
-      const res = await fetch(`/api/admin/practice/${editingTest.id}`, {
+      const updated = await apiCall<PracticeTest & { eventId: string | null }>(`/api/admin/practice/${editingTest.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        toast.error(data.message ?? "Failed to update test.")
-        return
-      }
-      const updated = await res.json()
       const event = events.find((e) => e.id === updated.eventId) ?? null
       setTests((t) =>
         t.map((x) =>
           x.id === editingTest.id
-            ? { ...updated, event, answerKey: x.answerKey, _count: x._count }
+            ? { ...updated, event }
             : x
         )
       )
       closeDialogs()
-      toast.success("Test updated.")
+      toast.success("Assessment updated.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update assessment.")
     } finally {
       setLoading(false)
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this practice test? All attempts will be lost.")) return
-    const res = await fetch(`/api/admin/practice/${id}`, { method: "DELETE" })
-    if (!res.ok) { toast.error("Failed to delete test."); return }
-    setTests((t) => t.filter((x) => x.id !== id))
-    toast.success("Test deleted.")
+    if (!confirm("Delete this assessment? All attempts will be lost.")) return
+    try {
+      await apiCall(`/api/admin/practice/${id}`, { method: "DELETE" })
+      setTests((t) => t.filter((x) => x.id !== id))
+      toast.success("Assessment deleted.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete assessment.")
+    }
   }
 
   async function handleSaveAnswerKey() {
@@ -166,12 +203,10 @@ export function PracticeManager({ initialTests, events, canCreate }: Props) {
     if (answers.length === 0) { toast.error("Enter at least one answer."); return }
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/practice/${answerKeyTest.id}/answer-key`, {
+      await apiCall(`/api/admin/practice/${answerKeyTest.id}/answer-key`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers }),
       })
-      if (!res.ok) { toast.error("Failed to save answer key."); return }
       setTests((t) =>
         t.map((x) =>
           x.id === answerKeyTest.id ? { ...x, answerKey: { id: "set" } } : x
@@ -179,6 +214,8 @@ export function PracticeManager({ initialTests, events, canCreate }: Props) {
       )
       closeDialogs()
       toast.success(`Answer key saved (${answers.length} answers).`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save answer key.")
     } finally {
       setLoading(false)
     }
@@ -188,30 +225,30 @@ export function PracticeManager({ initialTests, events, canCreate }: Props) {
     <div className="space-y-6">
       {canCreate && (
         <Button size="sm" onClick={() => setShowCreate(true)}>
-          <PlusIcon size={15} className="mr-1.5" />
-          New Test
+          <IconPlus size={15} className="mr-1.5" />
+          New Assessment
         </Button>
       )}
 
       {tests.length === 0 && (
-        <p className="text-sm text-muted-foreground">No practice tests this season.</p>
+        <p className="text-sm text-muted-foreground">No assessments this season.</p>
       )}
 
       {tests.map((test) => (
-        <PracticeTestCard
-          key={test.id}
-          test={test}
-          canManage={canCreate}
-          onEdit={openEdit}
-          onDelete={handleDelete}
-          onSetAnswerKey={openAnswerKey}
+          <PracticeTestCard
+            key={test.id}
+            test={test}
+            canManage={canManage}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+            onSetAnswerKey={openAnswerKey}
         />
       ))}
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={(open) => !open && closeDialogs()}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Practice Test</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>New Assessment</DialogTitle></DialogHeader>
           <PracticeTestForm
             events={events}
             onSubmit={handleCreate}
@@ -225,16 +262,28 @@ export function PracticeManager({ initialTests, events, canCreate }: Props) {
       {/* Edit dialog */}
       <Dialog open={!!editingTest} onOpenChange={(open) => !open && closeDialogs()}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Practice Test</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit Assessment</DialogTitle></DialogHeader>
           {editingTest && (
             <PracticeTestForm
               events={events}
               defaultValues={{
                 title: editingTest.title,
-                pdfUrl: editingTest.pdfUrl,
+                description: editingTest.description ?? "",
+                format: editingTest.format,
+                instructions: editingTest.instructions ?? "",
+                sourcePdfUrl: editingTest.sourcePdfUrl,
+                answerKeyPdfUrl: editingTest.answerKeyPdfUrl ?? "",
                 timeLimitMinutes: editingTest.timeLimitMinutes ? String(editingTest.timeLimitMinutes) : "",
                 eventId: editingTest.eventId ?? "",
-                isActive: editingTest.isActive,
+                isPublished: editingTest.isPublished,
+                parts: editingTest.parts.map((part) => ({
+                  title: part.title,
+                  type: part.type,
+                  instructions: part.instructions ?? "",
+                  pageFrom: part.pageFrom ? String(part.pageFrom) : "",
+                  pageTo: part.pageTo ? String(part.pageTo) : "",
+                  timeLimitMinutes: part.timeLimitMinutes ? String(part.timeLimitMinutes) : "",
+                })),
               }}
               onSubmit={handleUpdate}
               loading={loading}
@@ -269,7 +318,7 @@ export function PracticeManager({ initialTests, events, canCreate }: Props) {
           <DialogFooter>
             <Button variant="outline" onClick={closeDialogs}>Cancel</Button>
             <Button onClick={handleSaveAnswerKey} disabled={loading}>
-              <CheckCircleIcon size={15} className="mr-1.5" />
+              <IconCircleCheck size={15} className="mr-1.5" />
               Save Key
             </Button>
           </DialogFooter>

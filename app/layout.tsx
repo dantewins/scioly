@@ -2,7 +2,6 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono, DM_Serif_Display } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/context/AuthContext"
-import { getCurrentUser } from "@/lib/auth"
 import { Toaster } from "sonner"
 
 const geistSans = Geist({
@@ -32,13 +31,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = await getCurrentUser()
-
   return (
     <html lang="en" data-density="comfortable" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} ${dmSerif.variable} font-sans antialiased`}>
         <Toaster position="top-right" richColors />
-        <AuthProvider initialUser={user}>{children}</AuthProvider>
+        <AuthProvider initialUser={null}>{children}</AuthProvider>
       </body>
     </html>
   )

@@ -48,22 +48,102 @@
 }
 
 /* ─── Density ────────────────────────────────────────────────────────────── */
+/* Base values target mobile (< 640px). Media queries below step values up    */
+/* gradually at each Tailwind breakpoint so horizontal/vertical padding scales */
+/* smoothly instead of popping between sizes.                                  */
 :root {
-  --page-px: 1.5rem;
-  --page-py: 1.25rem;
-  --card-px: 1rem;
-  --card-py: 0.875rem;
-  --row-h: 2.625rem;
+  --page-px: 1rem;
+  --page-py: 0.875rem;
+  --page-gap: 1.125rem;
+  --section-gap: 0.75rem;
+  --stack-gap: 0.625rem;
+  --card-px: 0.75rem;
+  --card-py: 0.75rem;
+  --control-radius: calc(var(--radius) - 2px);
+  --menu-radius: calc(var(--radius) - 2px);
+  --row-h: 2.5rem;
   --topbar-h: 3rem;
 }
 
+@media (min-width: 640px) {
+  :root {
+    --page-px: 1.25rem;
+    --page-py: 1rem;
+    --page-gap: 1.25rem;
+    --section-gap: 0.875rem;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --page-px: 1.5rem;
+    --page-py: 1.125rem;
+    --page-gap: 1.375rem;
+    --section-gap: 1rem;
+    --card-px: 0.875rem;
+    --card-py: 0.875rem;
+    --row-h: 2.625rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --page-px: 2rem;
+    --page-py: 1.25rem;
+    --page-gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --page-px: 2.5rem;
+    --page-py: 1.375rem;
+  }
+}
+
 [data-density="compact"] {
-  --page-px: 1rem;
-  --page-py: 0.875rem;
-  --card-px: 0.75rem;
-  --card-py: 0.625rem;
+  --page-px: 0.75rem;
+  --page-py: 0.625rem;
+  --page-gap: 0.875rem;
+  --section-gap: 0.625rem;
+  --stack-gap: 0.5rem;
+  --card-px: 0.6rem;
+  --card-py: 0.5rem;
   --row-h: 2rem;
   --topbar-h: 2.5rem;
+}
+
+@media (min-width: 640px) {
+  [data-density="compact"] {
+    --page-px: 0.875rem;
+    --page-py: 0.75rem;
+    --page-gap: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  [data-density="compact"] {
+    --page-px: 1rem;
+    --page-py: 0.875rem;
+    --page-gap: 1.125rem;
+    --card-px: 0.7rem;
+    --card-py: 0.625rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-density="compact"] {
+    --page-px: 1.25rem;
+    --page-py: 1rem;
+    --page-gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  [data-density="compact"] {
+    --page-px: 1.5rem;
+    --page-py: 1.125rem;
+  }
 }
 
 /* ─── Light mode ─────────────────────────────────────────────────────────── */
@@ -203,5 +283,42 @@
   .card-py {
     padding-top: var(--card-py);
     padding-bottom: var(--card-py);
+  }
+
+  .layout-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--page-gap);
+  }
+
+  .layout-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap);
+  }
+
+  .layout-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--stack-gap);
+  }
+
+  .surface {
+    border-radius: var(--radius);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--border);
+    background-color: var(--card);
+  }
+
+  .surface-pad {
+    padding-left: var(--card-px);
+    padding-right: var(--card-px);
+    padding-top: var(--card-py);
+    padding-bottom: var(--card-py);
+  }
+
+  .control-row {
+    @apply flex items-center gap-2;
   }
 }

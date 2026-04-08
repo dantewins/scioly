@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -14,6 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { formatDateOnly } from "@/lib/format"
+import { apiCall } from "@/lib/api-client"
 
 interface Entry {
   id: string
@@ -59,17 +61,14 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
     }
     setLoading(true)
     try {
-      const res = await fetch("/api/member/hours", {
+      const data = await apiCall<Entry & { categoryId: string }>("/api/member/hours", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           totalHours: parseFloat(form.totalHours),
           proofUrl: form.proofUrl || undefined,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) { toast.error(data.message ?? "Failed to submit."); return }
       setEntries((e) => [{
         ...data,
         rejectionReason: null,
@@ -78,14 +77,17 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
       setShowSubmit(false)
       setForm({ categoryId: "", title: "", description: "", totalHours: "", proofUrl: "" })
       toast.success("Hours submitted.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit.")
     } finally { setLoading(false) }
   }
 
   return (
     <div className="space-y-4">
       {canSubmit && (
-        <Button onClick={() => setShowSubmit(true)}>
-          <IconPlus className="size-4 mr-1.5" />Log Hours
+        <Button size="sm" onClick={() => setShowSubmit(true)}>
+          <IconPlus className="mr-1.5 size-[15px]" />
+          Log Hours
         </Button>
       )}
 
@@ -94,7 +96,7 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
           <p className="text-sm text-muted-foreground">No hour entries yet.</p>
         ) : (
           entries.map((entry) => (
-            <div key={entry.id} className="flex items-start gap-3 rounded-lg border p-3">
+            <Card key={entry.id} className="flex flex-row items-start gap-3 px-[var(--card-px)] py-[var(--card-py)]">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="font-medium text-sm truncate">{entry.title}</p>
@@ -108,7 +110,7 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
               <Badge className={STATUS_COLORS[entry.status] ?? ""} variant="outline">
                 {entry.status}
               </Badge>
-            </div>
+            </Card>
           ))
         )}
       </div>

@@ -1,8 +1,9 @@
 // app/api/admin/events/route.ts
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { withPermission, ok, err } from "@/lib/api"
+import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
+import { syncCompetitionEventsForSeason } from "@/lib/competition-event-sync"
 
 export const dynamic = "force-dynamic"
 
@@ -13,7 +14,7 @@ export const GET = withPermission("view_events", async (_req, _ctx, user) => {
   const events = await prisma.event.findMany({
     where: { seasonId: season.id },
     include: {
-      _count: { select: { enrollments: true, teams: true } },
+      _count: { select: { enrollments: true } },
     },
     orderBy: { sortOrder: "asc" },
   })
@@ -30,7 +31,7 @@ const createSchema = z.object({
   sortOrder: z.number().int().optional(),
 })
 
-export const POST = withPermission("create_events", async (req, _ctx, user) => {
+export const POST = withAnyPermission(["create_events", "edit_events"], async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
@@ -43,8 +44,14 @@ export const POST = withPermission("create_events", async (req, _ctx, user) => {
   })
   if (existing) return err("An event with this name already exists.", 409)
 
-  const event = await prisma.event.create({
-    data: { seasonId: season.id, ...parsed.data },
+  const event = await prisma.$transaction(async (tx) => {
+    const created = await tx.event.create({
+      data: { seasonId: season.id, ...parsed.data },
+    })
+
+    await syncCompetitionEventsForSeason(season.id, tx)
+    return created
   })
+
   return ok(event, 201)
 })
