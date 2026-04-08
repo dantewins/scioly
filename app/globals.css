@@ -52,6 +52,9 @@
 /* gradually at each Tailwind breakpoint so horizontal/vertical padding scales */
 /* smoothly instead of popping between sizes.                                  */
 :root {
+  --font-geist-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-display: Georgia, "Times New Roman", Times, serif;
   --page-px: 1rem;
   --page-py: 0.875rem;
   --page-gap: 1.125rem;
