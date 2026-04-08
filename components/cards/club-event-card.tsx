@@ -1,13 +1,13 @@
 "use client"
 
 import {
-  CalendarBlankIcon,
-  MapPinIcon,
-  ClockIcon,
-  UsersIcon,
-  PencilSimpleIcon,
-  TrashIcon,
-} from "@phosphor-icons/react"
+  IconCalendar,
+  IconMapPin,
+  IconClock,
+  IconUsers,
+  IconPencil,
+  IconTrash,
+} from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -91,19 +91,18 @@ export function ClubEventCard({ event, canManage, onEdit, onDelete }: ClubEventC
             <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
               <Button
                 variant="ghost"
-                size="icon"
-                className="size-7"
+                size="icon-sm"
                 onClick={() => onEdit(event)}
               >
-                <PencilSimpleIcon size={13} />
+                <IconPencil size={13} />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="size-7 text-muted-foreground hover:text-destructive"
+                size="icon-sm"
+                className="text-muted-foreground hover:text-destructive"
                 onClick={() => onDelete(event.id)}
               >
-                <TrashIcon size={13} />
+                <IconTrash size={13} />
               </Button>
             </div>
           )}
@@ -111,7 +110,7 @@ export function ClubEventCard({ event, canManage, onEdit, onDelete }: ClubEventC
       </CardHeader>
       <CardContent className="pt-0 space-y-1.5">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <CalendarBlankIcon size={12} />
+          <IconCalendar size={12} />
           <span>
             {formatDate(event.startsAt)} at {formatTime(event.startsAt)}
             {event.endsAt && ` — ${formatTime(event.endsAt)}`}
@@ -119,19 +118,19 @@ export function ClubEventCard({ event, canManage, onEdit, onDelete }: ClubEventC
         </div>
         {event.location && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MapPinIcon size={12} />
+            <IconMapPin size={12} />
             <span>{event.location}</span>
           </div>
         )}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           {event.hoursValue > 0 && (
             <span className="flex items-center gap-1">
-              <ClockIcon size={12} />
+              <IconClock size={12} />
               {event.hoursValue}h
             </span>
           )}
           <span className="flex items-center gap-1">
-            <UsersIcon size={12} />
+            <IconUsers size={12} />
             {event._count.attendance} attended
           </span>
         </div>

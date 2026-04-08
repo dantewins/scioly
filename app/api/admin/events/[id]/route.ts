@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { syncCompetitionEventsForSeason } from "@/lib/competition-event-sync"
 
 export const dynamic = "force-dynamic"
 
@@ -47,7 +48,11 @@ export const DELETE = withPermission(
     const event = await resolveEvent(id, user.clubId)
     if (!event) return err("Event not found.", 404)
 
-    await prisma.event.delete({ where: { id } })
+    await prisma.$transaction(async (tx) => {
+      await tx.event.delete({ where: { id } })
+      await syncCompetitionEventsForSeason(event.seasonId, tx)
+    })
+
     return ok({ ok: true })
   },
 )

@@ -1,8 +1,9 @@
 // app/api/admin/competitions/route.ts
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { withPermission, ok, err } from "@/lib/api"
+import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
+import { syncCompetitionEventsForCompetition } from "@/lib/competition-event-sync"
 
 export const dynamic = "force-dynamic"
 
@@ -13,7 +14,7 @@ export const GET = withPermission("view_competitions", async (_req, _ctx, user) 
   const competitions = await prisma.competition.findMany({
     where: { seasonId: season.id },
     include: {
-      _count: { select: { teams: true, eventSchedules: true } },
+      _count: { select: { rosters: true, eventSchedules: true } },
     },
     orderBy: { startsAt: "asc" },
   })
@@ -30,7 +31,7 @@ const createSchema = z.object({
   isPublished: z.boolean().default(false),
 })
 
-export const POST = withPermission("create_competitions", async (req, _ctx, user) => {
+export const POST = withAnyPermission(["create_competitions", "edit_competitions"], async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
@@ -38,8 +39,14 @@ export const POST = withPermission("create_competitions", async (req, _ctx, user
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)
 
-  const competition = await prisma.competition.create({
-    data: { seasonId: season.id, ...parsed.data },
+  const competition = await prisma.$transaction(async (tx) => {
+    const created = await tx.competition.create({
+      data: { seasonId: season.id, ...parsed.data },
+    })
+
+    await syncCompetitionEventsForCompetition(created.id, tx)
+    return created
   })
+
   return ok(competition, 201)
 })

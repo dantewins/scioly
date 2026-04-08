@@ -4,9 +4,8 @@ import { canView, canCreate, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
 import { ClubEventsManager } from "./club-events-manager"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader } from "@/components/ui/page-header"
 
-export const dynamic = "force-dynamic"
 
 export default async function ClubEventsPage() {
   const user = await getCurrentUser()
@@ -30,7 +29,7 @@ export default async function ClubEventsPage() {
   }) : []
 
   return (
-    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+    <div className="layout-page">
       <PageHeader
         title="Club Events"
         description={season ? `${events.length} event${events.length !== 1 ? "s" : ""} this season` : "No active season"}
@@ -46,7 +45,7 @@ export default async function ClubEventsPage() {
         }))}
         categories={categories}
         canManage={canEdit(user.permissions, "club_events")}
-        canCreate={canCreate(user.permissions, "club_events")}
+        canCreate={canEdit(user.permissions, "club_events") || canCreate(user.permissions, "club_events")}
       />
     </div>
   )

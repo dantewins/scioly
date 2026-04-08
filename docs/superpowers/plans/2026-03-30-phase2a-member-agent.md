@@ -116,7 +116,7 @@ const schema = z.object({
   clubSlug: z.string(),
   firstName: z.string().min(1).max(60),
   lastName: z.string().min(1).max(60),
-  email: z.string().email(),
+  email: z.email(),
   phone: z.string().max(20).optional(),
   gradeLevel: z.coerce.number().int().min(9).max(12).optional(),
   graduationYear: z.coerce.number().int().optional(),
@@ -1566,7 +1566,7 @@ export function SeasonManager({ seasons: initial, canManage }: Props) {
     <div className="space-y-3">
       {seasons.map((s) => (
         <Card key={s.id}>
-          <CardContent className="pt-4 flex items-center gap-4">
+          <CardContent flex items-center gap-4">
             <IconCalendar className="size-4 text-muted-foreground shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{s.name}</p>

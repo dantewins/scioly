@@ -8,7 +8,7 @@ export default function PolicyPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-background py-12 px-6 sm:px-12 lg:px-24">
+    <div className="min-h-screen bg-background py-[var(--page-py)] px-[var(--page-px)]">
       <div className="max-w-3xl mx-auto space-y-8">
         <Button
           variant="ghost"

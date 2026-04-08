@@ -8,7 +8,7 @@ export default function TermsPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-background py-12 px-6 sm:px-12 lg:px-24">
+    <div className="min-h-screen bg-background py-[var(--page-py)] px-[var(--page-px)]">
       <div className="max-w-3xl mx-auto space-y-8">
         <Button
           variant="ghost"
@@ -51,7 +51,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-2xl font-bold mt-8 mb-4">4. Disclaimer</h2>
             <p>
-              The materials on this platform are provided on an 'as is' basis. The platform makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+              The materials on this platform are provided on an &apos;as is&apos; basis. The platform makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
             </p>
           </section>
 

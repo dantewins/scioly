@@ -2,6 +2,10 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import {
+  resetCompetitionEventSchedule,
+  syncCompetitionEventsForCompetition,
+} from "@/lib/competition-event-sync"
 
 export const dynamic = "force-dynamic"
 
@@ -22,14 +26,48 @@ export const POST = withPermission(
     // Verify competition belongs to this club
     const comp = await prisma.competition.findFirst({
       where: { id: competitionId, season: { clubId: user.clubId } },
+      select: { id: true, seasonId: true },
     })
     if (!comp) return err("Competition not found.", 404)
 
-    const schedule = await prisma.eventSchedule.upsert({
-      where: { competitionId_eventId: { competitionId, eventId: parsed.data.eventId } },
-      create: { competitionId, ...parsed.data },
-      update: { timeSlot: parsed.data.timeSlot, slotLabel: parsed.data.slotLabel },
+    const event = await prisma.event.findFirst({
+      where: { id: parsed.data.eventId, seasonId: comp.seasonId },
+      select: { id: true },
     })
+    if (!event) return err("Event not found.", 404)
+
+    const schedule = await prisma.$transaction(async (tx) => {
+      await syncCompetitionEventsForCompetition(competitionId, tx)
+
+      const nextSchedule = await tx.eventSchedule.upsert({
+        where: { competitionId_eventId: { competitionId, eventId: parsed.data.eventId } },
+        create: { competitionId, ...parsed.data },
+        update: { timeSlot: parsed.data.timeSlot, slotLabel: parsed.data.slotLabel },
+      })
+
+      try {
+        await tx.competitionEventSlot.upsert({
+          where: { scheduleId: nextSchedule.id },
+          create: {
+            competitionId,
+            eventId: parsed.data.eventId,
+            scheduleId: nextSchedule.id,
+            label: parsed.data.slotLabel ?? `Slot ${parsed.data.timeSlot}`,
+          },
+          update: {
+            eventId: parsed.data.eventId,
+            label: parsed.data.slotLabel ?? `Slot ${parsed.data.timeSlot}`,
+          },
+        })
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.includes("CompetitionEventSlot")) {
+          throw error
+        }
+      }
+
+      return nextSchedule
+    })
+
     return ok(schedule, 201)
   },
 )
@@ -43,10 +81,20 @@ export const DELETE = withPermission(
 
     const comp = await prisma.competition.findFirst({
       where: { id: competitionId, season: { clubId: user.clubId } },
+      select: { id: true, seasonId: true },
     })
     if (!comp) return err("Competition not found.", 404)
 
-    await prisma.eventSchedule.deleteMany({ where: { competitionId, eventId } })
-    return ok({ ok: true })
+    const targetEvent = await prisma.event.findFirst({
+      where: { id: eventId, seasonId: comp.seasonId },
+      select: { id: true },
+    })
+    if (!targetEvent) return err("Event not found.", 404)
+
+    const schedule = await prisma.$transaction(async (tx) => {
+      return resetCompetitionEventSchedule(competitionId, eventId, tx)
+    })
+
+    return ok(schedule)
   },
 )

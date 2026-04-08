@@ -18,27 +18,42 @@ type Handler<TContext = unknown> = (
   currentUser: CurrentUser,
 ) => Promise<NextResponse>
 
-// Require a specific permission flag. WEBSITE_OWNER always passes.
-export function withPermission<TContext = unknown>(
-  flag: PermissionFlag,
+function withPermissionCheck<TContext = unknown>(
+  flags: PermissionFlag[],
   handler: Handler<TContext>,
+  label: string,
 ): (request: Request, context: TContext) => Promise<NextResponse> {
   return async (request: Request, context: TContext): Promise<NextResponse> => {
     try {
       const currentUser = await getCurrentUser()
       if (!currentUser) return err("Unauthorized.", 401)
 
-      // WEBSITE_OWNER has all permissions (permissions map already has all flags true)
-      if (!hasPermission(currentUser.permissions, flag)) {
+      if (!flags.some((flag) => hasPermission(currentUser.permissions, flag))) {
         return err("Forbidden.", 403)
       }
 
       return await handler(request, context, currentUser)
     } catch (error) {
-      console.error(`[withPermission:${flag}]`, error)
+      console.error(`[withPermission:${label}]`, error)
       return err("Internal server error.", 500)
     }
   }
+}
+
+// Require a specific permission flag. WEBSITE_OWNER always passes.
+export function withPermission<TContext = unknown>(
+  flag: PermissionFlag,
+  handler: Handler<TContext>,
+): (request: Request, context: TContext) => Promise<NextResponse> {
+  return withPermissionCheck([flag], handler, flag)
+}
+
+// Require any one of the provided permission flags.
+export function withAnyPermission<TContext = unknown>(
+  flags: PermissionFlag[],
+  handler: Handler<TContext>,
+): (request: Request, context: TContext) => Promise<NextResponse> {
+  return withPermissionCheck(flags, handler, flags.join("|"))
 }
 
 // Require any authenticated non-applicant user
@@ -57,12 +72,4 @@ export function withMemberAuth<TContext = unknown>(
       return err("Internal server error.", 500)
     }
   }
-}
-
-// Convenience alias: requires edit_club_settings
-export function withAdminAuth<TContext = unknown>(
-  handler: Handler<TContext>,
-  _label?: string,
-): (request: Request, context: TContext) => Promise<NextResponse> {
-  return withPermission("edit_club_settings", handler)
 }

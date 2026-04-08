@@ -12,12 +12,11 @@ const ROUTE_LABELS: Record<string, string> = {
   applications: "Applications",
   events: "Events",
   competitions: "Competitions",
-  teams: "Teams",
   hours: "Hours",
   finances: "Finances",
   forms: "Forms",
   "club-events": "Club Events",
-  practice: "Practice Tests",
+  practice: "Assessments",
   settings: "Settings",
 }
 
@@ -40,7 +39,7 @@ export function SiteHeader() {
       className="flex shrink-0 items-center gap-2 border-b border-border bg-background px-4"
       style={{ height: "var(--topbar-h)" }}
     >
-      <SidebarTrigger className="size-7 text-muted-foreground hover:text-foreground" />
+      <SidebarTrigger className="size-8 text-muted-foreground hover:text-foreground" />
       <Separator orientation="vertical" className="h-4 mx-1" />
       <span className="text-sm font-medium text-foreground flex-1">{title}</span>
       <div className="flex items-center gap-0.5">

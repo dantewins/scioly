@@ -1,7 +1,12 @@
 import { z } from "zod"
+import { AssessmentFormat, AssessmentPartType } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
-import { withPermission, ok, err } from "@/lib/api"
+import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
+import {
+  createPracticeAssessment,
+  listPracticeAssessmentsForAdmin,
+} from "@/lib/practice-assessments"
 
 export const dynamic = "force-dynamic"
 
@@ -9,27 +14,31 @@ export const GET = withPermission("view_practice", async (_req, _ctx, user) => {
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)
 
-  const tests = await prisma.practiceTest.findMany({
-    where: { seasonId: season.id },
-    include: {
-      event: { select: { id: true, name: true } },
-      answerKey: { select: { id: true } },
-      _count: { select: { attempts: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  })
+  const tests = await listPracticeAssessmentsForAdmin(season.id)
   return ok(tests)
 })
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
-  pdfUrl: z.string().url(),
+  description: z.string().max(1000).nullable().optional(),
+  format: z.nativeEnum(AssessmentFormat).default(AssessmentFormat.TEST),
+  instructions: z.string().max(4000).nullable().optional(),
+  sourcePdfUrl: z.string().url(),
+  answerKeyPdfUrl: z.string().url().nullable().optional(),
   timeLimitMinutes: z.number().int().min(1).max(300).optional(),
   eventId: z.string().optional(),
-  isActive: z.boolean().default(true),
+  isPublished: z.boolean().default(true),
+  parts: z.array(z.object({
+    title: z.string().min(1).max(120),
+    type: z.nativeEnum(AssessmentPartType),
+    instructions: z.string().max(2000).nullable().optional(),
+    pageFrom: z.number().int().min(1).nullable().optional(),
+    pageTo: z.number().int().min(1).nullable().optional(),
+    timeLimitMinutes: z.number().int().min(1).max(300).nullable().optional(),
+  })).max(50).optional(),
 })
 
-export const POST = withPermission("create_practice", async (req, _ctx, user) => {
+export const POST = withAnyPermission(["create_practice", "edit_practice"], async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
@@ -45,8 +54,20 @@ export const POST = withPermission("create_practice", async (req, _ctx, user) =>
     if (!event) return err("Event not found.", 404)
   }
 
-  const test = await prisma.practiceTest.create({
-    data: { seasonId: season.id, ...parsed.data },
+  const test = await createPracticeAssessment(season.id, {
+    title: parsed.data.title,
+    description: parsed.data.description ?? null,
+    format: parsed.data.format,
+    instructions: parsed.data.instructions ?? null,
+    sourcePdfUrl: parsed.data.sourcePdfUrl,
+    answerKeyPdfUrl: parsed.data.answerKeyPdfUrl ?? null,
+    timeLimitMinutes: parsed.data.timeLimitMinutes ?? null,
+    eventId: parsed.data.eventId ?? null,
+    isPublished: parsed.data.isPublished,
+    parts: (parsed.data.parts ?? []).map((part) => ({
+      ...part,
+      instructions: part.instructions ?? undefined,
+    })),
   })
   return ok(test, 201)
 })

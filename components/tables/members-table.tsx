@@ -1,10 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import {
-  useReactTable, getCoreRowModel, flexRender,
-  type ColumnDef,
-} from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -31,105 +27,70 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export function MembersTable({ members }: Props) {
-  const columns: ColumnDef<Member>[] = [
-    {
-      id: "name",
-      header: "Name",
-      cell: ({ row }) => (
-        <div>
-          <Link href={`/dashboard/members/${row.original.user.id}`} className="font-medium hover:underline">
-            {row.original.user.firstName} {row.original.user.lastName}
-          </Link>
-          <p className="text-xs text-muted-foreground">{row.original.user.email}</p>
-        </div>
-      ),
-    },
-    {
-      id: "grade",
-      header: "Grade",
-      cell: ({ row }) => row.original.user.gradeLevel ?? "—",
-    },
-    {
-      id: "roles",
-      header: "Roles",
-      cell: ({ row }) => (
-        <div className="flex flex-wrap gap-1">
-          {row.original.roles.length === 0
-            ? <span className="text-xs text-muted-foreground">—</span>
-            : row.original.roles.map((r) => (
-                <Badge key={r.clubRole.id} variant="secondary" className="text-xs font-normal">
-                  {r.clubRole.name}
-                </Badge>
-              ))
-          }
-        </div>
-      ),
-    },
-    {
-      id: "status",
-      header: "Status",
-      cell: ({ row }) => (
-        <Badge
-          variant="outline"
-          className={STATUS_COLORS[row.original.membershipStatus] ?? ""}
-        >
-          {row.original.membershipStatus}
-        </Badge>
-      ),
-    },
-    {
-      id: "actions",
-      header: "",
-      cell: ({ row }) => (
-        <Button variant="ghost" size="sm" asChild className="h-7">
-          <Link href={`/dashboard/members/${row.original.user.id}`}>View</Link>
-        </Button>
-      ),
-    },
-  ]
-
-  const table = useReactTable({
-    data: members,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
-
   return (
     <div className="overflow-x-auto">
-    <div className="rounded-lg border overflow-hidden">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((hg) => (
-            <TableRow key={hg.id}>
-              {hg.headers.map((h) => (
-                <TableHead key={h.id}>
-                  {flexRender(h.column.columnDef.header, h.getContext())}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length === 0 ? (
+      <div className="overflow-hidden rounded-[var(--radius)] border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={columns.length} className="text-center text-muted-foreground py-8">
-                No members found.
-              </TableCell>
+              <TableHead>Name</TableHead>
+              <TableHead>Grade</TableHead>
+              <TableHead>Roles</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead />
             </TableRow>
-          ) : (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
+          </TableHeader>
+          <TableBody>
+            {members.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                  No members found.
+                </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+            ) : (
+              members.map((member) => (
+                <TableRow key={member.id}>
+                  <TableCell>
+                    <div>
+                      <Link href={`/dashboard/members/${member.user.id}`} className="font-medium hover:underline">
+                        {member.user.firstName} {member.user.lastName}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">{member.user.email}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>{member.user.gradeLevel ?? "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {member.roles.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        member.roles.map((role) => (
+                          <Badge key={role.clubRole.id} variant="secondary" className="text-xs font-normal">
+                            {role.clubRole.name}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={STATUS_COLORS[member.membershipStatus] ?? ""}
+                    >
+                      {member.membershipStatus}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="xs" asChild>
+                      <Link href={`/dashboard/members/${member.user.id}`}>View</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 // app/api/admin/roles/route.ts
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { withPermission, ok, err } from "@/lib/api"
+import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
 
 export const dynamic = "force-dynamic"
 
@@ -19,7 +19,7 @@ const createSchema = z.object({
   permissions: z.record(z.string(), z.boolean()).default({}),
 })
 
-export const POST = withPermission("create_roles", async (req, _ctx, user) => {
+export const POST = withAnyPermission(["create_roles", "edit_roles"], async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)

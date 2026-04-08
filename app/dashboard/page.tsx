@@ -6,9 +6,8 @@ import { MetricCard } from "@/components/ui/metric-card"
 import { SectionCard } from "@/components/ui/section-card"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { PageHeader } from "@/components/ui/page-header"
-import { formatDateOnly } from "@/lib/format"
+import { formatDateOnly, formatMonthYear } from "@/lib/format"
 
-export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
@@ -48,10 +47,10 @@ export default async function DashboardPage() {
     : [0, 0, 0, []]
 
   return (
-    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+    <div className="layout-page">
       <PageHeader
         title="Dashboard"
-        description={season ? `${season.name} · ${new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}` : "No active season"}
+        description={season ? `${season.name} · ${formatMonthYear(new Date())}` : "No active season"}
       />
 
       {/* Metrics row */}
@@ -68,23 +67,23 @@ export default async function DashboardPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="h-9 px-3 text-left text-xs font-medium text-muted-foreground">Name</th>
-                <th className="h-9 px-3 text-left text-xs font-medium text-muted-foreground">Type</th>
-                <th className="h-9 px-3 text-left text-xs font-medium text-muted-foreground">Date</th>
-                <th className="h-9 px-3 text-left text-xs font-medium text-muted-foreground">Attendance</th>
+                <th className="h-9 px-[var(--card-px)] text-left text-xs font-medium text-muted-foreground">Name</th>
+                <th className="h-9 px-[var(--card-px)] text-left text-xs font-medium text-muted-foreground">Type</th>
+                <th className="h-9 px-[var(--card-px)] text-left text-xs font-medium text-muted-foreground">Date</th>
+                <th className="h-9 px-[var(--card-px)] text-left text-xs font-medium text-muted-foreground">Attendance</th>
               </tr>
             </thead>
             <tbody>
               {upcomingEvents.map((e) => (
                 <tr key={e.id} className="border-b border-border last:border-0" style={{ height: "var(--row-h)" }}>
-                  <td className="px-3 align-middle font-medium text-foreground">{e.name}</td>
-                  <td className="px-3 align-middle">
+                  <td className="px-[var(--card-px)] align-middle font-medium text-foreground">{e.name}</td>
+                  <td className="px-[var(--card-px)] align-middle">
                     <StatusBadge status={e.type} />
                   </td>
-                  <td className="px-3 align-middle text-muted-foreground tabular-nums">
+                  <td className="px-[var(--card-px)] align-middle text-muted-foreground tabular-nums">
                     {formatDateOnly(e.startsAt)}
                   </td>
-                  <td className="px-3 align-middle text-muted-foreground tabular-nums">
+                  <td className="px-[var(--card-px)] align-middle text-muted-foreground tabular-nums">
                     {e._count.attendance}
                   </td>
                 </tr>

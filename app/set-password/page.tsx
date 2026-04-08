@@ -6,6 +6,7 @@ import { IconAtom, IconLock, IconEye, IconEyeOff } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { apiCall } from "@/lib/api-client"
 
 export default function SetPasswordPage() {
   const searchParams = useSearchParams()
@@ -20,7 +21,7 @@ export default function SetPasswordPage() {
   const [done, setDone] = useState(false)
 
   useEffect(() => {
-    if (!token) setError("Invalid or missing token.")
+    if (!token || token.length < 20) setError("Invalid or missing token.")
   }, [token])
 
   async function handleSubmit(e: React.SubmitEvent) {
@@ -38,29 +39,25 @@ export default function SetPasswordPage() {
 
     setLoading(true)
     try {
-      const res = await fetch("/api/auth/set-password", {
+      await apiCall("/api/auth/set-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, password }),
       })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.message ?? "Something went wrong.")
-      } else {
-        setDone(true)
-        setTimeout(() => router.push("/login"), 2500)
-      }
+      setDone(true)
+      setTimeout(() => router.push("/login"), 2500)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background px-[var(--page-px)] py-[var(--page-py)]">
       <div className="w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <div className="flex size-10 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground">
             <IconAtom className="size-6" strokeWidth={1.75} />
           </div>
           <h1 className="text-xl font-semibold">Set your password</h1>
@@ -70,7 +67,7 @@ export default function SetPasswordPage() {
         </div>
 
         {done ? (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-center text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+          <div className="rounded-[var(--radius)] border border-green-200 bg-green-50 px-[var(--card-px)] py-[var(--card-py)] text-center text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
             Password set! Redirecting to login…
           </div>
         ) : (
@@ -85,18 +82,20 @@ export default function SetPasswordPage() {
                   className="pl-9 pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 8 characters"
+                  placeholder="Choose at least 8 characters"
                   required
                   disabled={!token}
                 />
-                <button
+                <Button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 size-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
                 >
                   {showPassword ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -110,7 +109,7 @@ export default function SetPasswordPage() {
                   className="pl-9"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  placeholder="Repeat password"
+                  placeholder="Re-enter your password"
                   required
                   disabled={!token}
                 />
@@ -118,7 +117,7 @@ export default function SetPasswordPage() {
             </div>
 
             {error && (
-              <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <p className="rounded-[var(--radius)] bg-destructive/10 px-[var(--card-px)] py-[var(--card-py)] text-xs text-destructive">
                 {error}
               </p>
             )}

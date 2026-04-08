@@ -1,16 +1,20 @@
 "use client"
 
 import {
-  PencilSimpleIcon,
-  TrashIcon,
-  KeyIcon,
-  FilePdfIcon,
-  TimerIcon,
-  UsersIcon,
-} from "@phosphor-icons/react"
+  IconPencil,
+  IconTrash,
+  IconKey,
+  IconFileTypePdf,
+  IconClock,
+  IconUsers,
+  IconLayout,
+} from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
+type AssessmentPartType = "SECTION" | "STATION"
 
 interface SciEvent {
   id: string
@@ -20,13 +24,27 @@ interface SciEvent {
 export interface PracticeTestCardData {
   id: string
   title: string
-  pdfUrl: string
+  description: string | null
+  format: AssessmentFormat
+  instructions: string | null
+  sourcePdfUrl: string
+  answerKeyPdfUrl: string | null
   timeLimitMinutes: number | null
   eventId: string | null
-  isActive: boolean
+  isPublished: boolean
+  isArchived: boolean
   event: SciEvent | null
   answerKey: { id: string } | null
-  _count: { attempts: number }
+  parts: Array<{
+    id: string
+    title: string
+    type: AssessmentPartType
+    instructions: string | null
+    pageFrom: number | null
+    pageTo: number | null
+    timeLimitMinutes: number | null
+  }>
+  attemptCount: number
 }
 
 interface PracticeTestCardProps {
@@ -51,12 +69,15 @@ export function PracticeTestCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <CardTitle className="text-sm font-medium">{test.title}</CardTitle>
-              <Badge variant={test.isActive ? "default" : "secondary"} className="text-xs">
-                {test.isActive ? "Active" : "Inactive"}
+              <Badge variant={test.isPublished ? "default" : "secondary"} className="text-xs">
+                {test.isPublished ? "Published" : "Draft"}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {test.format}
               </Badge>
               {test.answerKey && (
                 <Badge variant="outline" className="text-xs gap-1">
-                  <KeyIcon size={10} />
+                  <IconKey size={10} />
                   Answer key set
                 </Badge>
               )}
@@ -67,27 +88,26 @@ export function PracticeTestCard({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-xs gap-1"
+                className="px-2.5 text-xs gap-1"
                 onClick={() => onSetAnswerKey(test)}
               >
-                <KeyIcon size={12} />
+                <IconKey size={12} />
                 {test.answerKey ? "Update key" : "Set key"}
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="size-7"
+                size="icon-sm"
                 onClick={() => onEdit(test)}
               >
-                <PencilSimpleIcon size={13} />
+                <IconPencil size={13} />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="size-7 text-muted-foreground hover:text-destructive"
+                size="icon-sm"
+                className="text-muted-foreground hover:text-destructive"
                 onClick={() => onDelete(test.id)}
               >
-                <TrashIcon size={13} />
+                <IconTrash size={13} />
               </Button>
             </div>
           )}
@@ -100,23 +120,39 @@ export function PracticeTestCard({
           )}
           {test.timeLimitMinutes && (
             <span className="flex items-center gap-1">
-              <TimerIcon size={12} />
+              <IconClock size={12} />
               {test.timeLimitMinutes} min
             </span>
           )}
+          {test.parts.length > 0 && (
+            <span className="flex items-center gap-1">
+              <IconLayout size={12} />
+              {test.parts.length} {test.format === "STATIONS" ? "station" : "part"}{test.parts.length !== 1 ? "s" : ""}
+            </span>
+          )}
           <span className="flex items-center gap-1">
-            <UsersIcon size={12} />
-            {test._count.attempts} attempt{test._count.attempts !== 1 ? "s" : ""}
+            <IconUsers size={12} />
+            {test.attemptCount} attempt{test.attemptCount !== 1 ? "s" : ""}
           </span>
           <a
-            href={test.pdfUrl}
+            href={test.sourcePdfUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 hover:text-foreground transition-colors"
           >
-            <FilePdfIcon size={12} />
-            View PDF
+            <IconFileTypePdf size={12} />
+            Open Packet
           </a>
+          {test.answerKeyPdfUrl && (
+            <a
+              href={test.answerKeyPdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              Answer Key PDF
+            </a>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -393,7 +393,7 @@ export function EventsManager({ initialEvents, canManage }: Props) {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((event) => (
           <Card key={event.id}>
-            <CardContent className="pt-4">
+            <CardContent">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -800,7 +800,7 @@ export default async function CompetitionsPage() {
           {competitions.map((comp) => (
             <Link key={comp.id} href={`/dashboard/competitions/${comp.id}`}>
               <Card className="hover:bg-muted/30 transition-colors cursor-pointer">
-                <CardContent className="pt-4 space-y-2">
+                <CardContent space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-sm leading-tight">{comp.name}</p>
                     <Badge className={TYPE_COLORS[comp.type] ?? ""} variant="outline">
@@ -1400,7 +1400,7 @@ export default async function TeamsPage() {
           {teams.map((team) => (
             <Link key={team.id} href={`/dashboard/teams/${team.id}`}>
               <Card className="hover:bg-muted/30 transition-colors cursor-pointer">
-                <CardContent className="pt-4 space-y-1.5">
+                <CardContent space-y-1.5">
                   <p className="font-medium text-sm">{team.label}</p>
                   <div className="flex flex-wrap gap-1">
                     {team.competition && <Badge variant="secondary" className="text-xs">{team.competition.name}</Badge>}

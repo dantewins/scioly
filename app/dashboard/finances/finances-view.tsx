@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { apiCall } from "@/lib/api-client"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -15,7 +16,7 @@ type Invoice = InvoiceRow
 
 interface Member {
   id: string
-  user: { id: string; firstName: string; lastName: string }
+  user: { id: string; firstName: string; lastName: string; email: string }
 }
 
 interface Props {
@@ -44,9 +45,8 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
     if (isNaN(amountCents) || amountCents < 1) { toast.error("Invalid amount."); return }
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/dues", {
+      const data = await apiCall<Invoice>("/api/admin/dues", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           memberSeasonId: form.memberSeasonId,
           title: form.title,
@@ -54,8 +54,6 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
           dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : undefined,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) { toast.error(data.message ?? "Failed to create."); return }
       const ms = members.find((m) => m.id === form.memberSeasonId)
       setInvoices((inv) => [{
         ...data,
@@ -64,6 +62,8 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
       }, ...inv])
       setShowCreate(false)
       toast.success("Invoice created.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create invoice.")
     } finally { setLoading(false) }
   }
 
@@ -77,20 +77,14 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
     if (isNaN(amountCents) || amountCents < 1) { toast.error("Invalid amount."); return }
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/dues/${recordingFor.id}/payments`, {
+      await apiCall(`/api/admin/dues/${recordingFor.id}/payments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amountCents,
           method: form.method,
           referenceNumber: form.referenceNumber || undefined,
         }),
       })
-      if (!res.ok) {
-        const d = await res.json()
-        toast.error(d.message ?? "Failed to record payment.")
-        return
-      }
       const newPaid = recordingFor.amountPaidCents + amountCents
       const newStatus = newPaid >= recordingFor.amountCents ? "PAID" : "PARTIALLY_PAID"
       setInvoices((inv) =>
@@ -102,26 +96,31 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
       )
       setRecordingFor(null)
       toast.success("Payment recorded.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to record payment.")
     } finally { setLoading(false) }
   }
 
   async function handleVoid(invoiceId: string) {
     if (!confirm("Void this invoice? This cannot be undone.")) return
-    const res = await fetch(`/api/admin/dues/${invoiceId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "VOID" }),
-    })
-    if (!res.ok) { toast.error("Failed to void invoice."); return }
-    setInvoices((inv) => inv.map((x) => x.id === invoiceId ? { ...x, status: "VOID" } : x))
-    toast.success("Invoice voided.")
+    try {
+      await apiCall(`/api/admin/dues/${invoiceId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "VOID" }),
+      })
+      setInvoices((inv) => inv.map((x) => x.id === invoiceId ? { ...x, status: "VOID" } : x))
+      toast.success("Invoice voided.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to void invoice.")
+    }
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {canCreate && (
-        <Button onClick={() => setShowCreate(true)}>
-          <IconPlus className="size-4 mr-1.5" />New Invoice
+        <Button size="sm" onClick={() => setShowCreate(true)}>
+          <IconPlus size={15} className="mr-1.5" />
+          New Invoice
         </Button>
       )}
 
@@ -131,6 +130,10 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
         onRecordPayment={(inv) => setRecordingFor(inv)}
         onVoid={handleVoid}
       />
+
+      {invoices.length === 0 && (
+        <p className="text-sm text-muted-foreground">No invoices yet.</p>
+      )}
 
       {/* Create Invoice Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>

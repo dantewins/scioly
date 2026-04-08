@@ -1,19 +1,16 @@
 // lib/permissions.ts
-// Permission flag system — 52 flags across 13 areas (view/create/edit/delete × 13).
+// Permission flag system — 40 flags across 10 areas (view/create/edit/delete × 10).
 // ClubRole.permissions stores a flat { [flag]: boolean } JSON object.
 // WEBSITE_OWNER bypasses all checks — never call these helpers for WEBSITE_OWNERs.
 
 export const PERMISSION_AREAS = [
   "members",
-  "teams",
   "events",
   "competitions",
   "hours",
   "finances",
   "forms",
   "club_events",
-  "resources",
-  "announcements",
   "practice",
   "roles",
   "club_settings",
@@ -30,7 +27,7 @@ export type PermissionFlag =
 // Flat permissions map stored on ClubRole and returned by getCurrentUser
 export type PermissionMap = Partial<Record<PermissionFlag, boolean>>
 
-// All 52 flags set to true — used for WEBSITE_OWNER
+// All flags set to true — used for WEBSITE_OWNER
 export function allPermissions(): PermissionMap {
   const map: PermissionMap = {}
   for (const area of PERMISSION_AREAS) {
@@ -54,8 +51,8 @@ export function boardMemberPermissions(): PermissionMap {
     ;(map as Record<string, boolean>)[`view_${area}`] = true
     ;(map as Record<string, boolean>)[`create_${area}`] = true
     ;(map as Record<string, boolean>)[`edit_${area}`] = true
-    // Board Members can delete hours and resources but nothing else
-    if (area === "hours" || area === "resources") {
+    // Board members can delete hours but nothing else.
+    if (area === "hours") {
       ;(map as Record<string, boolean>)[`delete_${area}`] = true
     }
   }
@@ -64,10 +61,18 @@ export function boardMemberPermissions(): PermissionMap {
 
 export function memberPermissions(): PermissionMap {
   const map: PermissionMap = {}
-  for (const area of PERMISSION_AREAS) {
+  for (const area of [
+    "events",
+    "competitions",
+    "hours",
+    "forms",
+    "club_events",
+    "practice",
+  ] satisfies PermissionArea[]) {
     ;(map as Record<string, boolean>)[`view_${area}`] = true
   }
-  // Members can submit hours and attempt practice tests
+  // Members can submit hours and attempt practice assessments without gaining
+  // access to admin-only pages like members, finances, roles, or settings.
   ;(map as PermissionMap).create_hours = true
   ;(map as PermissionMap).create_practice = true
   return map

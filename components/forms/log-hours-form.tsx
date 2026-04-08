@@ -55,7 +55,7 @@ export function LogHoursForm({ categories, onSubmit, loading, onCancel }: LogHou
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="What did you do?"
+          placeholder="Robotics lab build session"
         />
       </div>
       <div className="space-y-1.5">
@@ -75,6 +75,7 @@ export function LogHoursForm({ categories, onSubmit, loading, onCancel }: LogHou
         <Input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          placeholder="Summarize what you finished, reviewed, or contributed."
         />
       </div>
       <div className="space-y-1.5">
@@ -83,7 +84,7 @@ export function LogHoursForm({ categories, onSubmit, loading, onCancel }: LogHou
           type="url"
           value={proofUrl}
           onChange={(e) => setProofUrl(e.target.value)}
-          placeholder="https://..."
+          placeholder="https://drive.google.com/file/d/..."
         />
       </div>
       <DialogFooter>

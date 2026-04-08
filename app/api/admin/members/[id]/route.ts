@@ -44,6 +44,26 @@ export const GET = withPermission("view_members", async (_req, ctx: { params: Pr
         include: { formType: { select: { id: true, name: true, category: true } } },
         orderBy: { formType: { name: "asc" } },
       },
+      application: {
+        select: {
+          id: true,
+          submittedAt: true,
+          isReturning: true,
+          canTravel: true,
+          whyJoin: true,
+          contributionIdeas: true,
+          previousEvents: true,
+          scienceClasses: true,
+          mathClasses: true,
+          questions: true,
+          eventChoices: {
+            orderBy: { preferenceRank: "asc" },
+            select: {
+              event: { select: { id: true, name: true, code: true } },
+            },
+          },
+        },
+      },
     },
   })
 

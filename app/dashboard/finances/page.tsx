@@ -2,14 +2,13 @@
 import { redirect } from "next/navigation"
 import { IconWallet } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
-import { canView, canCreate } from "@/lib/permissions"
+import { canView, canCreate, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
 import { FinancesView } from "./finances-view"
 
-export const dynamic = "force-dynamic"
 
 export default async function FinancesPage() {
   const user = await getCurrentUser()
@@ -30,7 +29,7 @@ export default async function FinancesPage() {
     }),
     prisma.memberSeason.findMany({
       where: { seasonId: season.id, membershipStatus: "ACTIVE", user: { clubId: user.clubId } },
-      include: { user: { select: { id: true, firstName: true, lastName: true } } },
+      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
       orderBy: [{ user: { lastName: "asc" } }],
     }),
   ]) : [[], []]
@@ -40,7 +39,7 @@ export default async function FinancesPage() {
     .reduce((s, i) => s + (i.amountCents - i.amountPaidCents), 0)
 
   return (
-    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+    <div className="layout-page">
       <PageHeader
         title="Finances"
         description={`$${(totalOwed / 100).toFixed(2)} outstanding across ${invoices.filter((i) => i.status !== "PAID" && i.status !== "VOID").length} invoices`}
@@ -60,8 +59,8 @@ export default async function FinancesPage() {
             })),
           }))}
           members={members}
-          canCreate={canCreate(user.permissions, "finances")}
-          canEdit={canView(user.permissions, "finances")}
+          canCreate={canEdit(user.permissions, "finances") || canCreate(user.permissions, "finances")}
+          canEdit={canEdit(user.permissions, "finances")}
         />
       )}
     </div>

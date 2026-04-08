@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { TrashIcon, PlusIcon, FloppyDiskIcon } from "@phosphor-icons/react"
+import { IconTrash, IconPlus, IconDeviceFloppy } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { apiCall } from "@/lib/api-client"
 import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
@@ -17,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { PermissionFlag } from "@/lib/permissions"
 import { ConfirmDeleteRoleDialog } from "@/components/dialogs/confirm-delete-role-dialog"
+import { cn } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,19 +77,8 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
     ],
   },
   {
-    label: "TEAM & EVENTS",
+    label: "EVENTS & COMPETITIONS",
     permissions: [
-      {
-        flag: "view_teams",
-        label: "View Teams",
-        description: "Can see team assignments",
-      },
-      {
-        flag: "edit_teams",
-        label: "Manage Teams",
-        description: "Can create and edit teams",
-        autoEnable: "view_teams",
-      },
       {
         flag: "view_events",
         label: "View Events",
@@ -162,12 +153,12 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
       {
         flag: "view_practice",
         label: "View Practice",
-        description: "Can see practice tests",
+        description: "Can see practice assessments",
       },
       {
         flag: "edit_practice",
         label: "Manage Practice",
-        description: "Can create and manage practice tests",
+        description: "Can create and manage practice assessments",
         autoEnable: "view_practice",
       },
     ],
@@ -190,16 +181,6 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
         flag: "edit_club_settings",
         label: "Manage Settings",
         description: "Can edit club settings and seasons",
-      },
-      {
-        flag: "edit_announcements",
-        label: "Manage Announcements",
-        description: "Can create club announcements",
-      },
-      {
-        flag: "edit_resources",
-        label: "Manage Resources",
-        description: "Can upload and manage resources",
       },
     ],
   },
@@ -295,15 +276,10 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
     if (!selectedRole) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/admin/roles/${selectedRole.id}`, {
+      await apiCall(`/api/admin/roles/${selectedRole.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ permissions: localPermissions }),
       })
-      if (!res.ok) {
-        toast.error((await res.json()).message ?? "Failed to save.")
-        return
-      }
       setRoles((prev) =>
         prev.map((r) =>
           r.id === selectedRole.id
@@ -313,6 +289,8 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
       )
       toast.success("Permissions saved.")
       router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save.")
     } finally {
       setSaving(false)
     }
@@ -322,25 +300,21 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
     if (!newRoleName.trim()) return
     setCreating(true)
     try {
-      const res = await fetch("/api/admin/roles", {
+      const role = await apiCall<Role>("/api/admin/roles", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newRoleName.trim(),
           color: newRoleColor,
           permissions: {},
         }),
       })
-      if (!res.ok) {
-        toast.error((await res.json()).message ?? "Failed to create role.")
-        return
-      }
-      const role: Role = await res.json()
       setRoles((prev) => [...prev, role])
       setSelectedRoleId(role.id)
       setNewRoleName("")
       setShowCreate(false)
       toast.success("Role created.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create role.")
     } finally {
       setCreating(false)
     }
@@ -349,13 +323,7 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
   async function handleDelete(role: Role) {
     setDeleting(true)
     try {
-      const res = await fetch(`/api/admin/roles/${role.id}`, {
-        method: "DELETE",
-      })
-      if (!res.ok) {
-        toast.error("Failed to delete role.")
-        return
-      }
+      await apiCall(`/api/admin/roles/${role.id}`, { method: "DELETE" })
       const remaining = roles.filter((r) => r.id !== role.id)
       setRoles(remaining)
       setDeleteTarget(null)
@@ -363,56 +331,61 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
         setSelectedRoleId(remaining[0]?.id ?? null)
       }
       toast.success("Role deleted.")
+    } catch {
+      toast.error("Failed to delete role.")
     } finally {
       setDeleting(false)
     }
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-full min-h-[480px] border border-border/50 rounded-lg overflow-hidden bg-background">
+    <div className="surface flex h-full min-h-[480px] flex-col overflow-hidden md:flex-row">
       {/* ── Left panel ────────────────────────────────────────────────────── */}
-      <div className="w-full md:w-48 shrink-0 border-b md:border-b-0 md:border-r border-border/50 bg-muted/20 flex flex-col">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground px-3 py-2 border-b border-border/30">
+      <div className="flex w-full shrink-0 flex-col border-b border-border/50 bg-muted/20 md:w-52 md:border-r md:border-b-0">
+        <p className="border-b border-border/30 px-[var(--card-px)] py-[var(--card-py)] text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">
           Roles
         </p>
 
-        <div className="flex-1 overflow-y-auto py-1 max-h-48 md:max-h-none">
+        <div className="max-h-48 flex-1 overflow-y-auto p-1 md:max-h-none">
           {roles.map((role) => {
             const color = role.color ?? hashColor(role.name)
             const isSelected = role.id === selectedRoleId
             return (
-              <button
+              <Button
                 key={role.id}
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setSelectedRoleId(role.id)}
-                className={[
-                  "w-full text-left px-2 py-1.5 rounded-md cursor-pointer flex items-center gap-2 mx-1 my-0.5 text-sm transition-colors",
+                className={cn(
+                  "h-8 w-full justify-start gap-2 px-2 text-sm",
                   isSelected
-                    ? "bg-muted text-foreground font-medium"
+                    ? "bg-muted font-medium text-foreground hover:bg-muted"
                     : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                ].join(" ")}
-                style={{ width: "calc(100% - 8px)" }}
+                )}
               >
                 <span
                   className="size-2 rounded-full shrink-0"
                   style={{ backgroundColor: color }}
                 />
                 <span className="truncate">{role.name}</span>
-              </button>
+              </Button>
             )
           })}
         </div>
 
         {canManage && (
-          <div className="p-2 border-t border-border/30">
-            <button
+          <div className="border-t border-border/30 p-2">
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setShowCreate(true)}
-              className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+              className="w-full justify-start text-muted-foreground hover:bg-muted/60 hover:text-foreground"
             >
-              <PlusIcon size={13} />
-              Add Role
-            </button>
+              <IconPlus size={15} className="mr-1.5" />
+              New Role
+            </Button>
           </div>
         )}
       </div>
@@ -426,34 +399,36 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
         ) : (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 shrink-0">
-              <h2 className="text-base font-semibold text-foreground">
-                {selectedRole.name}
-              </h2>
-              {canManage && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => setDeleteTarget(selectedRole)}
-                >
-                  <TrashIcon size={15} />
-                </Button>
-              )}
+            <div className="shrink-0 border-b border-border/50 px-[var(--card-px)] py-[var(--card-py)]">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-semibold text-foreground">
+                  {selectedRole.name}
+                </h2>
+                {canManage && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => setDeleteTarget(selectedRole)}
+                  >
+                    <IconTrash size={15} />
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Permissions list */}
-            <div className="flex-1 overflow-y-auto px-6 pb-6">
+            <div className="flex-1 overflow-y-auto px-[var(--card-px)] py-[var(--card-py)]">
               {PERMISSION_SECTIONS.map((section) => (
-                <div key={section.label} className="mt-6">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
+                <div key={section.label} className="mt-5 first:mt-0">
+                  <p className="mb-1 text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">
                     {section.label}
                   </p>
                   <div>
                     {section.permissions.map((perm) => (
                       <div
                         key={perm.flag}
-                        className="flex items-start justify-between py-4 border-b border-border/40 gap-4"
+                        className="flex items-start justify-between gap-4 border-b border-border/40 py-[var(--card-py)]"
                       >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground">
@@ -479,14 +454,14 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
 
               {/* Save button */}
               {canManage && isDirty && (
-                <div className="mt-6 flex justify-end">
+                <div className="mt-4 flex justify-end">
                   <Button
                     onClick={handleSave}
                     disabled={saving}
                     size="sm"
                     className="gap-1.5"
                   >
-                    <FloppyDiskIcon size={14} />
+                    <IconDeviceFloppy size={14} />
                     {saving ? "Saving\u2026" : "Save Changes"}
                   </Button>
                 </div>
@@ -521,7 +496,7 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
                   type="color"
                   value={newRoleColor}
                   onChange={(e) => setNewRoleColor(e.target.value)}
-                  className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0.5"
+                  className="h-8 w-10 cursor-pointer rounded-[var(--control-radius)] border border-border bg-transparent p-0.5"
                 />
                 <span className="text-sm text-muted-foreground font-mono">
                   {newRoleColor}

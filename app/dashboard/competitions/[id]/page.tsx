@@ -1,18 +1,19 @@
 // app/dashboard/competitions/[id]/page.tsx
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
-import { IconArrowLeft, IconCalendar, IconMapPin } from "@tabler/icons-react"
+import { IconArrowLeft } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
 import { canView, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
+import { listCanonicalCompetitionRosters } from "@/lib/competition-ontology"
+import { PageHeader } from "@/components/ui/page-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDateOnly } from "@/lib/format"
 import { CompetitionScheduleTable } from "@/components/tables/competition-schedule-table"
+import { CompetitionRosterManager } from "./competition-roster-manager"
 
-export const dynamic = "force-dynamic"
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -25,18 +26,6 @@ export default async function CompetitionDetailPage({ params }: Props) {
   const competition = await prisma.competition.findFirst({
     where: { id, season: { clubId: user.clubId } },
     include: {
-      teams: {
-        include: {
-          event: { select: { id: true, name: true, code: true } },
-          assignments: {
-            include: {
-              memberSeason: {
-                include: { user: { select: { id: true, firstName: true, lastName: true } } },
-              },
-            },
-          },
-        },
-      },
       eventSchedules: {
         include: { event: { select: { id: true, name: true, code: true } } },
         orderBy: { timeSlot: "asc" },
@@ -47,76 +36,114 @@ export default async function CompetitionDetailPage({ params }: Props) {
 
   const canManage = canEdit(user.permissions, "competitions")
 
+  const [rosters, seasonRosters, activeMembers, slots, events] = await Promise.all([
+    listCanonicalCompetitionRosters(competition.id),
+    prisma.seasonRoster.findMany({
+      where: { seasonId: competition.seasonId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    canManage
+      ? prisma.memberSeason.findMany({
+          where: {
+            seasonId: competition.seasonId,
+            membershipStatus: "ACTIVE",
+            user: { clubId: user.clubId },
+          },
+          select: {
+            id: true,
+            user: { select: { firstName: true, lastName: true, email: true } },
+          },
+          orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }],
+        })
+      : Promise.resolve([]),
+    prisma.competitionEventSlot.findMany({
+      where: { competitionId: competition.id },
+      select: {
+        id: true,
+        eventId: true,
+        label: true,
+        room: true,
+      },
+      orderBy: { label: "asc" },
+    }),
+    prisma.event.findMany({
+      where: { seasonId: competition.seasonId },
+      select: { id: true, name: true, code: true },
+      orderBy: { sortOrder: "asc" },
+    }),
+  ])
+
   return (
-    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
-      <div className="flex items-center gap-3">
+    <div className="layout-page">
+      <div className="flex items-start gap-3">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/dashboard/competitions"><IconArrowLeft className="size-4" /></Link>
         </Button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold truncate">{competition.name}</h1>
+        <div className="min-w-0 flex-1">
+          <PageHeader
+            title={competition.name}
+            description={[
+              competition.location ? `${competition.location}` : null,
+              formatDateOnly(competition.startsAt),
+            ].filter(Boolean).join(" · ")}
+          >
             <Badge variant="outline">{competition.type}</Badge>
             {competition.isPublished && <Badge variant="secondary">Published</Badge>}
-          </div>
-          <div className="flex items-center gap-4 mt-0.5 text-sm text-muted-foreground">
-            {competition.location && (
-              <span className="flex items-center gap-1"><IconMapPin className="size-3" />{competition.location}</span>
-            )}
-            <span className="flex items-center gap-1"><IconCalendar className="size-3" />{formatDateOnly(competition.startsAt)}</span>
-          </div>
+          </PageHeader>
         </div>
       </div>
 
-      <Tabs defaultValue="teams">
+      <Tabs defaultValue="rosters">
         <TabsList>
-          <TabsTrigger value="teams">Teams ({competition.teams.length})</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule ({competition.eventSchedules.length})</TabsTrigger>
+          <TabsTrigger value="rosters">Rosters ({rosters.length})</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule ({events.length})</TabsTrigger>
         </TabsList>
 
-        {/* Teams Tab */}
-        <TabsContent value="teams" className="mt-4 space-y-3">
-          {competition.teams.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No teams for this competition yet.</p>
-          ) : (
-            competition.teams.map((team) => (
-              <Card key={team.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    {team.label}
-                    {team.event && (
-                      <Badge variant="secondary" className="text-xs font-normal">
-                        {team.event.name}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex flex-wrap gap-1">
-                    {team.assignments.map((a) => (
-                      <Badge key={a.id} variant="outline" className="text-xs font-normal">
-                        {a.memberSeason.user.firstName} {a.memberSeason.user.lastName}
-                        {a.role !== "MEMBER" && ` (${a.role})`}
-                      </Badge>
-                    ))}
-                    {team.assignments.length === 0 && (
-                      <span className="text-xs text-muted-foreground">No members assigned.</span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-          {canManage && (
-            <Link href={`/dashboard/teams?competition=${id}`}>
-              <Button variant="outline" size="sm">Manage Teams</Button>
-            </Link>
-          )}
+        <TabsContent value="rosters" className="mt-4 space-y-3">
+          <CompetitionRosterManager
+            competitionId={competition.id}
+            initialRosters={rosters.map((roster) => ({
+              ...roster,
+              assignments: roster.assignments.map((assignment) => ({
+                ...assignment,
+                schedule: assignment.schedule
+                  ? {
+                      ...assignment.schedule,
+                      startsAt: assignment.schedule.startsAt?.toISOString() ?? null,
+                      endsAt: assignment.schedule.endsAt?.toISOString() ?? null,
+                    }
+                  : null,
+                slot: assignment.slot
+                  ? {
+                      ...assignment.slot,
+                      startsAt: assignment.slot.startsAt?.toISOString() ?? null,
+                      endsAt: assignment.slot.endsAt?.toISOString() ?? null,
+                    }
+                  : null,
+              })),
+            }))}
+            events={events}
+            seasonRosters={seasonRosters}
+            members={activeMembers}
+            slots={slots}
+            canManage={canManage}
+          />
         </TabsContent>
 
         {/* Schedule Tab */}
         <TabsContent value="schedule" className="mt-4">
-          <CompetitionScheduleTable schedules={competition.eventSchedules} />
+          <CompetitionScheduleTable
+              events={events}
+              initialSchedules={competition.eventSchedules.map((s) => ({
+                id: s.id,
+                timeSlot: s.timeSlot,
+                slotLabel: s.slotLabel,
+                eventId: s.event.id,
+              }))}
+              competitionId={competition.id}
+              canManage={canManage}
+            />
         </TabsContent>
       </Tabs>
     </div>

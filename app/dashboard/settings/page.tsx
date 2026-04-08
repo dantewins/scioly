@@ -4,11 +4,12 @@ import { IconSettings, IconShield, IconCalendar } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { canEdit, canView } from "@/lib/permissions"
+import { getClubDomainConfig } from "@/lib/db"
 import { ClubSettingsForm } from "./club-settings-form"
 import { RolesManager } from "./roles-manager"
 import { SeasonManager } from "./season-manager"
+import { SettingsSection } from "./settings-section"
 
-export const dynamic = "force-dynamic"
 
 export default async function SettingsPage() {
   const user = await getCurrentUser()
@@ -19,7 +20,7 @@ export default async function SettingsPage() {
 
   if (!canEditSettings && !canViewRoles) redirect("/dashboard")
 
-  const [club, rolesRaw, seasons] = await Promise.all([
+  const [club, rolesRaw, seasons, domainConfig] = await Promise.all([
     prisma.club.findUnique({
       where: { id: user.clubId },
       select: { id: true, name: true, schoolName: true, schoolDomain: true, slug: true },
@@ -37,6 +38,7 @@ export default async function SettingsPage() {
         _count: { select: { members: true } },
       },
     }),
+    getClubDomainConfig(user.clubId),
   ])
 
   const roles = rolesRaw.map((r) => ({
@@ -47,7 +49,7 @@ export default async function SettingsPage() {
   if (!club) redirect("/dashboard")
 
   return (
-    <div className="flex flex-col gap-8 px-0 sm:px-4 py-4 lg:px-6 md:py-6">
+    <div className="layout-page">
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -56,34 +58,26 @@ export default async function SettingsPage() {
       </div>
 
       {canEditSettings && (
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <IconSettings className="size-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">Club Information</h2>
-          </div>
-          <ClubSettingsForm club={club} />
-        </section>
+        <SettingsSection icon={IconSettings} title="Club Information">
+          <ClubSettingsForm
+            club={club}
+            initialDomains={domainConfig?.emailDomains ?? []}
+            canManage={canEditSettings}
+          />
+        </SettingsSection>
       )}
 
       {canViewRoles && (
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <IconShield className="size-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">Roles & Permissions</h2>
-          </div>
+        <SettingsSection icon={IconShield} title="Roles & Permissions">
           <RolesManager
             roles={roles}
             canManage={user.role === "WEBSITE_OWNER" || canEdit(user.permissions, "roles")}
           />
-        </section>
+        </SettingsSection>
       )}
 
       {canEditSettings && (
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <IconCalendar className="size-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">Seasons</h2>
-          </div>
+        <SettingsSection icon={IconCalendar} title="Seasons">
           <SeasonManager
             seasons={seasons.map(s => ({
               ...s,
@@ -92,7 +86,7 @@ export default async function SettingsPage() {
             }))}
             canManage={canEditSettings}
           />
-        </section>
+        </SettingsSection>
       )}
     </div>
   )

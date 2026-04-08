@@ -4,6 +4,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { apiCall } from "@/lib/api-client"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -51,35 +52,35 @@ export function AdminFormsView({ formTypes: initial, canCreate }: Props) {
     if (!form.name) { toast.error("Name is required."); return }
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/forms", {
+      const data = await apiCall<FormType>("/api/admin/forms", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
           dueAt: form.dueAt ? new Date(form.dueAt).toISOString() : undefined,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) { toast.error(data.message ?? "Failed to create."); return }
       setFormTypes((f) => [...f, { ...data, _count: { submissions: 0 }, submissions: [] }])
       setShowCreate(false)
       setForm({ name: "", category: "OTHER", description: "", isRequired: true, requiresUpload: false, dueAt: "" })
       toast.success("Form type created.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create.")
     } finally { setLoading(false) }
   }
 
   return (
     <div className="space-y-6">
       {canCreate && (
-        <Button onClick={() => setShowCreate(true)}>
-          <IconPlus className="size-4 mr-1.5" />New Form Type
+        <Button size="sm" onClick={() => setShowCreate(true)}>
+          <IconPlus size={15} className="mr-1.5" />
+          New Form Type
         </Button>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {formTypes.map((ft) => (
           <Card key={ft.id}>
-            <CardContent className="pt-4 space-y-2">
+            <CardContent className="space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <p className="font-medium text-sm">{ft.name}</p>
                 <Badge variant="outline" className="text-xs shrink-0">{ft.category}</Badge>

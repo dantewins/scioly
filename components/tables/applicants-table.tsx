@@ -15,23 +15,17 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { formatDateOnly } from "@/lib/format"
+import { apiCall } from "@/lib/api-client"
+import type { ApplicantReviewRecord } from "@/lib/applications"
 import { DenyApplicationDialog } from "@/components/dialogs/deny-application-dialog"
 
-type Applicant = {
-  id: string
-  membershipStatus: string
-  applicationSubmittedAt: string | null
-  user: { id: string; firstName: string; lastName: string; email: string; gradeLevel: number | null; phone: string | null }
-  eventEnrollments: { event: { id: string; name: string; code: string | null } }[]
-}
-
 interface Props {
-  initialApplicants: Applicant[]
+  initialApplicants: ApplicantReviewRecord[]
   canManage: boolean
 }
 
 export function ApplicantsTable({ initialApplicants, canManage }: Props) {
-  const [applicants, setApplicants] = useState<Applicant[]>(initialApplicants)
+  const [applicants, setApplicants] = useState<ApplicantReviewRecord[]>(initialApplicants)
   const [loading, setLoading] = useState(false)
   const [denyingId, setDenyingId] = useState<string | null>(null)
   const [denyReason, setDenyReason] = useState("")
@@ -39,42 +33,34 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
   async function handleApprove(memberSeasonId: string) {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/applicants", {
+      await apiCall("/api/admin/applicants", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberSeasonId, action: "approve" }),
       })
-      if (!res.ok) {
-        const d = await res.json()
-        toast.error(d.message ?? "Failed to approve.")
-        return
-      }
       setApplicants((a) => a.filter((x) => x.id !== memberSeasonId))
       toast.success("Applicant approved and welcome email sent.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to approve.")
     } finally { setLoading(false) }
   }
 
   async function handleDeny(memberSeasonId: string, reason: string) {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/applicants", {
+      await apiCall("/api/admin/applicants", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberSeasonId, action: "deny", reason }),
       })
-      if (!res.ok) {
-        const d = await res.json()
-        toast.error(d.message ?? "Failed to deny.")
-        return
-      }
       setApplicants((a) => a.filter((x) => x.id !== memberSeasonId))
       setDenyingId(null)
       setDenyReason("")
       toast.success("Application denied.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to deny.")
     } finally { setLoading(false) }
   }
 
-  const columns: ColumnDef<Applicant>[] = [
+  const columns: ColumnDef<ApplicantReviewRecord>[] = [
     {
       id: "name",
       header: "Name",
@@ -102,17 +88,17 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
       header: "Event Choices",
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-1">
-          {row.original.eventEnrollments.slice(0, 3).map((e) => (
+          {row.original.eventChoices.slice(0, 3).map((e) => (
             <Badge key={e.event.id} variant="outline" className="text-xs font-normal">
               {e.event.code ?? e.event.name}
             </Badge>
           ))}
-          {row.original.eventEnrollments.length > 3 && (
+          {row.original.eventChoices.length > 3 && (
             <Badge variant="outline" className="text-xs font-normal">
-              +{row.original.eventEnrollments.length - 3} more
+              +{row.original.eventChoices.length - 3} more
             </Badge>
           )}
-          {row.original.eventEnrollments.length === 0 && (
+          {row.original.eventChoices.length === 0 && (
             <span className="text-xs text-muted-foreground">None</span>
           )}
         </div>
@@ -121,21 +107,21 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
     ...(canManage ? [{
       id: "actions",
       header: "",
-      cell: ({ row }: { row: { original: Applicant } }) => (
+      cell: ({ row }: { row: { original: ApplicantReviewRecord } }) => (
         <div className="flex gap-1 justify-end">
           <Button
-            size="sm"
+            size="xs"
             variant="outline"
-            className="h-7 text-green-600 border-green-200 hover:bg-green-50"
+            className="text-green-600 border-green-200 hover:bg-green-50"
             onClick={() => handleApprove(row.original.id)}
             disabled={loading}
           >
             <IconCheck className="size-3.5 mr-1" />Approve
           </Button>
           <Button
-            size="sm"
+            size="xs"
             variant="outline"
-            className="h-7 text-destructive border-destructive/30 hover:bg-destructive/5"
+            className="text-destructive border-destructive/30 hover:bg-destructive/5"
             onClick={() => { setDenyingId(row.original.id); setDenyReason("") }}
             disabled={loading}
           >
@@ -154,7 +140,7 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border overflow-hidden">
+      <div className="overflow-hidden rounded-[var(--radius)] border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (

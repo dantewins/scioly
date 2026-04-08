@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { PlusIcon } from "@phosphor-icons/react"
+import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { apiCall } from "@/lib/api-client"
 import {
   Dialog,
   DialogContent,
@@ -119,17 +120,10 @@ export function ClubEventsManager({
       if (form.categoryId) body.categoryId = form.categoryId
       if (form.notes.trim()) body.notes = form.notes.trim()
 
-      const res = await fetch("/api/admin/club-events", {
+      const created = await apiCall<ClubEvent>("/api/admin/club-events", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        toast.error(data.message ?? "Failed to create event.")
-        return
-      }
-      const created: ClubEvent = await res.json()
       setEvents((ev) =>
         [...ev, created].sort(
           (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()
@@ -137,6 +131,8 @@ export function ClubEventsManager({
       )
       closeDialogs()
       toast.success("Event created.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to create event.")
     } finally {
       setLoading(false)
     }
@@ -161,17 +157,10 @@ export function ClubEventsManager({
         notes: form.notes.trim() || null,
       }
 
-      const res = await fetch(`/api/admin/club-events/${editingEvent.id}`, {
+      const updated = await apiCall<ClubEvent>(`/api/admin/club-events/${editingEvent.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        toast.error(data.message ?? "Failed to update event.")
-        return
-      }
-      const updated = await res.json()
       setEvents((ev) =>
         ev
           .map((e) =>
@@ -190,6 +179,8 @@ export function ClubEventsManager({
       )
       closeDialogs()
       toast.success("Event updated.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update event.")
     } finally {
       setLoading(false)
     }
@@ -197,13 +188,13 @@ export function ClubEventsManager({
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this event? This cannot be undone.")) return
-    const res = await fetch(`/api/admin/club-events/${id}`, { method: "DELETE" })
-    if (!res.ok) {
-      toast.error("Failed to delete event.")
-      return
+    try {
+      await apiCall(`/api/admin/club-events/${id}`, { method: "DELETE" })
+      setEvents((ev) => ev.filter((e) => e.id !== id))
+      toast.success("Event deleted.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete event.")
     }
-    setEvents((ev) => ev.filter((e) => e.id !== id))
-    toast.success("Event deleted.")
   }
 
   const editingDefaults = editingEvent
@@ -223,7 +214,7 @@ export function ClubEventsManager({
     <div className="space-y-6">
       {canCreate && (
         <Button size="sm" onClick={openCreate}>
-          <PlusIcon size={15} className="mr-1.5" />
+          <IconPlus size={15} className="mr-1.5" />
           New Event
         </Button>
       )}

@@ -3,17 +3,16 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { IconTrophy, IconMapPin, IconCalendar } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
-import { canView, canCreate } from "@/lib/permissions"
+import { canView, canCreate, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
-import { PageHeader } from "@/components/page-header"
+import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatDateOnly } from "@/lib/format"
 import { CreateCompetitionDialog } from "./create-competition-dialog"
 
-export const dynamic = "force-dynamic"
 
 const TYPE_COLORS: Record<string, string> = {
   INVITATIONAL: "bg-blue-100 text-blue-800",
@@ -33,15 +32,15 @@ export default async function CompetitionsPage() {
   const competitions = season
     ? await prisma.competition.findMany({
         where: { seasonId: season.id },
-        include: { _count: { select: { teams: true, eventSchedules: true } } },
+        include: { _count: { select: { rosters: true, eventSchedules: true } } },
         orderBy: { startsAt: "asc" },
       })
     : []
 
-  const canManage = canCreate(user.permissions, "competitions")
+  const canManage = canEdit(user.permissions, "competitions") || canCreate(user.permissions, "competitions")
 
   return (
-    <div className="flex flex-col gap-6 py-4 lg:px-6 md:py-6 sm:px-4 px-0">
+    <div className="layout-page">
       <PageHeader title="Competitions" description={`${competitions.length} competition${competitions.length !== 1 ? "s" : ""}`}>
         {canManage && season && <CreateCompetitionDialog />}
       </PageHeader>
@@ -55,7 +54,7 @@ export default async function CompetitionsPage() {
           {competitions.map((comp) => (
             <Link key={comp.id} href={`/dashboard/competitions/${comp.id}`}>
               <Card className="hover:bg-muted/30 transition-colors cursor-pointer">
-                <CardContent className="pt-4 space-y-2">
+                <CardContent className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-sm leading-tight">{comp.name}</p>
                     <Badge className={TYPE_COLORS[comp.type] ?? ""} variant="outline">
@@ -73,7 +72,7 @@ export default async function CompetitionsPage() {
                     {formatDateOnly(comp.startsAt)}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {comp._count.teams} teams · {comp._count.eventSchedules} events scheduled
+                    {comp._count.rosters} rosters and {comp._count.eventSchedules} events scheduled
                   </p>
                 </CardContent>
               </Card>

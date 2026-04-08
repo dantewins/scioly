@@ -17,18 +17,17 @@ const schema = z.object({
 export const POST = withPermission("edit_members", async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = schema.safeParse(body)
-  if (!parsed.success)
+  if (!parsed.success) {
     return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+  }
 
   const { action, memberSeasonIds } = parsed.data
-  let sent = 0,
-    failed = 0
 
-  for (const msId of memberSeasonIds) {
-    try {
+  const results = await Promise.allSettled(
+    memberSeasonIds.map(async (memberSeasonId) => {
       if (action === "hours-warning") {
-        const ms = await prisma.memberSeason.findFirst({
-          where: { id: msId, season: { clubId: user.clubId } },
+        const memberSeason = await prisma.memberSeason.findFirst({
+          where: { id: memberSeasonId, season: { clubId: user.clubId } },
           select: {
             expectedHours: true,
             user: { select: { email: true, firstName: true } },
@@ -38,26 +37,26 @@ export const POST = withPermission("edit_members", async (req, _ctx, user) => {
             },
           },
         })
-        if (!ms) {
-          failed++
-          continue
-        }
+        if (!memberSeason) return false
 
-        const earnedHours = ms.hourEntries.reduce(
-          (sum, e) => sum + Number(e.totalHours),
+        const earnedHours = memberSeason.hourEntries.reduce(
+          (sum, entry) => sum + Number(entry.totalHours),
           0,
         )
-        const requiredHours = Number(ms.expectedHours ?? 0)
+        const requiredHours = Number(memberSeason.expectedHours ?? 0)
 
         await sendHoursWarningEmail(
-          ms.user.email,
-          ms.user.firstName,
+          memberSeason.user.email,
+          memberSeason.user.firstName,
           earnedHours,
           requiredHours,
         )
-      } else if (action === "dues-reminder") {
-        const ms = await prisma.memberSeason.findFirst({
-          where: { id: msId, season: { clubId: user.clubId } },
+        return true
+      }
+
+      if (action === "dues-reminder") {
+        const memberSeason = await prisma.memberSeason.findFirst({
+          where: { id: memberSeasonId, season: { clubId: user.clubId } },
           select: {
             user: { select: { email: true, firstName: true } },
             invoices: {
@@ -73,60 +72,69 @@ export const POST = withPermission("edit_members", async (req, _ctx, user) => {
             },
           },
         })
-        if (!ms || ms.invoices.length === 0) {
-          failed++
-          continue
-        }
+        if (!memberSeason || memberSeason.invoices.length === 0) return false
 
-        // Send one email per outstanding invoice
-        for (const invoice of ms.invoices) {
-          const amountDueCents = invoice.amountCents - invoice.amountPaidCents
-          await sendDuesReminderEmail(
-            ms.user.email,
-            ms.user.firstName,
-            invoice.title,
-            amountDueCents,
-            invoice.dueAt,
-          )
-        }
-      } else {
-        // forms-reminder
-        const ms = await prisma.memberSeason.findFirst({
-          where: { id: msId, season: { clubId: user.clubId } },
-          select: {
-            user: { select: { email: true, firstName: true } },
-            formSubmissions: {
-              where: {
-                status: { in: ["NOT_STARTED", "REJECTED"] },
-                formType: { isRequired: true },
-              },
-              select: {
-                formType: { select: { name: true, dueAt: true } },
+        await Promise.all(
+          memberSeason.invoices.map((invoice) =>
+            sendDuesReminderEmail(
+              memberSeason.user.email,
+              memberSeason.user.firstName,
+              invoice.title,
+              invoice.amountCents - invoice.amountPaidCents,
+              invoice.dueAt,
+            ),
+          ),
+        )
+        return true
+      }
+
+      const memberSeason = await prisma.memberSeason.findFirst({
+        where: { id: memberSeasonId, season: { clubId: user.clubId } },
+        select: {
+          user: { select: { email: true, firstName: true } },
+          season: {
+            select: {
+              formTypes: {
+                where: { isRequired: true },
+                select: { id: true, name: true, dueAt: true },
               },
             },
           },
-        })
-        if (!ms || ms.formSubmissions.length === 0) {
-          failed++
-          continue
-        }
+          formSubmissions: {
+            select: { formTypeId: true, status: true },
+          },
+        },
+      })
+      if (!memberSeason) return false
 
-        // Send one email per pending required form
-        for (const sub of ms.formSubmissions) {
-          await sendFormReminderEmail(
-            ms.user.email,
-            ms.user.firstName,
-            sub.formType.name,
-            sub.formType.dueAt,
-          )
-        }
-      }
+      const submissionByFormTypeId = new Map(
+        memberSeason.formSubmissions.map((submission) => [submission.formTypeId, submission.status]),
+      )
+      const pendingForms = memberSeason.season.formTypes.filter((formType) => {
+        const status = submissionByFormTypeId.get(formType.id)
+        return !status || !["SUBMITTED", "VERIFIED"].includes(status)
+      })
+      if (pendingForms.length === 0) return false
 
-      sent++
-    } catch {
-      failed++
-    }
-  }
+      await Promise.all(
+        pendingForms.map((formType) =>
+          sendFormReminderEmail(
+            memberSeason.user.email,
+            memberSeason.user.firstName,
+            formType.name,
+            formType.dueAt,
+          ),
+        ),
+      )
+      return true
+    }),
+  )
+
+  const sent = results.filter(
+    (result): result is PromiseFulfilledResult<boolean> =>
+      result.status === "fulfilled" && result.value,
+  ).length
+  const failed = results.length - sent
 
   return ok({ sent, failed })
 })

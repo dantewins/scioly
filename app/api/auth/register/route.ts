@@ -5,11 +5,14 @@ import { prisma } from "@/lib/prisma"
 import { signSession } from "@/lib/auth"
 import { setSessionCookie } from "@/lib/cookies"
 import { err, ok } from "@/lib/api"
+import { isEmailAllowedForDomains, normalizeDomain } from "@/lib/email-domains"
+import { syncPrimaryClubDomain } from "@/lib/db"
 import {
   adminPermissions,
   boardMemberPermissions,
   memberPermissions,
 } from "@/lib/permissions"
+import { buildRateLimitKey, rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 
@@ -22,7 +25,7 @@ const schema = z.object({
     .toLowerCase(),
   firstName: z.string().min(1).max(50),
   lastName: z.string().min(1).max(50),
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(8),
 })
 
@@ -37,23 +40,40 @@ function toSlug(name: string): string {
 
 export async function POST(req: Request) {
   try {
+    const ipLimiter = await takeRateLimit(buildRateLimitKey("auth:register:ip", req), 10, 60 * 60_000)
+    if (!ipLimiter.allowed) {
+      return err(rateLimitErrorMessage("registration", ipLimiter.retryAfterMs), 429)
+    }
+
     const body = await req.json()
     const parsed = schema.safeParse(body)
     if (!parsed.success) {
       return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
     }
 
-    const { clubName, schoolName, schoolDomain, firstName, lastName, email, password } =
+    const { clubName, schoolName, schoolDomain, firstName, lastName, password } =
       parsed.data
+    const email = parsed.data.email.trim().toLowerCase()
+    const normalizedDomain = normalizeDomain(schoolDomain)
+    if (!isEmailAllowedForDomains(email, [normalizedDomain])) {
+      return err(`Email must end in @${normalizedDomain}.`, 400)
+    }
 
     // Check email not already registered
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const existing = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: "insensitive",
+        },
+      },
+    })
     if (existing) return err("An account with this email already exists.", 409)
 
     const passwordHash = await bcrypt.hash(password, 12)
 
     // Generate a unique slug
-    let baseSlug = toSlug(clubName)
+    const baseSlug = toSlug(clubName)
     let slug = baseSlug
     let attempt = 0
     while (await prisma.club.findUnique({ where: { slug } })) {
@@ -63,7 +83,12 @@ export async function POST(req: Request) {
 
     const result = await prisma.$transaction(async (tx) => {
       const club = await tx.club.create({
-        data: { name: clubName, slug, schoolName, schoolDomain },
+        data: {
+          name: clubName,
+          slug,
+          schoolName,
+          schoolDomain: normalizedDomain,
+        },
       })
 
       const user = await tx.user.create({
@@ -95,13 +120,17 @@ export async function POST(req: Request) {
           {
             clubId: club.id,
             name: "Member",
-            description: "View access plus ability to submit hours and attempt practice tests.",
+            description: "View access plus ability to submit hours and attempt practice assessments.",
             permissions: memberPermissions(),
           },
         ],
       })
 
       return { club, user }
+    })
+
+    await syncPrimaryClubDomain(result.club.id, normalizedDomain, {
+      label: schoolName ?? "Primary school domain",
     })
 
     const token = await signSession({ sub: result.user.id })
