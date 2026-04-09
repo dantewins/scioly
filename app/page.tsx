@@ -11,6 +11,7 @@ import {
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { useAuth } from "@/context/AuthContext"
 
 function FadeIn({
   children,
@@ -108,6 +109,7 @@ const panelStyle = {
 
 export default function Page() {
   const [isDark, setIsDark] = useState(false)
+  const { user } = useAuth()
 
   return (
     <div
@@ -142,7 +144,11 @@ export default function Page() {
               size="sm"
               className="h-8 md:h-9 px-4 text-xs md:text-sm rounded-[var(--radius)] bg-foreground text-background hover:bg-foreground/90 font-medium shadow-none"
             >
-              <Link href="/register">Apply to Join</Link>
+              {user ? (
+                <Link href="/dashboard">Open app</Link>
+              ) : (
+                <Link href="/register">Apply to Join</Link>
+              )}
             </Button>
           </div>
         </div>
