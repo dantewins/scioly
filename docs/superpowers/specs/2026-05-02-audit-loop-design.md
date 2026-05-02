@@ -5,7 +5,12 @@
 
 ## Goal
 
-Build a reusable feedback loop that audits the Scioly platform for performance regressions and functional/UX gaps, with both a one-off in-session full cycle and a daily scheduled run. Performance is the headline priority — slow routes are the explicit complaint. Functional gaps and UX issues are secondary but in scope.
+Build a reusable feedback loop that audits the Scioly platform across two co-equal primary tracks:
+
+- **Track A — Engineering health:** performance regressions, slow routes, dead code, refactor opportunities
+- **Track B — Product:** missing functionality, UX rough edges, UI improvements
+
+Both tracks get equal weight at every stage: agents look for findings in both, the digest gives them equal billing, and the user triages them as one combined list. The loop runs both as a one-off in-session full cycle and as a daily scheduled run.
 
 ## Operating model
 
@@ -39,8 +44,9 @@ Hybrid: synthetic sub-agents do the breadth pass (every dashboard route, every p
 │                    → finding fragments                         │
 │  4. Aggregate   ── docs/audit/<date>.md                        │
 │  5. Triage      ── human marks fix / skip / later             │
-│  6. Implement   ── parallel fix agents for perf;              │
-│                    sequential for features                     │
+│  6. Implement   ── parallel agents for mechanical fixes       │
+│                    (perf, dead-code); sequential for          │
+│                    judgment-required changes (features, UI)   │
 │  7. Verify      ── re-measure; append before/after table      │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -109,20 +115,24 @@ Slash command body. When the user types `/audit-loop`, the file's content become
 4. **Spawn 2 persona sub-agents in parallel** (single message, two `Agent` calls). Each gets:
    - Role + seed credentials
    - 3 flows assigned to them
-   - Instructions: walk flows end-to-end, read code where it matters, report (a) broken, (b) missing, (c) slow even after perf script, (d) UX-rough
-   - Output format: markdown fragment, ~600 words max, sections: Broken / Missing / Slow / UX-rough
+   - Instructions: walk flows end-to-end and read code where it matters. Track A (engineering): report (a) broken, (b) slow even after perf script, (c) dead code or unused exports/components/files spotted while reading, (d) refactor opportunities (e.g., file >500 lines doing too many things). Track B (product): report (e) missing functionality the persona would expect, (f) UX rough edges (confusing copy, missing feedback, bad empty states), (g) UI improvements (visual inconsistencies, layout issues, polish gaps).
+   - Output format: markdown fragment, ~700 words max, sections in order: Broken / Slow / Dead-code / Refactor / Missing / UX / UI. Each section may be empty — that's fine.
 5. **Aggregate** perf JSON + 2 finding fragments into `docs/audit/<date>.md`:
    - Header table of top 10 slowest routes (with vs-prev delta)
-   - Findings grouped by P1 Broken / P2 Slow (with empirical backing) / P3 Missing / P4 UX
+   - Findings sectioned by category, with both tracks given equal billing:
+     - **P1 — Broken** (always at top; broken is broken)
+     - **Track A categories:** Slow (with empirical backing) / Dead code / Refactor
+     - **Track B categories:** Missing functionality / UX rough / UI improvement
    - Each finding has a stable ID (`f1`, `f2`, ...) for triage references
+   - Track A and Track B sections appear side by side in the digest, not one prioritized over the other
    - Triage section at bottom with checkboxes
 6. **Dedup against history:** read last 3 days of `docs/audit/*.md`, mark recurring findings as "still present (n days)" and surface only NEW or REGRESSED items in the headline.
 7. **If `--no-fix`:** stop here, post a digest summary, end.
-8. **Otherwise — wait for triage:** post digest in chat. Accept input like `fix f1, f4, f7-f9; skip f2; later f10-f12` or `auto-perf`.
+8. **Otherwise — wait for triage:** post digest in chat with both tracks visible. Accept input like `fix f1, f4, f7-f9; skip f2; later f10-f12`, or shortcuts: `auto-mechanical` (fix all P1 + Slow + Dead-code + Refactor without asking each), `auto-track-a` (engineering only), `auto-track-b` (product only).
 9. **Implement fix-now items:**
-   - Perf items (mechanical: Promise.all, take limits, indexes, removing waterfalls): dispatch parallel fix sub-agents, one per fix
-   - Feature/UX items: sequential, in main agent
-   - All fixes must pass `npx tsc --noEmit`
+   - **Mechanical fixes** (perf optimizations like `Promise.all` / `take` limits / index hints / waterfall removal; dead-code removal where the import graph confirms zero usage; small refactors like splitting a too-large file): dispatch parallel fix sub-agents, one per fix. Each agent verifies with `npx tsc --noEmit` and a re-measure of any affected route.
+   - **Judgment fixes** (new features, UX changes that involve copy/flow rewrites, UI changes that need design choices): sequential in main agent — these need user feedback as work progresses, can't parallelize.
+   - All fixes must pass `npx tsc --noEmit` before commit.
 10. **Re-run perf script.** Append "before/after" table to `docs/audit/<date>.md`.
 11. **Stop dev server.** `git status`. Suggest follow-ups if backlog remains.
 
@@ -183,17 +193,34 @@ Path: `docs/audit/perf-YYYY-MM-DD-HHmm.json` (raw perf data, kept indefinitely f
 
 ## Findings (15)
 
-### P1 — Broken
+### P1 — Broken (4)
 - [ ] (f1) <description> — <flagging agent>
 
-### P2 — Slow (with empirical backing)
-- [ ] (f4) /dashboard/competitions/[id] took 1840ms — <hypothesis>
+---
 
-### P3 — Missing functionality
-- [ ] (f7) ...
+### Track A — Engineering health
 
-### P4 — UX-rough
-- [ ] (f12) ...
+#### Slow (with empirical backing) (3)
+- [ ] (f5) /dashboard/competitions/[id] took 1840ms — <hypothesis>
+
+#### Dead code (2)
+- [ ] (f8) `lib/old-helper.ts` has zero importers — safe to delete
+
+#### Refactor (1)
+- [ ] (f10) `app/dashboard/competitions/[id]/page.tsx` is 720 lines, mixes data-loading + 3 unrelated UI sections — propose splitting
+
+---
+
+### Track B — Product
+
+#### Missing functionality (2)
+- [ ] (f11) Owner can't bulk-approve hour entries — currently must click each one
+
+#### UX rough (2)
+- [ ] (f13) Practice attempt has no autosave; refreshing loses progress
+
+#### UI improvement (1)
+- [ ] (f15) Members table column widths feel cramped on 1280px screens
 
 ## Triage
 For each finding: fix-now / fix-later / skip / wontfix
@@ -219,12 +246,12 @@ For each finding: fix-now / fix-later / skip / wontfix
 
 **Stage B — Run the loop end-to-end**
 10. Invoke `/audit-loop`
-11. Persona agents run, findings aggregate to `docs/audit/<today>.md`
-12. **User triages** findings
-13. Implement fix-now items (perf parallel, features sequential)
-14. Re-measure, append before/after table
+11. Persona agents run, findings aggregate to `docs/audit/<today>.md` with both tracks
+12. **User triages** findings — Track A and Track B presented side by side, no implicit ordering
+13. Implement fix-now items (mechanical fixes parallel, judgment fixes sequential)
+14. Re-measure, append before/after table for any perf-affecting fix
 15. `npx tsc --noEmit` — zero errors
-16. Commit fixes (one commit per finding-cluster, messages reference finding IDs)
+16. Commit fixes (one commit per finding-cluster, messages reference finding IDs and tag track: `audit(track-a): ...` or `audit(track-b): ...`)
 
 **Checkpoint:** show diffs before commit, user approves.
 
@@ -245,7 +272,8 @@ For each finding: fix-now / fix-later / skip / wontfix
 - Not building a dashboard / UI for findings — markdown + JSON only
 - Not measuring client-side metrics (LCP, CLS, etc.) — server-side timings only
 - Not adding indexes proactively without empirical evidence — wait for the perf script to flag them
-- Not refactoring code that the audit reveals as "ugly but fast enough"
+- Not doing stylistic refactors of working code (e.g., renaming variables, reformatting). Dead-code removal and structural refactors (splitting files that mix unrelated concerns) ARE in scope; cosmetic-only changes are not.
+- Not redesigning major UI flows from scratch — UI findings should be incremental polish, not "rebuild this page". Big redesigns belong in their own brainstorming session.
 
 ## Open questions
 
