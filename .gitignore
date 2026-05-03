@@ -46,6 +46,8 @@ next-env.d.ts
 
 /lib/generated/prisma
 
-/.claude
+/.claude/*
+!/.claude/commands/
+!/.claude/agents/
 /.docs
 /scioly-drive
