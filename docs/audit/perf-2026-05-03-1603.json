@@ -1,0 +1,396 @@
+{
+  "ranAt": "2026-05-03T20:03:26.599Z",
+  "seedSize": "large",
+  "results": [
+    {
+      "route": "/dashboard",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 136,
+      "serverTimingMs": null,
+      "bytes": 92444,
+      "runs": [
+        3591,
+        137,
+        134
+      ]
+    },
+    {
+      "route": "/dashboard",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 168,
+      "serverTimingMs": null,
+      "bytes": 87012,
+      "runs": [
+        376,
+        120,
+        216
+      ]
+    },
+    {
+      "route": "/dashboard/applications",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 194,
+      "serverTimingMs": null,
+      "bytes": 75383,
+      "runs": [
+        694,
+        166,
+        222
+      ]
+    },
+    {
+      "route": "/dashboard/applications",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 30,
+      "serverTimingMs": null,
+      "bytes": 69804,
+      "runs": [
+        51,
+        32,
+        28
+      ]
+    },
+    {
+      "route": "/dashboard/club-events",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 478,
+      "serverTimingMs": null,
+      "bytes": 72719,
+      "runs": [
+        484,
+        163,
+        792
+      ]
+    },
+    {
+      "route": "/dashboard/club-events",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 210,
+      "serverTimingMs": null,
+      "bytes": 66397,
+      "runs": [
+        175,
+        187,
+        232
+      ]
+    },
+    {
+      "route": "/dashboard/competitions",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 112,
+      "serverTimingMs": null,
+      "bytes": 137601,
+      "runs": [
+        749,
+        76,
+        147
+      ]
+    },
+    {
+      "route": "/dashboard/competitions",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 75,
+      "serverTimingMs": null,
+      "bytes": 129281,
+      "runs": [
+        74,
+        75,
+        75
+      ]
+    },
+    {
+      "route": "/dashboard/events",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 76,
+      "serverTimingMs": null,
+      "bytes": 144977,
+      "runs": [
+        299,
+        75,
+        76
+      ]
+    },
+    {
+      "route": "/dashboard/events",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 74,
+      "serverTimingMs": null,
+      "bytes": 86748,
+      "runs": [
+        316,
+        76,
+        71
+      ]
+    },
+    {
+      "route": "/dashboard/finances",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 175,
+      "serverTimingMs": null,
+      "bytes": 111450,
+      "runs": [
+        444,
+        170,
+        179
+      ]
+    },
+    {
+      "route": "/dashboard/finances",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 27,
+      "serverTimingMs": null,
+      "bytes": 69723,
+      "runs": [
+        35,
+        27,
+        26
+      ]
+    },
+    {
+      "route": "/dashboard/forms",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 169,
+      "serverTimingMs": null,
+      "bytes": 78700,
+      "runs": [
+        341,
+        204,
+        133
+      ]
+    },
+    {
+      "route": "/dashboard/forms",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 154,
+      "serverTimingMs": null,
+      "bytes": 70017,
+      "runs": [
+        171,
+        117,
+        190
+      ]
+    },
+    {
+      "route": "/dashboard/hours",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 275,
+      "serverTimingMs": null,
+      "bytes": 333908,
+      "runs": [
+        614,
+        230,
+        319
+      ]
+    },
+    {
+      "route": "/dashboard/hours",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 159,
+      "serverTimingMs": null,
+      "bytes": 81508,
+      "runs": [
+        123,
+        199,
+        118
+      ]
+    },
+    {
+      "route": "/dashboard/members",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 275,
+      "serverTimingMs": null,
+      "bytes": 282120,
+      "runs": [
+        762,
+        320,
+        230
+      ]
+    },
+    {
+      "route": "/dashboard/members",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 35,
+      "serverTimingMs": null,
+      "bytes": 69489,
+      "runs": [
+        312,
+        36,
+        34
+      ]
+    },
+    {
+      "route": "/dashboard/practice",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 375,
+      "serverTimingMs": null,
+      "bytes": 178214,
+      "runs": [
+        1510,
+        584,
+        166
+      ]
+    },
+    {
+      "route": "/dashboard/practice",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 146,
+      "serverTimingMs": null,
+      "bytes": 114136,
+      "runs": [
+        243,
+        149,
+        143
+      ]
+    },
+    {
+      "route": "/dashboard/settings",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 146,
+      "serverTimingMs": null,
+      "bytes": 146383,
+      "runs": [
+        709,
+        144,
+        147
+      ]
+    },
+    {
+      "route": "/dashboard/settings",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 31,
+      "serverTimingMs": null,
+      "bytes": 69760,
+      "runs": [
+        32,
+        35,
+        27
+      ]
+    },
+    {
+      "route": "/dashboard/competitions/cmopuejpb00645mrob3dv5571",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 559,
+      "serverTimingMs": null,
+      "bytes": 115481,
+      "runs": [
+        1424,
+        575,
+        542
+      ]
+    },
+    {
+      "route": "/dashboard/competitions/cmopuejpb00645mrob3dv5571",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 736,
+      "serverTimingMs": null,
+      "bytes": 101846,
+      "runs": [
+        781,
+        521,
+        950
+      ]
+    },
+    {
+      "route": "/dashboard/members/cmopuec0100155mroz1pj89bh",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 72,
+      "serverTimingMs": null,
+      "bytes": 78696,
+      "runs": [
+        600,
+        74,
+        69
+      ]
+    },
+    {
+      "route": "/dashboard/members/cmopuec0100155mroz1pj89bh",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 43,
+      "serverTimingMs": null,
+      "bytes": 71990,
+      "runs": [
+        42,
+        36,
+        50
+      ]
+    },
+    {
+      "route": "/dashboard/practice/cmopuf5bw00ib5mror8uvhxui",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 195,
+      "serverTimingMs": null,
+      "bytes": 99669,
+      "runs": [
+        1010,
+        206,
+        183
+      ]
+    },
+    {
+      "route": "/dashboard/practice/cmopuf5bw00ib5mror8uvhxui",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 161,
+      "serverTimingMs": null,
+      "bytes": 104593,
+      "runs": [
+        196,
+        194,
+        128
+      ]
+    },
+    {
+      "route": "/dashboard/practice/attempts/cmopuff3100nl5mrogk3xrtds",
+      "role": "WEBSITE_OWNER",
+      "status": 200,
+      "totalMs": 248,
+      "serverTimingMs": null,
+      "bytes": 81369,
+      "runs": [
+        939,
+        207,
+        288
+      ]
+    },
+    {
+      "route": "/dashboard/practice/attempts/cmopuff3100nl5mrogk3xrtds",
+      "role": "MEMBER",
+      "status": 200,
+      "totalMs": 218,
+      "serverTimingMs": null,
+      "bytes": 85400,
+      "runs": [
+        673,
+        177,
+        259
+      ]
+    }
+  ]
+}
