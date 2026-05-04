@@ -26,6 +26,10 @@ echo "======================================================================"
 # launchd does not source shell rc files; ensure the binaries we need are on PATH.
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 
+# launchd starts processes with a max-files cap of 256, which Node + Next.js +
+# headless claude blow through. Bump it to a value `claude` is happy with.
+ulimit -n 65536 2>/dev/null || true
+
 cd "$PROJECT_DIR"
 
 # Sanity checks before we touch anything.
