@@ -88,10 +88,13 @@ done
 
 # Hand off to claude. Bypass permission prompts since this is unattended.
 # Tools allowed: just enough to walk flows and edit code.
+CLAUDE_DEBUG_LOG="$LOG_DIR/scioly-audit-loop.claude-debug.log"
 claude -p "/audit-loop --auto-mechanical" \
   --permission-mode bypassPermissions \
   --allowedTools "Bash Edit Read Write Glob Grep Agent" \
-  --output-format text
+  --output-format text \
+  --debug-file "$CLAUDE_DEBUG_LOG" || \
+  echo "[daily-audit] claude exited non-zero; see $CLAUDE_DEBUG_LOG"
 
 # Stop dev server now (also handled by trap, but explicit so the next steps see it down).
 cleanup
