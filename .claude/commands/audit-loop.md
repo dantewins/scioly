@@ -17,6 +17,7 @@ Today's date for filenames: use `date +%Y-%m-%d`.
 Parse the user's invocation:
 - `--measure-only` → run step 3 only, exit after diff is printed
 - `--no-fix` → run steps 1–6, write the digest, post a summary, exit before triage/implement
+- `--auto-mechanical` → run all steps but skip step 8 (wait for triage). Auto-apply the `auto-mechanical` shortcut: fix every P1 + Slow + Dead-code + Refactor finding without asking. Track B items are recorded in the digest and left unfixed.
 - `--reseed` → run `npm run seed:large` at step 1
 - (no flags) → full cycle, all 11 steps
 
@@ -177,9 +178,11 @@ Audit complete. <n> findings written to docs/audit/<date>.md
 
 Exit without prompting for triage.
 
-### 8. Wait for triage
+### 8. Wait for triage (skip if `--auto-mechanical`)
 
-Post a digest in chat with both tracks visible. Accept input like:
+If `--auto-mechanical` was passed, do NOT post a chat prompt — proceed directly to step 9 with the triage policy fixed to: every P1 + Slow + Dead-code + Refactor item gets `fix-now`; all Track B items (Missing, UX, UI) get `later`.
+
+Otherwise, post a digest in chat with both tracks visible. Accept input like:
 - `fix f1, f4, f7-f9; skip f2; later f10-f12`
 - `auto-mechanical` (fix all P1 + Slow + Dead-code + Refactor)
 - `auto-track-a` (everything in Track A)
