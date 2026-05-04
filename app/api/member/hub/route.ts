@@ -12,13 +12,8 @@ function centsToDollars(cents: number): number {
 
 function decimalToNumber(value: unknown): number | null {
   if (value === null || value === undefined) return null
-  if (typeof value === "number") return value
-  if (typeof value === "string") return Number(value)
-  if (typeof value === "object" && value !== null && "toNumber" in value) {
-    const toNumber = (value as { toNumber: () => number }).toNumber
-    return toNumber()
-  }
-  return Number(value)
+  const num = Number(value)
+  return Number.isFinite(num) ? num : null
 }
 
 function calculateDayStreak(isoDates: string[]): number {

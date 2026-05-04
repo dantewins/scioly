@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import {
   deletePracticeAssessment,
+  getPracticeAssessmentForAdmin,
   updatePracticeAssessment,
 } from "@/lib/practice-assessments"
 
@@ -15,6 +16,16 @@ async function resolveAssessment(id: string, clubId: string) {
     select: { id: true },
   })
 }
+
+export const GET = withPermission(
+  "view_practice",
+  async (_req, ctx: { params: Promise<{ id: string }> }, user) => {
+    const { id } = await ctx.params
+    const assessment = await getPracticeAssessmentForAdmin(id, user.clubId)
+    if (!assessment) return err("Test not found.", 404)
+    return ok(assessment)
+  },
+)
 
 const patchSchema = z.object({
   title: z.string().min(1).max(200).optional(),

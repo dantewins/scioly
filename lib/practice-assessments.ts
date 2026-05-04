@@ -459,6 +459,18 @@ export async function listPracticeAssessmentsForAdmin(
   return assessments.map((assessment) => mapPracticeAssessment(assessment))
 }
 
+export async function getPracticeAssessmentForAdmin(
+  id: string,
+  clubId: string,
+): Promise<PracticeAssessmentRecord | null> {
+  const assessment = await prisma.assessment.findFirst({
+    where: { id, season: { clubId } },
+    include: buildPracticeAssessmentInclude(),
+  })
+  if (!assessment) return null
+  return mapPracticeAssessment(assessment)
+}
+
 export async function listPracticeAssessmentsForMember(
   seasonId: string,
   memberSeasonId: string | null,

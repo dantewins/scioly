@@ -152,7 +152,7 @@ export function buildRateLimitKey(
   return `${scope}:${client}:${normalizedSubject}`
 }
 
-export function rateLimitRetryAfterSeconds(retryAfterMs: number): number {
+function rateLimitRetryAfterSeconds(retryAfterMs: number): number {
   return Math.max(1, Math.ceil(retryAfterMs / 1000))
 }
 
