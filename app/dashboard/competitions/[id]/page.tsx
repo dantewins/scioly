@@ -25,18 +25,21 @@ export default async function CompetitionDetailPage({ params }: Props) {
 
   const competition = await prisma.competition.findFirst({
     where: { id, season: { clubId: user.clubId } },
-    include: {
-      eventSchedules: {
-        include: { event: { select: { id: true, name: true, code: true } } },
-        orderBy: { timeSlot: "asc" },
-      },
+    select: {
+      id: true,
+      seasonId: true,
+      name: true,
+      type: true,
+      location: true,
+      startsAt: true,
+      isPublished: true,
     },
   })
   if (!competition) notFound()
 
   const canManage = canEdit(user.permissions, "competitions")
 
-  const [rosters, seasonRosters, activeMembers, slots, events] = await Promise.all([
+  const [rosters, seasonRosters, activeMembers, slots, events, eventSchedules] = await Promise.all([
     listCanonicalCompetitionRosters(competition.id),
     prisma.seasonRoster.findMany({
       where: { seasonId: competition.seasonId },
@@ -71,6 +74,16 @@ export default async function CompetitionDetailPage({ params }: Props) {
       where: { seasonId: competition.seasonId },
       select: { id: true, name: true, code: true },
       orderBy: { sortOrder: "asc" },
+    }),
+    prisma.eventSchedule.findMany({
+      where: { competitionId: competition.id },
+      select: {
+        id: true,
+        timeSlot: true,
+        slotLabel: true,
+        event: { select: { id: true, name: true, code: true } },
+      },
+      orderBy: { timeSlot: "asc" },
     }),
   ])
 
@@ -135,7 +148,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
         <TabsContent value="schedule" className="mt-4">
           <CompetitionScheduleTable
               events={events}
-              initialSchedules={competition.eventSchedules.map((s) => ({
+              initialSchedules={eventSchedules.map((s) => ({
                 id: s.id,
                 timeSlot: s.timeSlot,
                 slotLabel: s.slotLabel,

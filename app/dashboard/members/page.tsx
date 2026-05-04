@@ -24,14 +24,20 @@ export default async function MembersPage() {
           membershipStatus: { notIn: ["PENDING"] },
           user: { clubId: user.clubId },
         },
-        include: {
+        select: {
+          id: true,
+          membershipStatus: true,
           user: {
             select: {
               id: true, firstName: true, lastName: true,
               email: true, gradeLevel: true, role: true,
             },
           },
-          roles: { include: { clubRole: { select: { id: true, name: true } } } },
+          roles: {
+            select: {
+              clubRole: { select: { id: true, name: true } },
+            },
+          },
         },
         orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }],
       })
