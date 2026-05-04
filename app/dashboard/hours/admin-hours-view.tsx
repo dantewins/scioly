@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { IconCheck, IconX, IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Card, CardContent,
@@ -48,23 +49,50 @@ interface Props {
 export function AdminHoursView({ pendingEntries: initial, categories: initialCats, canManageCategories }: Props) {
   const [entries, setEntries] = useState<Entry[]>(initial)
   const [categories, setCategories] = useState<Category[]>(initialCats)
-  const [rejectingId, setRejectingId] = useState<string | null>(null)
+  const [rejectingIds, setRejectingIds] = useState<string[] | null>(null)
   const [rejectReason, setRejectReason] = useState("")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showCreateCat, setShowCreateCat] = useState(false)
   const [catForm, setCatForm] = useState({ name: "", description: "", requiredHours: "", requiresApproval: true })
   const [loading, setLoading] = useState(false)
 
-  async function review(entryId: string, action: "approve" | "reject", reason?: string) {
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) =>
+      prev.size === entries.length && entries.length > 0
+        ? new Set()
+        : new Set(entries.map((e) => e.id)),
+    )
+  }
+
+  async function review(entryIds: string[], action: "approve" | "reject", reason?: string) {
+    if (entryIds.length === 0) return
     setLoading(true)
     try {
       await apiCall("/api/admin/hours", {
         method: "PATCH",
-        body: JSON.stringify({ entryId, action, rejectionReason: reason }),
+        body: JSON.stringify({ entryIds, action, rejectionReason: reason }),
       })
-      setEntries((e) => e.filter((x) => x.id !== entryId))
-      setRejectingId(null)
+      const removed = new Set(entryIds)
+      setEntries((e) => e.filter((x) => !removed.has(x.id)))
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        for (const id of entryIds) next.delete(id)
+        return next
+      })
+      setRejectingIds(null)
       setRejectReason("")
-      toast.success(action === "approve" ? "Hours approved." : "Hours rejected.")
+      const count = entryIds.length
+      const verb = action === "approve" ? "approved" : "rejected"
+      toast.success(count === 1 ? `Hours ${verb}.` : `${count} entries ${verb}.`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update.")
     } finally { setLoading(false) }
@@ -101,36 +129,83 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
         {entries.length === 0 ? (
           <p className="text-sm text-muted-foreground">No pending hour entries.</p>
         ) : (
-          entries.map((entry) => (
-            <Card key={entry.id}>
-              <CardContent className="flex items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm truncate">{entry.title}</p>
-                    <Badge variant="secondary" className="text-xs shrink-0">{Number(entry.totalHours).toFixed(1)} hrs</Badge>
-                    <Badge variant="outline" className="text-xs shrink-0">{entry.category.name}</Badge>
+          <>
+            <div className="flex items-center justify-between gap-2 rounded-[var(--radius)] border bg-muted/30 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedIds.size > 0 && selectedIds.size === entries.length}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Select all pending entries"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {selectedIds.size === 0
+                    ? `${entries.length} pending`
+                    : `${selectedIds.size} of ${entries.length} selected`}
+                </span>
+              </div>
+              {selectedIds.size > 0 && (
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-green-600"
+                    onClick={() => review([...selectedIds], "approve")}
+                    disabled={loading}
+                  >
+                    <IconCheck className="mr-1.5 size-[15px]" />
+                    Approve {selectedIds.size}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive"
+                    onClick={() => setRejectingIds([...selectedIds])}
+                    disabled={loading}
+                  >
+                    <IconX className="mr-1.5 size-[15px]" />
+                    Reject {selectedIds.size}
+                  </Button>
+                </div>
+              )}
+            </div>
+            {entries.map((entry) => (
+              <Card key={entry.id}>
+                <CardContent className="flex items-start gap-4">
+                  <div className="pt-0.5">
+                    <Checkbox
+                      checked={selectedIds.has(entry.id)}
+                      onCheckedChange={() => toggleSelected(entry.id)}
+                      aria-label={`Select ${entry.title}`}
+                    />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {entry.memberSeason.user.firstName} {entry.memberSeason.user.lastName}
-                    {entry.description && ` · ${entry.description.slice(0, 80)}`}
-                  </p>
-                  {entry.proofUrl && (
-                    <a href={entry.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline mt-0.5 block">
-                      View proof
-                    </a>
-                  )}
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button size="icon-sm" variant="outline" className="text-green-600" onClick={() => review(entry.id, "approve")} disabled={loading}>
-                    <IconCheck className="size-4" />
-                  </Button>
-                  <Button size="icon-sm" variant="outline" className="text-destructive" onClick={() => setRejectingId(entry.id)} disabled={loading}>
-                    <IconX className="size-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{entry.title}</p>
+                      <Badge variant="secondary" className="text-xs shrink-0">{Number(entry.totalHours).toFixed(1)} hrs</Badge>
+                      <Badge variant="outline" className="text-xs shrink-0">{entry.category.name}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {entry.memberSeason.user.firstName} {entry.memberSeason.user.lastName}
+                      {entry.description && ` · ${entry.description.slice(0, 80)}`}
+                    </p>
+                    {entry.proofUrl && (
+                      <a href={entry.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline mt-0.5 block">
+                        View proof
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="icon-sm" variant="outline" className="text-green-600" onClick={() => review([entry.id], "approve")} disabled={loading}>
+                      <IconCheck className="size-4" />
+                    </Button>
+                    <Button size="icon-sm" variant="outline" className="text-destructive" onClick={() => setRejectingIds([entry.id])} disabled={loading}>
+                      <IconX className="size-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </>
         )}
       </TabsContent>
 
@@ -163,12 +238,12 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
 
       {/* Reject dialog */}
       <RejectHoursDialog
-        open={!!rejectingId}
+        open={!!rejectingIds && rejectingIds.length > 0}
         reason={rejectReason}
         loading={loading}
         onReasonChange={setRejectReason}
-        onConfirm={() => rejectingId && review(rejectingId, "reject", rejectReason)}
-        onCancel={() => { setRejectingId(null); setRejectReason("") }}
+        onConfirm={() => rejectingIds && review(rejectingIds, "reject", rejectReason)}
+        onCancel={() => { setRejectingIds(null); setRejectReason("") }}
       />
 
       {/* Create category dialog */}

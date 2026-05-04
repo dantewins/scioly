@@ -32,7 +32,7 @@ export const GET = withPermission("view_hours", async (req, _ctx, user) => {
 })
 
 const reviewSchema = z.object({
-  entryId: z.string(),
+  entryIds: z.array(z.string().min(1)).min(1).max(200),
   action: z.enum(["approve", "reject"]),
   rejectionReason: z.string().max(500).optional(),
 })
@@ -42,20 +42,22 @@ export const PATCH = withPermission("edit_hours", async (req, _ctx, user) => {
   const parsed = reviewSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
 
-  const { entryId, action, rejectionReason } = parsed.data
+  const { entryIds, action, rejectionReason } = parsed.data
 
-  // Verify entry belongs to this club
-  const entry = await prisma.hourEntry.findFirst({
-    where: { id: entryId, memberSeason: { season: { clubId: user.clubId } } },
+  const entries = await prisma.hourEntry.findMany({
+    where: { id: { in: entryIds }, memberSeason: { season: { clubId: user.clubId } } },
+    select: { id: true },
   })
-  if (!entry) return err("Hour entry not found.", 404)
+  if (entries.length !== entryIds.length) {
+    return err("One or more hour entries not found.", 404)
+  }
 
-  const updated = await prisma.hourEntry.update({
-    where: { id: entryId },
+  const result = await prisma.hourEntry.updateMany({
+    where: { id: { in: entryIds } },
     data:
       action === "approve"
         ? { status: "APPROVED", approvedAt: new Date(), approvedById: user.id, rejectionReason: null }
         : { status: "REJECTED", rejectionReason: rejectionReason ?? "No reason provided." },
   })
-  return ok(updated)
+  return ok({ count: result.count })
 })
