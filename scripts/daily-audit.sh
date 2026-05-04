@@ -89,6 +89,10 @@ done
 # Hand off to claude. Bypass permission prompts since this is unattended.
 # Tools allowed: just enough to walk flows and edit code.
 CLAUDE_DEBUG_LOG="$LOG_DIR/scioly-audit-loop.claude-debug.log"
+echo "[daily-audit] claude env: HOME=$HOME USER=$USER PWD=$(pwd)"
+echo "[daily-audit] claude binary: $(which claude || echo '<missing>')"
+claude --debug -p "say one word and exit" --output-format text 2>&1 | head -50 || true
+echo "[daily-audit] minimal claude test done"
 claude -p "/audit-loop --auto-mechanical" \
   --permission-mode bypassPermissions \
   --allowedTools "Bash Edit Read Write Glob Grep Agent" \
