@@ -20,7 +20,10 @@ export const GET = withPermission("view_finances", async (req, _ctx, user) => {
     },
     include: {
       memberSeason: {
-        include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+        select: {
+          id: true,
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
       },
       payments: { select: { id: true, amountCents: true, method: true, paidAt: true } },
     },

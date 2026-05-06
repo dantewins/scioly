@@ -22,7 +22,10 @@ export const GET = withPermission("view_hours", async (req, _ctx, user) => {
     },
     include: {
       memberSeason: {
-        include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+        select: {
+          id: true,
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
       },
       category: { select: { id: true, name: true } },
     },

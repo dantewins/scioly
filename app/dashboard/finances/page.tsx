@@ -21,7 +21,10 @@ export default async function FinancesPage() {
       where: { seasonId: season.id },
       include: {
         memberSeason: {
-          include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+          select: {
+            id: true,
+            user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
         },
         payments: { select: { id: true, amountCents: true, method: true, paidAt: true, referenceNumber: true } },
       },
@@ -29,7 +32,10 @@ export default async function FinancesPage() {
     }),
     prisma.memberSeason.findMany({
       where: { seasonId: season.id, membershipStatus: "ACTIVE", user: { clubId: user.clubId } },
-      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      select: {
+        id: true,
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
       orderBy: [{ user: { lastName: "asc" } }],
     }),
   ]) : [[], []]
