@@ -20,7 +20,10 @@ export const GET = withPermission(
       },
       include: {
         memberSeason: {
-          include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+          select: {
+            id: true,
+            user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
         },
       },
       orderBy: { submittedAt: "desc" },

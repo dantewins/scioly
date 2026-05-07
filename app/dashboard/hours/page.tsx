@@ -22,7 +22,12 @@ export default async function HoursPage() {
       prisma.hourEntry.findMany({
         where: { memberSeason: { seasonId: season.id, user: { clubId: user.clubId } }, status: "PENDING" },
         include: {
-          memberSeason: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+          memberSeason: {
+            select: {
+              id: true,
+              user: { select: { id: true, firstName: true, lastName: true } },
+            },
+          },
           category: { select: { id: true, name: true } },
         },
         orderBy: { submittedAt: "asc" },
