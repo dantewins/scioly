@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { IconPlus } from "@tabler/icons-react"
+import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -47,13 +47,49 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: "bg-red-100 text-red-800",
 }
 
+const EMPTY_FORM = { categoryId: "", title: "", description: "", totalHours: "", proofUrl: "" }
+
 export function MemberHoursView({ entries: initial, categories, canSubmit }: Props) {
   const [entries, setEntries] = useState<Entry[]>(initial)
   const [showSubmit, setShowSubmit] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ categoryId: "", title: "", description: "", totalHours: "", proofUrl: "" })
+  const [form, setForm] = useState(EMPTY_FORM)
 
   const selectedCategory = categories.find((c) => c.id === form.categoryId)
+  const isEditing = editingId !== null
+
+  function openEdit(entry: Entry) {
+    setEditingId(entry.id)
+    setForm({
+      categoryId: entry.category.id,
+      title: entry.title,
+      description: entry.description ?? "",
+      totalHours: String(entry.totalHours),
+      proofUrl: "",
+    })
+    setShowSubmit(true)
+  }
+
+  function closeDialog(open: boolean) {
+    setShowSubmit(open)
+    if (!open) {
+      setEditingId(null)
+      setForm(EMPTY_FORM)
+    }
+  }
+
+  async function handleDelete(entryId: string) {
+    if (!window.confirm("Withdraw this pending entry? This cannot be undone.")) return
+    setLoading(true)
+    try {
+      await apiCall(`/api/member/hours/${entryId}`, { method: "DELETE" })
+      setEntries((e) => e.filter((x) => x.id !== entryId))
+      toast.success("Entry withdrawn.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to withdraw.")
+    } finally { setLoading(false) }
+  }
 
   async function handleSubmit() {
     if (!form.categoryId || !form.title || !form.totalHours) {
@@ -61,22 +97,41 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
     }
     setLoading(true)
     try {
-      const data = await apiCall<Entry & { categoryId: string }>("/api/member/hours", {
-        method: "POST",
-        body: JSON.stringify({
-          ...form,
-          totalHours: parseFloat(form.totalHours),
-          proofUrl: form.proofUrl || undefined,
-        }),
-      })
-      setEntries((e) => [{
-        ...data,
-        rejectionReason: null,
-        category: categories.find(c => c.id === data.categoryId) ?? { id: "", name: "" },
-      }, ...e])
-      setShowSubmit(false)
-      setForm({ categoryId: "", title: "", description: "", totalHours: "", proofUrl: "" })
-      toast.success("Hours submitted.")
+      if (isEditing && editingId) {
+        const data = await apiCall<Entry & { categoryId: string }>(`/api/member/hours/${editingId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            categoryId: form.categoryId,
+            title: form.title,
+            description: form.description || null,
+            totalHours: parseFloat(form.totalHours),
+          }),
+        })
+        setEntries((e) =>
+          e.map((x) => x.id === editingId ? {
+            ...x,
+            ...data,
+            category: categories.find(c => c.id === data.categoryId) ?? x.category,
+          } : x),
+        )
+        toast.success("Entry updated.")
+      } else {
+        const data = await apiCall<Entry & { categoryId: string }>("/api/member/hours", {
+          method: "POST",
+          body: JSON.stringify({
+            ...form,
+            totalHours: parseFloat(form.totalHours),
+            proofUrl: form.proofUrl || undefined,
+          }),
+        })
+        setEntries((e) => [{
+          ...data,
+          rejectionReason: null,
+          category: categories.find(c => c.id === data.categoryId) ?? { id: "", name: "" },
+        }, ...e])
+        toast.success("Hours submitted.")
+      }
+      closeDialog(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to submit.")
     } finally { setLoading(false) }
@@ -107,17 +162,42 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
                   <p className="text-xs text-destructive mt-0.5">{entry.rejectionReason}</p>
                 )}
               </div>
-              <Badge className={STATUS_COLORS[entry.status] ?? ""} variant="outline">
-                {entry.status}
-              </Badge>
+              <div className="flex items-center gap-1 shrink-0">
+                <Badge className={STATUS_COLORS[entry.status] ?? ""} variant="outline">
+                  {entry.status}
+                </Badge>
+                {entry.status === "PENDING" && canSubmit && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => openEdit(entry)}
+                      disabled={loading}
+                      aria-label={`Edit ${entry.title}`}
+                    >
+                      <IconPencil className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(entry.id)}
+                      disabled={loading}
+                      aria-label={`Withdraw ${entry.title}`}
+                    >
+                      <IconTrash className="size-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </Card>
           ))
         )}
       </div>
 
-      <Dialog open={showSubmit} onOpenChange={setShowSubmit}>
+      <Dialog open={showSubmit} onOpenChange={closeDialog}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Log Hours</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{isEditing ? "Edit Hours" : "Log Hours"}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Category</Label>
@@ -143,14 +223,18 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
               <Label>Notes (optional)</Label>
               <Input value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} />
             </div>
-            <div className="space-y-1.5">
-              <Label>Proof URL (optional)</Label>
-              <Input type="url" value={form.proofUrl} onChange={(e) => setForm(f => ({ ...f, proofUrl: e.target.value }))} placeholder="https://..." />
-            </div>
+            {!isEditing && (
+              <div className="space-y-1.5">
+                <Label>Proof URL (optional)</Label>
+                <Input type="url" value={form.proofUrl} onChange={(e) => setForm(f => ({ ...f, proofUrl: e.target.value }))} placeholder="https://..." />
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSubmit(false)}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={loading}>{loading ? "Submitting..." : "Submit"}</Button>
+            <Button variant="outline" onClick={() => closeDialog(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading ? (isEditing ? "Saving..." : "Submitting...") : (isEditing ? "Save" : "Submit")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
