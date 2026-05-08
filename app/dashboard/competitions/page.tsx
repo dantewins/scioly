@@ -23,6 +23,15 @@ const TYPE_COLORS: Record<string, string> = {
   OTHER: "bg-gray-100 text-gray-800",
 }
 
+const TYPE_LABELS: Record<string, string> = {
+  INVITATIONAL: "Invitational",
+  REGIONAL: "Regional",
+  STATE: "State",
+  NATIONAL: "National",
+  PRACTICE: "Practice",
+  OTHER: "Other",
+}
+
 export default async function CompetitionsPage() {
   const user = await getCurrentUser()
   if (!user) redirect("/login")
@@ -58,7 +67,7 @@ export default async function CompetitionsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-sm leading-tight">{comp.name}</p>
                     <Badge className={TYPE_COLORS[comp.type] ?? ""} variant="outline">
-                      {comp.type}
+                      {TYPE_LABELS[comp.type] ?? comp.type}
                     </Badge>
                   </div>
                   {comp.location && (
