@@ -16,6 +16,7 @@ export const GET = withMemberAuth(async (_req, _ctx, user) => {
     where: { memberSeasonId: ms.id },
     include: { category: { select: { id: true, name: true } } },
     orderBy: { submittedAt: "desc" },
+    take: 100,
   })
   return ok(entries)
 })

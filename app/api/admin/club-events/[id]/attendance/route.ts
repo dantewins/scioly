@@ -126,7 +126,10 @@ export const POST = withPermission(
         where: { id: attendance.id },
         include: {
           memberSeason: {
-            include: { user: { select: { id: true, firstName: true, lastName: true } } },
+            select: {
+              id: true,
+              user: { select: { id: true, firstName: true, lastName: true } },
+            },
           },
         },
       })

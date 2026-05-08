@@ -17,7 +17,8 @@ export const GET = withPermission(
       where: { eventId, memberSeason: { seasonId: season.id, user: { clubId: user.clubId } } },
       include: {
         memberSeason: {
-          include: {
+          select: {
+            id: true,
             user: { select: { id: true, firstName: true, lastName: true, email: true, gradeLevel: true } },
           },
         },
