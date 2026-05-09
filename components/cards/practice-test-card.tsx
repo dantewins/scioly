@@ -11,7 +11,7 @@ import {
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 
 type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
 type AssessmentPartType = "SECTION" | "STATION"
@@ -64,11 +64,11 @@ export function PracticeTestCard({
 }: PracticeTestCardProps) {
   return (
     <Card className="group">
-      <CardHeader className="pb-2">
+      <CardContent className="space-y-1.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-sm font-medium">{test.title}</CardTitle>
+              <p className="text-sm font-medium leading-none">{test.title}</p>
               <Badge variant={test.isPublished ? "default" : "secondary"} className="text-xs">
                 {test.isPublished ? "Published" : "Draft"}
               </Badge>
@@ -112,8 +112,6 @@ export function PracticeTestCard({
             </div>
           )}
         </div>
-      </CardHeader>
-      <CardContent className="pt-0 space-y-1">
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           {test.event && (
             <span className="font-medium text-foreground">{test.event.name}</span>

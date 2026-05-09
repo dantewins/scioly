@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic"
 const addSchema = z.object({
   eventId: z.string(),
   timeSlot: z.number().int().min(1),
-  slotLabel: z.string().max(50).optional(),
+  startsAt: z.string().datetime().optional(),
 })
 
 export const POST = withPermission(
@@ -36,13 +36,26 @@ export const POST = withPermission(
     })
     if (!event) return err("Event not found.", 404)
 
+    const startsAt = parsed.data.startsAt ? new Date(parsed.data.startsAt) : null
+    const slotLabel = startsAt
+      ? startsAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+      : `Slot ${parsed.data.timeSlot}`
+
     const schedule = await prisma.$transaction(async (tx) => {
       await syncCompetitionEventsForCompetition(competitionId, tx)
 
       const nextSchedule = await tx.eventSchedule.upsert({
         where: { competitionId_eventId: { competitionId, eventId: parsed.data.eventId } },
-        create: { competitionId, ...parsed.data },
-        update: { timeSlot: parsed.data.timeSlot, slotLabel: parsed.data.slotLabel },
+        create: {
+          competitionId,
+          eventId: parsed.data.eventId,
+          timeSlot: parsed.data.timeSlot,
+          startsAt,
+        },
+        update: {
+          timeSlot: parsed.data.timeSlot,
+          startsAt,
+        },
       })
 
       try {
@@ -52,11 +65,13 @@ export const POST = withPermission(
             competitionId,
             eventId: parsed.data.eventId,
             scheduleId: nextSchedule.id,
-            label: parsed.data.slotLabel ?? `Slot ${parsed.data.timeSlot}`,
+            label: slotLabel,
+            startsAt,
           },
           update: {
             eventId: parsed.data.eventId,
-            label: parsed.data.slotLabel ?? `Slot ${parsed.data.timeSlot}`,
+            label: slotLabel,
+            startsAt,
           },
         })
       } catch (error) {

@@ -1,18 +1,17 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
-  IconClipboardList,
   IconEdit,
+  IconLoader2,
   IconPlus,
   IconTrash,
-  IconUserPlus,
-  IconUsersGroup,
+  IconWand,
+  IconX,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
 import { SectionCard } from "@/components/ui/section-card"
 import {
   CompetitionRosterDialog,
@@ -104,6 +103,13 @@ interface MemberOption {
   }
 }
 
+interface ScheduleOption {
+  id: string
+  timeSlot: number
+  startsAt: string | null
+  event: { id: string; name: string; code: string | null }
+}
+
 interface Props {
   competitionId: string
   initialRosters: CompetitionRosterRecord[]
@@ -111,12 +117,26 @@ interface Props {
   seasonRosters: SeasonRosterOption[]
   members: MemberOption[]
   slots: AssessmentSlot[]
+  schedules: ScheduleOption[]
   canManage: boolean
+}
+
+const STATUS_BADGE: Record<CompetitionEntryStatus, string> = {
+  PLANNED: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+  CONFIRMED: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  FINALIZED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  DROPPED: "bg-zinc-100 text-zinc-500 line-through dark:bg-zinc-800 dark:text-zinc-500",
 }
 
 function memberLabel(member: CompetitionRosterRecord["assignments"][number]["participants"][number]["memberSeason"]) {
   return `${member.user.firstName} ${member.user.lastName}`
 }
+
+function getInitials(name: string): string {
+  return name.split(" ").map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase()
+}
+
+type AssignmentRecord = CompetitionRosterRecord["assignments"][number]
 
 export function CompetitionRosterManager({
   competitionId,
@@ -125,6 +145,7 @@ export function CompetitionRosterManager({
   seasonRosters,
   members,
   slots,
+  schedules,
   canManage,
 }: Props) {
   const [rosters, setRosters] = useState(initialRosters)
@@ -141,6 +162,23 @@ export function CompetitionRosterManager({
     rosterId: string
     assignmentId: string
   } | null>(null)
+  const [selectedRosterId, setSelectedRosterId] = useState<string | null>(initialRosters[0]?.id ?? null)
+
+  // Keep selectedRosterId valid when rosters change (e.g. delete, create)
+  useEffect(() => {
+    if (rosters.length === 0) {
+      if (selectedRosterId !== null) setSelectedRosterId(null)
+      return
+    }
+    if (!selectedRosterId || !rosters.some((r) => r.id === selectedRosterId)) {
+      setSelectedRosterId(rosters[0].id)
+    }
+  }, [rosters, selectedRosterId])
+
+  const selectedRoster = useMemo(
+    () => rosters.find((r) => r.id === selectedRosterId) ?? null,
+    [rosters, selectedRosterId],
+  )
 
   const rosterMap = useMemo(
     () => Object.fromEntries(seasonRosters.map((roster) => [roster.id, roster.name])),
@@ -154,11 +192,95 @@ export function CompetitionRosterManager({
       ?.assignments.find((assignment) => assignment.id === participantDialog.assignmentId) ?? null
   }, [participantDialog, rosters])
 
+  const activeRoster = useMemo(() => {
+    if (!participantDialog) return null
+    return rosters.find((r) => r.id === participantDialog.rosterId) ?? null
+  }, [participantDialog, rosters])
+
   const availableMembers = useMemo(() => {
-    if (!activeAssignment) return members
-    const assignedIds = new Set(activeAssignment.participants.map((item) => item.memberSeason.id))
-    return members.filter((member) => !assignedIds.has(member.id))
-  }, [activeAssignment, members])
+    if (!activeAssignment || !activeRoster) return members
+    const inThisAssignment = new Set(
+      activeAssignment.participants.map((item) => item.memberSeason.id),
+    )
+    const activeTime = (() => {
+      if (activeAssignment.schedule?.startsAt) {
+        const t = new Date(activeAssignment.schedule.startsAt).getTime()
+        return Number.isNaN(t) ? null : t
+      }
+      if (activeAssignment.slot?.startsAt) {
+        const t = new Date(activeAssignment.slot.startsAt).getTime()
+        return Number.isNaN(t) ? null : t
+      }
+      return null
+    })()
+    const conflictingMembers = new Set<string>()
+    if (activeTime != null) {
+      for (const a of activeRoster.assignments) {
+        if (a.id === activeAssignment.id) continue
+        const aTime = a.schedule?.startsAt
+          ? new Date(a.schedule.startsAt).getTime()
+          : a.slot?.startsAt
+            ? new Date(a.slot.startsAt).getTime()
+            : null
+        if (aTime !== activeTime) continue
+        for (const p of a.participants) conflictingMembers.add(p.memberSeason.id)
+      }
+    }
+    return members.filter((m) => !inThisAssignment.has(m.id) && !conflictingMembers.has(m.id))
+  }, [activeAssignment, activeRoster, members])
+
+  const [autoAssigning, setAutoAssigning] = useState(false)
+  const [createForSchedule, setCreateForSchedule] = useState<string | null>(null)
+
+  // Build time rows from schedules — group events that share the same start time.
+  type TimeRow = {
+    key: string
+    time: string
+    sortValue: number
+    schedules: ScheduleOption[]
+  }
+  const timeRows = useMemo<TimeRow[]>(() => {
+    const map = new Map<string, TimeRow>()
+    for (const s of schedules) {
+      let key: string
+      let time: string
+      let sortValue: number
+      if (!s.startsAt) {
+        key = "no-time"
+        time = "No time"
+        sortValue = Number.MAX_SAFE_INTEGER
+      } else {
+        const date = new Date(s.startsAt)
+        if (Number.isNaN(date.getTime())) continue
+        key = String(date.getTime())
+        time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+        sortValue = date.getTime()
+      }
+      const existing = map.get(key)
+      if (existing) {
+        existing.schedules.push(s)
+      } else {
+        map.set(key, { key, time, sortValue, schedules: [s] })
+      }
+    }
+    return [...map.values()].sort((a, b) => a.sortValue - b.sortValue)
+  }, [schedules])
+
+  // For the selected roster, look up assignment by scheduleId
+  const assignmentByScheduleId = useMemo(() => {
+    const map = new Map<string, AssignmentRecord>()
+    if (!selectedRoster) return map
+    for (const a of selectedRoster.assignments) {
+      if (a.schedule) map.set(a.schedule.id, a)
+    }
+    return map
+  }, [selectedRoster])
+
+  // Assignments that aren't tied to any schedule (legacy or orphaned)
+  const unscheduledAssignments = useMemo<AssignmentRecord[]>(() => {
+    if (!selectedRoster) return []
+    return selectedRoster.assignments.filter((a) => !a.schedule)
+  }, [selectedRoster])
 
   function upsertRoster(nextRoster: CompetitionRosterRecord) {
     setRosters((current) => {
@@ -259,6 +381,46 @@ export function CompetitionRosterManager({
       toast.success("Roster deleted.")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete roster.")
+    }
+  }
+
+  async function handleAutoAssign(roster: CompetitionRosterRecord) {
+    setAutoAssigning(true)
+    try {
+      const result = await apiCall<{ roster: CompetitionRosterRecord; added: number }>(
+        `/api/admin/competitions/${competitionId}/rosters/${roster.id}/auto-assign`,
+        { method: "POST" },
+      )
+      upsertRoster(result.roster)
+      if (result.added === 0) {
+        toast.info("No eligible members to assign — all slots are filled or no enrollment data found.")
+      } else {
+        toast.success(`Auto-assigned ${result.added} member${result.added === 1 ? "" : "s"}.`)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Auto-assign failed.")
+    } finally {
+      setAutoAssigning(false)
+    }
+  }
+
+  async function handleAddScheduledEvent(roster: CompetitionRosterRecord, scheduleId: string, eventId: string) {
+    setCreateForSchedule(scheduleId)
+    try {
+      const created = await apiCall<CompetitionRosterRecord["assignments"][number]>(
+        `/api/admin/competitions/${competitionId}/rosters/${roster.id}/assignments`,
+        {
+          method: "POST",
+          body: JSON.stringify({ eventId, scheduleId }),
+        },
+      )
+      updateAssignment(roster.id, created)
+      // Open participant dialog so the user can immediately add members
+      setParticipantDialog({ rosterId: roster.id, assignmentId: created.id })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add event to roster.")
+    } finally {
+      setCreateForSchedule(null)
     }
   }
 
@@ -414,7 +576,7 @@ export function CompetitionRosterManager({
     <div className="space-y-4">
       <SectionCard
         title="Canonical Rosters"
-        description="Manage direct competition rosters, event entries, and assigned members."
+        description="Pick a roster to view its event calendar and assigned members."
         action={canManage ? (
           <Button size="sm" onClick={openCreateRoster}>
             <IconPlus className="mr-1.5 size-[15px]" />
@@ -427,128 +589,275 @@ export function CompetitionRosterManager({
             No canonical competition rosters yet.
           </p>
         ) : (
-          <div className="space-y-3">
-            {rosters.map((roster) => (
-              <Card key={roster.id} className="px-[var(--card-px)] py-[var(--card-py)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center gap-2">
-                        <IconUsersGroup className="size-4 text-muted-foreground" />
-                        <p className="text-sm font-medium">{roster.label}</p>
-                      </div>
-                      {roster.division && <Badge variant="outline" className="text-xs">{roster.division}</Badge>}
-                      {roster.seasonRosterId && (
+          <div className="space-y-4">
+            {/* Roster selector tabs (squad-style) */}
+            <div className="flex flex-wrap items-center gap-2">
+              {rosters.map((roster) => {
+                const isActive = roster.id === selectedRosterId
+                return (
+                  <button
+                    key={roster.id}
+                    type="button"
+                    onClick={() => setSelectedRosterId(roster.id)}
+                    className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {roster.label}
+                    {roster.division && (
+                      <span className={`ml-1.5 text-xs ${isActive ? "opacity-80" : "opacity-70"}`}>
+                        {roster.division}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {selectedRoster && (
+              <>
+                {/* Selected roster's meta + Auto Assign + Edit/Delete */}
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {selectedRoster.seasonRosterId && (
                         <Badge variant="secondary" className="text-xs">
-                          Base roster: {rosterMap[roster.seasonRosterId] ?? "Linked"}
+                          Base roster: {rosterMap[selectedRoster.seasonRosterId] ?? "Linked"}
                         </Badge>
                       )}
+                      <span>
+                        {selectedRoster.assignments.length} event{selectedRoster.assignments.length === 1 ? "" : "s"} assigned
+                      </span>
                     </div>
-                    {roster.notes && (
-                      <p className="text-sm text-muted-foreground">{roster.notes}</p>
+                    {selectedRoster.notes && (
+                      <p className="text-sm text-muted-foreground">{selectedRoster.notes}</p>
                     )}
                   </div>
                   {canManage && (
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon-sm" onClick={() => openEditRoster(roster)}>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleAutoAssign(selectedRoster)}
+                        disabled={autoAssigning || selectedRoster.assignments.length === 0}
+                      >
+                        {autoAssigning ? <IconLoader2 className="mr-1.5 size-4 animate-spin" /> : <IconWand className="mr-1.5 size-4" />}
+                        Auto Assign
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEditRoster(selectedRoster)}>
                         <IconEdit className="size-4" />
                       </Button>
-                      <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" onClick={() => deleteRoster(roster)}>
+                      <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" onClick={() => deleteRoster(selectedRoster)}>
                         <IconTrash className="size-4" />
                       </Button>
                     </div>
                   )}
                 </div>
 
-                <div className="mt-4 space-y-3">
-                  {roster.assignments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No event assignments yet.</p>
-                  ) : (
-                    roster.assignments.map((assignment) => (
-                      <div key={assignment.id} className="rounded-[var(--radius)] border border-border/60 p-[var(--card-py)]">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-medium">{assignment.event.name}</p>
-                              <Badge variant="secondary" className="text-xs">{assignment.status}</Badge>
-                              {assignment.slot && (
-                                <Badge variant="outline" className="text-xs">{assignment.slot.label}</Badge>
-                              )}
-                              {!assignment.slot && assignment.schedule?.slotLabel && (
-                                <Badge variant="outline" className="text-xs">{assignment.schedule.slotLabel}</Badge>
-                              )}
-                              {assignment.room && (
-                                <Badge variant="outline" className="text-xs">Room {assignment.room}</Badge>
-                              )}
-                            </div>
-                            {(assignment.entryLabel || assignment.block) && (
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {[assignment.entryLabel, assignment.block].filter(Boolean).join(" · ")}
-                              </p>
-                            )}
-                          </div>
-                          {canManage && (
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" className="px-2.5" onClick={() => openParticipantDialog(roster, assignment.id)}>
-                                <IconUserPlus className="mr-1 size-4" />
-                                Member
-                              </Button>
-                              <Button variant="ghost" size="icon-sm" onClick={() => openEditAssignment(roster, assignment)}>
-                                <IconEdit className="size-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" onClick={() => deleteAssignment(roster, assignment.id)}>
-                                <IconTrash className="size-4" />
-                              </Button>
-                            </div>
-                          )}
+                {/* Vertical time-sidebar calendar */}
+                {timeRows.length === 0 && unscheduledAssignments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No events scheduled. Add events on the <strong>Schedule</strong> tab to populate this calendar.
+                  </p>
+                ) : (
+                  <div className="overflow-hidden rounded-[var(--radius)] border bg-card">
+                    {timeRows.map((row, i) => (
+                      <div
+                        key={row.key}
+                        className={`grid grid-cols-[88px_1fr] gap-3 px-3 py-3 ${i > 0 ? "border-t border-border" : ""}`}
+                      >
+                        {/* Time label column */}
+                        <div className="font-mono text-sm font-semibold text-foreground pt-2">
+                          {row.time}
                         </div>
 
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {assignment.participants.length > 0 ? (
-                            assignment.participants.map((participant) => (
+                        {/* Events at this time */}
+                        <div className="flex flex-wrap gap-2">
+                          {row.schedules.map((schedule) => {
+                            const assignment = assignmentByScheduleId.get(schedule.id)
+                            const eventName = schedule.event.name
+                            const isCreating = createForSchedule === schedule.id
+
+                            // Empty card — schedule exists but this roster has no assignment yet
+                            if (!assignment) {
+                              return (
+                                <button
+                                  key={schedule.id}
+                                  type="button"
+                                  disabled={!canManage || isCreating}
+                                  onClick={() => handleAddScheduledEvent(selectedRoster, schedule.id, schedule.event.id)}
+                                  className="group/card flex w-52 flex-col items-start gap-1 rounded-xl border border-dashed border-border bg-muted/20 p-3 text-left transition-colors enabled:hover:border-primary enabled:hover:bg-primary/5 disabled:opacity-60"
+                                >
+                                  <p className="text-xs font-semibold leading-tight text-muted-foreground group-enabled/card:hover:text-foreground">
+                                    {eventName}
+                                  </p>
+                                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    {isCreating ? (
+                                      <>
+                                        <IconLoader2 className="size-3 animate-spin" />
+                                        Adding…
+                                      </>
+                                    ) : canManage ? (
+                                      <>
+                                        <IconPlus className="size-3" />
+                                        Add to roster
+                                      </>
+                                    ) : (
+                                      "Not on this roster"
+                                    )}
+                                  </span>
+                                </button>
+                              )
+                            }
+
+                            return (
                               <div
-                                key={participant.id}
-                                className="flex items-center gap-2 rounded-[var(--control-radius)] border border-border/70 px-2 py-1 text-xs"
+                                key={schedule.id}
+                                className="group/card relative w-52 space-y-2 rounded-xl border bg-card p-3"
                               >
-                                <span>{memberLabel(participant.memberSeason)}</span>
-                                {participant.role !== "MEMBER" && (
-                                  <span className="text-muted-foreground">({participant.role})</span>
-                                )}
-                                {participant.seatNumber && (
-                                  <span className="text-muted-foreground">Seat {participant.seatNumber}</span>
-                                )}
-                                {canManage && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-xs"
-                                    className="text-muted-foreground hover:text-destructive"
-                                    onClick={() => removeParticipant(roster.id, assignment.id, participant.id)}
-                                  >
-                                    <IconTrash className="size-3.5" />
-                                  </Button>
-                                )}
+                                <div className="flex items-start justify-between gap-1">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs font-semibold leading-tight">{eventName}</p>
+                                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                                      <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide ${STATUS_BADGE[assignment.status]}`}>
+                                        {assignment.status}
+                                      </span>
+                                      {assignment.room && (
+                                        <span className="text-[10px] text-muted-foreground">Room {assignment.room}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {canManage && (
+                                    <div className="-mr-1 -mt-1 flex shrink-0 items-center opacity-0 transition-opacity group-hover/card:opacity-100">
+                                      <Button variant="ghost" size="icon-xs" onClick={() => openEditAssignment(selectedRoster, assignment)}>
+                                        <IconEdit className="size-3" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-destructive" onClick={() => deleteAssignment(selectedRoster, assignment.id)}>
+                                        <IconTrash className="size-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  {assignment.participants.map((participant) => (
+                                    <div
+                                      key={participant.id}
+                                      className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2 py-1"
+                                    >
+                                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                                        {getInitials(memberLabel(participant.memberSeason))}
+                                      </div>
+                                      <span className="flex-1 truncate text-xs font-medium">{memberLabel(participant.memberSeason)}</span>
+                                      {participant.role !== "MEMBER" && (
+                                        <span className="shrink-0 text-[9px] uppercase text-muted-foreground">{participant.role[0]}</span>
+                                      )}
+                                      {canManage && (
+                                        <button
+                                          type="button"
+                                          onClick={() => removeParticipant(selectedRoster.id, assignment.id, participant.id)}
+                                          className="shrink-0 text-muted-foreground hover:text-foreground"
+                                        >
+                                          <IconX className="size-3" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))}
+
+                                  {canManage && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openParticipantDialog(selectedRoster, assignment.id)}
+                                      className="flex h-7 w-full items-center justify-center rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                                    >
+                                      <IconPlus className="size-3" />
+                                    </button>
+                                  )}
+
+                                  {!canManage && assignment.participants.length === 0 && (
+                                    <p className="text-[10px] italic text-muted-foreground">No members assigned</p>
+                                  )}
+                                </div>
                               </div>
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground">No members assigned.</span>
-                          )}
+                            )
+                          })}
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
 
-                {canManage && (
-                  <div className="mt-4">
-                    <Button variant="outline" size="sm" onClick={() => openCreateAssignment(roster)}>
-                      <IconClipboardList className="mr-1.5 size-4" />
-                      Add Event Assignment
-                    </Button>
+                    {/* Unscheduled assignments fallback row */}
+                    {unscheduledAssignments.length > 0 && (
+                      <div className="grid grid-cols-[88px_1fr] gap-3 border-t border-border bg-muted/20 px-3 py-3">
+                        <div className="pt-2 font-mono text-sm font-semibold text-muted-foreground">No time</div>
+                        <div className="flex flex-wrap gap-2">
+                          {unscheduledAssignments.map((assignment) => (
+                            <div
+                              key={assignment.id}
+                              className="group/card relative w-52 space-y-2 rounded-xl border bg-card p-3"
+                            >
+                              <div className="flex items-start justify-between gap-1">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-xs font-semibold leading-tight">{assignment.event.name}</p>
+                                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                                    <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide ${STATUS_BADGE[assignment.status]}`}>
+                                      {assignment.status}
+                                    </span>
+                                  </div>
+                                </div>
+                                {canManage && (
+                                  <div className="-mr-1 -mt-1 flex shrink-0 items-center opacity-0 transition-opacity group-hover/card:opacity-100">
+                                    <Button variant="ghost" size="icon-xs" onClick={() => openEditAssignment(selectedRoster, assignment)}>
+                                      <IconEdit className="size-3" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-destructive" onClick={() => deleteAssignment(selectedRoster, assignment.id)}>
+                                      <IconTrash className="size-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="space-y-1.5">
+                                {assignment.participants.map((participant) => (
+                                  <div
+                                    key={participant.id}
+                                    className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2 py-1"
+                                  >
+                                    <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                                      {getInitials(memberLabel(participant.memberSeason))}
+                                    </div>
+                                    <span className="flex-1 truncate text-xs font-medium">{memberLabel(participant.memberSeason)}</span>
+                                    {canManage && (
+                                      <button
+                                        type="button"
+                                        onClick={() => removeParticipant(selectedRoster.id, assignment.id, participant.id)}
+                                        className="shrink-0 text-muted-foreground hover:text-foreground"
+                                      >
+                                        <IconX className="size-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                                {canManage && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openParticipantDialog(selectedRoster, assignment.id)}
+                                    className="flex h-7 w-full items-center justify-center rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                                  >
+                                    <IconPlus className="size-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-              </Card>
-            ))}
+              </>
+            )}
           </div>
         )}
       </SectionCard>
