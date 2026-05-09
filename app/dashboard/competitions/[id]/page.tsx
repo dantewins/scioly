@@ -15,6 +15,15 @@ import { CompetitionScheduleTable } from "@/components/tables/competition-schedu
 import { CompetitionRosterManager } from "./competition-roster-manager"
 
 
+const TYPE_LABELS: Record<string, string> = {
+  INVITATIONAL: "Invitational",
+  REGIONAL: "Regional",
+  STATE: "State",
+  NATIONAL: "National",
+  PRACTICE: "Practice",
+  OTHER: "Other",
+}
+
 interface Props { params: Promise<{ id: string }> }
 
 export default async function CompetitionDetailPage({ params }: Props) {
@@ -101,7 +110,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
               formatDateOnly(competition.startsAt),
             ].filter(Boolean).join(" · ")}
           >
-            <Badge variant="outline">{competition.type}</Badge>
+            <Badge variant="outline">{TYPE_LABELS[competition.type] ?? competition.type}</Badge>
             {competition.isPublished && <Badge variant="secondary">Published</Badge>}
           </PageHeader>
         </div>
