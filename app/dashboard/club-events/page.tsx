@@ -13,20 +13,21 @@ export default async function ClubEventsPage() {
   if (!canView(user.permissions, "club_events")) redirect("/dashboard")
 
   const season = await getActiveSeason(user.clubId)
-  const events = season ? await prisma.clubEvent.findMany({
-    where: { seasonId: season.id },
-    include: {
-      category: { select: { id: true, name: true } },
-      _count: { select: { attendance: true } },
-    },
-    orderBy: { startsAt: "asc" },
-  }) : []
-
-  const categories = season ? await prisma.hourCategory.findMany({
-    where: { seasonId: season.id },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  }) : []
+  const [events, categories] = season ? await Promise.all([
+    prisma.clubEvent.findMany({
+      where: { seasonId: season.id },
+      include: {
+        category: { select: { id: true, name: true } },
+        _count: { select: { attendance: true } },
+      },
+      orderBy: { startsAt: "asc" },
+    }),
+    prisma.hourCategory.findMany({
+      where: { seasonId: season.id },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]) : [[], []]
 
   return (
     <div className="layout-page">

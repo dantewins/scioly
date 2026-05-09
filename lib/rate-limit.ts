@@ -128,7 +128,7 @@ function firstHeaderToken(value: string | null): string | null {
   return token && token.length > 0 ? token : null
 }
 
-export function getRequestClientKey(request: Request): string {
+function getRequestClientKey(request: Request): string {
   const candidates = [
     firstHeaderToken(request.headers.get("cf-connecting-ip")),
     firstHeaderToken(request.headers.get("x-forwarded-for")),
