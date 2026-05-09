@@ -11,6 +11,15 @@ import {
 
 const TYPES = ["PRACTICE", "INVITATIONAL", "REGIONAL", "STATE", "NATIONAL", "OTHER"] as const
 
+const TYPE_LABELS: Record<(typeof TYPES)[number], string> = {
+  PRACTICE: "Practice",
+  INVITATIONAL: "Invitational",
+  REGIONAL: "Regional",
+  STATE: "State",
+  NATIONAL: "National",
+  OTHER: "Other",
+}
+
 interface CompetitionFormProps {
   onSubmit: (data: {
     name: string
@@ -50,7 +59,7 @@ export function CompetitionForm({ onSubmit, loading, onCancel }: CompetitionForm
         <Select value={type} onValueChange={setType}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
-            {TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            {TYPES.map((t) => <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

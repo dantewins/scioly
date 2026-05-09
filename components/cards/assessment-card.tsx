@@ -14,8 +14,8 @@ import type { MemberPracticeFeedRecord } from "@/lib/practice-assessments"
 
 export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedRecord }) {
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="gap-2">
+      <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -40,7 +40,7 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent>
         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           {assessment.timeLimitMinutes && (
             <span className="flex items-center gap-1">

@@ -89,10 +89,10 @@ export default async function CompetitionDetailPage({ params }: Props) {
       select: {
         id: true,
         timeSlot: true,
-        slotLabel: true,
+        startsAt: true,
         event: { select: { id: true, name: true, code: true } },
       },
-      orderBy: { timeSlot: "asc" },
+      orderBy: [{ startsAt: "asc" }, { timeSlot: "asc" }],
     }),
   ])
 
@@ -149,6 +149,12 @@ export default async function CompetitionDetailPage({ params }: Props) {
             seasonRosters={seasonRosters}
             members={activeMembers}
             slots={slots}
+            schedules={eventSchedules.map((s) => ({
+              id: s.id,
+              timeSlot: s.timeSlot,
+              startsAt: s.startsAt?.toISOString() ?? null,
+              event: s.event,
+            }))}
             canManage={canManage}
           />
         </TabsContent>
@@ -160,10 +166,11 @@ export default async function CompetitionDetailPage({ params }: Props) {
               initialSchedules={eventSchedules.map((s) => ({
                 id: s.id,
                 timeSlot: s.timeSlot,
-                slotLabel: s.slotLabel,
+                startsAt: s.startsAt?.toISOString() ?? null,
                 eventId: s.event.id,
               }))}
               competitionId={competition.id}
+              competitionStartsAt={competition.startsAt.toISOString()}
               canManage={canManage}
             />
         </TabsContent>

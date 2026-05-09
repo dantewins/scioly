@@ -54,10 +54,10 @@ function HeroBackdrop({ isDark }: { isDark: boolean }) {
 
   // Concentric orbital rings — each carries an orbiting dot.
   const rings = [
-    { size: 1100, dur: 42, dot: 6, delay: 0,    opacity: 0.40 },
-    { size: 820,  dur: 32, dot: 5, delay: 0.6,  opacity: 0.50 },
-    { size: 560,  dur: 24, dot: 4, delay: 1.2,  opacity: 0.65 },
-    { size: 320,  dur: 18, dot: 3, delay: 1.8,  opacity: 0.80 },
+    { size: 1100, dur: 42, dot: 6, delay: 0, opacity: 0.40 },
+    { size: 820, dur: 32, dot: 5, delay: 0.6, opacity: 0.50 },
+    { size: 560, dur: 24, dot: 4, delay: 1.2, opacity: 0.65 },
+    { size: 320, dur: 18, dot: 3, delay: 1.8, opacity: 0.80 },
   ]
 
   const ringStroke = isDark ? "oklch(0.65 0.18 254 / 0.18)" : "oklch(0.55 0.18 254 / 0.16)"
@@ -138,15 +138,15 @@ function HeroBackdrop({ isDark }: { isDark: boolean }) {
         ))}
       </div>
 
-      {/* bottom fade so the hero text reads cleanly */}
-      <div
-        className="absolute inset-x-0 bottom-0 h-32"
-        style={{
-          background: isDark
-            ? "linear-gradient(to bottom, transparent, oklch(0.10 0 0))"
-            : "linear-gradient(to bottom, transparent, white)",
-        }}
-      />
+      {/* bottom fade so the hero text reads cleanly (light mode only — in dark mode it bled over the showcase image) */}
+      {!isDark && (
+        <div
+          className="absolute inset-x-0 bottom-0 h-32"
+          style={{
+            background: "linear-gradient(to bottom, transparent, white)",
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -205,20 +205,17 @@ export default function Page() {
             <span className="text-sm font-semibold tracking-tight">Scioly</span>
           </Link>
 
-          <nav className="ml-auto flex items-center gap-1">
-            <Link href="#features" className="rounded-md px-3 py-1.5 text-[13px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-              Features
-            </Link>
+          <nav className="ml-auto flex items-center gap-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsDark((d) => !d)}
-              className="ml-1 h-8 w-8 text-muted-foreground hover:text-foreground"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
               aria-label="Toggle theme"
             >
               {isDark ? <IconSun className="h-4 w-4" /> : <IconMoon className="h-4 w-4" />}
             </Button>
-            <Button asChild size="sm" className="group ml-1 h-8 rounded-md bg-foreground text-background hover:bg-foreground/90 font-semibold text-[13px] px-3.5 shadow-none">
+            <Button asChild size="sm" className="group h-8 rounded-md bg-foreground text-background hover:bg-foreground/90 font-semibold text-[13px] px-3.5 shadow-none">
               <Link href={user ? "/dashboard" : "/register"}>
                 {user ? "Open app" : "Apply to join"}
                 <IconArrowRight
@@ -278,7 +275,7 @@ export default function Page() {
               style={{
                 backgroundImage: isDark
                   ? "linear-gradient(110deg, #2d6bbf 0%, #4a90e2 25%, #8dc0f8 46%, #ffffff 50%, #8dc0f8 54%, #4a90e2 75%, #2d6bbf 100%)"
-                  : "linear-gradient(110deg, #1d4ed8 0%, #3b82f6 25%, #93c5fd 46%, #ffffff 50%, #93c5fd 54%, #3b82f6 75%, #1d4ed8 100%)",
+                  : "linear-gradient(110deg, #1d4ed8 0%, #3b82f6 25%, #93c5fd 46%, #dbeafe 50%, #93c5fd 54%, #3b82f6 75%, #1d4ed8 100%)",
                 backgroundSize: "400px 100%",
                 backgroundRepeat: "repeat",
                 backgroundClip: "text",
@@ -372,12 +369,12 @@ export default function Page() {
             }}
           />
           <motion.div
-            className="relative mx-auto max-w-[1120px] overflow-hidden rounded-t-2xl border-x border-t border-border/70 bg-card"
+            className={`relative mx-auto max-w-[1120px] overflow-hidden rounded-t-2xl border-x border-t border-border/70 bg-card`}
             style={{
               transform: "perspective(2000px) rotateX(8deg)",
               transformOrigin: "center bottom",
               boxShadow: isDark
-                ? "0 60px 160px -40px rgba(0,0,0,0.9)"
+                ? "0 40px 120px -30px rgba(0,0,0,0.45)"
                 : "0 40px 120px -30px rgba(0,0,0,0.18)",
             }}
             initial={{ opacity: 0, y: 32 }}
@@ -388,11 +385,6 @@ export default function Page() {
               className="absolute inset-x-0 top-0 z-50 h-px pointer-events-none"
               style={{ background: "linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.18) 50%, transparent 90%)" }}
             />
-            <div
-              className="absolute inset-x-0 bottom-0 z-20 h-[55%] pointer-events-none"
-              style={{ background: `linear-gradient(to bottom, transparent, var(--background))` }}
-            />
-
             <div className="relative aspect-[1920/958]">
               <Image
                 src="/showcase.png"
@@ -400,6 +392,7 @@ export default function Page() {
                 fill
                 className="object-cover object-top"
                 priority
+                quality={95}
                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1120px"
               />
             </div>
@@ -487,41 +480,41 @@ export default function Page() {
 
         {/* CTA */}
         <FadeIn delay={0.05}>
-        <div
-          className="relative mb-[4.5rem] flex flex-col items-center overflow-hidden rounded-xl border border-border px-[var(--page-px)] py-[5.5rem] text-center"
-        >
           <div
-            className="pointer-events-none absolute inset-0"
-            style={{ background: "radial-gradient(ellipse 55% 70% at 50% 100%, rgba(75,141,248,0.14) 0%, transparent 70%)" }}
-          />
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.35]"
-            style={{
-              backgroundImage: `linear-gradient(to right, ${isDark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.025)"} 1px, transparent 1px), linear-gradient(to bottom, ${isDark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.025)"} 1px, transparent 1px)`,
-              backgroundSize: "44px 44px",
-              maskImage: "radial-gradient(ellipse 60% 80% at 50% 100%, black, transparent 70%)",
-              WebkitMaskImage: "radial-gradient(ellipse 60% 80% at 50% 100%, black, transparent 70%)",
-            }}
-          />
-          <span className="relative z-10 mb-5 font-mono text-[12px] uppercase tracking-[0.18em] text-[var(--brand)]">
-            Ready?
-          </span>
-          <h2 className="relative z-10 mb-5 font-serif text-[clamp(2rem,4vw,3rem)] font-normal leading-[1.12] tracking-[-0.025em] text-foreground">
-            Run your club,<br />not spreadsheets.
-          </h2>
-          <p className="relative z-10 mb-9 max-w-sm text-[15px] leading-[1.7] text-muted-foreground">
-            Get your Science Olympiad team onto a platform built exactly for this.
-          </p>
-          <Button asChild size="lg" className="relative z-10 group h-11 rounded-md bg-foreground px-7 text-[14px] font-semibold text-background hover:bg-foreground/90">
-            <Link href={user ? "/dashboard" : "/register"}>
-              Start now, it&apos;s free
-              <IconArrowRight
-                className="h-4 w-4 transition-transform duration-500 ease-in-out group-hover:rotate-[360deg]"
-                strokeWidth={2.5}
-              />
-            </Link>
-          </Button>
-        </div>
+            className="relative mb-[4.5rem] flex flex-col items-center overflow-hidden rounded-xl border border-border px-[var(--page-px)] py-[5.5rem] text-center"
+          >
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{ background: "radial-gradient(ellipse 55% 70% at 50% 100%, rgba(75,141,248,0.14) 0%, transparent 70%)" }}
+            />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.35]"
+              style={{
+                backgroundImage: `linear-gradient(to right, ${isDark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.025)"} 1px, transparent 1px), linear-gradient(to bottom, ${isDark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.025)"} 1px, transparent 1px)`,
+                backgroundSize: "44px 44px",
+                maskImage: "radial-gradient(ellipse 60% 80% at 50% 100%, black, transparent 70%)",
+                WebkitMaskImage: "radial-gradient(ellipse 60% 80% at 50% 100%, black, transparent 70%)",
+              }}
+            />
+            <span className="relative z-10 mb-5 font-mono text-[12px] uppercase tracking-[0.18em] text-[var(--brand)]">
+              Ready?
+            </span>
+            <h2 className="relative z-10 mb-5 font-serif text-[clamp(2rem,4vw,3rem)] font-normal leading-[1.12] tracking-[-0.025em] text-foreground">
+              Run your club,<br />not spreadsheets.
+            </h2>
+            <p className="relative z-10 mb-9 max-w-sm text-[15px] leading-[1.7] text-muted-foreground">
+              Get your Science Olympiad team onto a platform built exactly for this.
+            </p>
+            <Button asChild size="lg" className="relative z-10 group h-11 rounded-md bg-foreground px-7 text-[14px] font-semibold text-background hover:bg-foreground/90">
+              <Link href={user ? "/dashboard" : "/register"}>
+                Start now, it&apos;s free
+                <IconArrowRight
+                  className="h-4 w-4 transition-transform duration-500 ease-in-out group-hover:rotate-[360deg]"
+                  strokeWidth={2.5}
+                />
+              </Link>
+            </Button>
+          </div>
         </FadeIn>
       </div>
 
