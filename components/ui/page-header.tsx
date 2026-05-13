@@ -3,16 +3,22 @@ import { type ReactNode } from "react"
 interface PageHeaderProps {
   title: string
   description?: string
+  kicker?: string
   children?: ReactNode  // action slot (buttons)
 }
 
-export function PageHeader({ title, description, children }: PageHeaderProps) {
+export function PageHeader({ title, description, kicker, children }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div className="flex items-end justify-between gap-3 border-b border-border/60 pb-3">
       <div className="min-w-0">
-        <h1 className="truncate text-xl font-semibold leading-tight text-foreground">{title}</h1>
+        {kicker && (
+          <p className="label-caps mb-1 text-azure-700">{kicker}</p>
+        )}
+        <h1 className="truncate font-serif text-2xl sm:text-3xl tracking-tight leading-[1.1] text-foreground">
+          {title}
+        </h1>
         {description && (
-          <p className="mt-0.5 truncate text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 truncate text-sm text-muted-foreground">{description}</p>
         )}
       </div>
       {children && (

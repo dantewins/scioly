@@ -39,6 +39,29 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
+  /* Azure brand scale */
+  --color-azure-50: var(--azure-50);
+  --color-azure-100: var(--azure-100);
+  --color-azure-200: var(--azure-200);
+  --color-azure-300: var(--azure-300);
+  --color-azure-400: var(--azure-400);
+  --color-azure-500: var(--azure-500);
+  --color-azure-600: var(--azure-600);
+  --color-azure-700: var(--azure-700);
+  --color-azure-800: var(--azure-800);
+  --color-azure-900: var(--azure-900);
+
+  /* Semantic status tokens */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -49,9 +72,6 @@
 }
 
 /* ─── Density ────────────────────────────────────────────────────────────── */
-/* Base values target mobile (< 640px). Media queries below step values up    */
-/* gradually at each Tailwind breakpoint so horizontal/vertical padding scales */
-/* smoothly instead of popping between sizes.                                  */
 :root {
   --font-geist-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
   --page-px: 1rem;
@@ -150,93 +170,132 @@
 
 /* ─── Light mode ─────────────────────────────────────────────────────────── */
 :root {
-  --radius: 0.375rem;
+  --radius: 0.5rem;
 
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.09 0 0);
+  --azure-50:  oklch(0.972 0.020 235);
+  --azure-100: oklch(0.942 0.040 235);
+  --azure-200: oklch(0.890 0.075 235);
+  --azure-300: oklch(0.810 0.115 235);
+  --azure-400: oklch(0.720 0.155 235);
+  --azure-500: oklch(0.625 0.180 235);
+  --azure-600: oklch(0.555 0.185 235);
+  --azure-700: oklch(0.465 0.165 235);
+  --azure-800: oklch(0.370 0.135 235);
+  --azure-900: oklch(0.260 0.090 235);
+
+  --background: oklch(0.992 0.003 235);
+  --foreground: oklch(0.180 0.020 240);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.09 0 0);
+  --card-foreground: oklch(0.180 0.020 240);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.09 0 0);
+  --popover-foreground: oklch(0.180 0.020 240);
 
-  --primary: oklch(0.55 0.18 254);
-  /* restrained blue */
+  --primary: var(--azure-600);
   --primary-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.96 0 0);
-  --secondary-foreground: oklch(0.09 0 0);
+  --secondary: oklch(0.968 0.005 235);
+  --secondary-foreground: oklch(0.180 0.020 240);
 
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.48 0 0);
+  --muted: oklch(0.968 0.005 235);
+  --muted-foreground: oklch(0.480 0.020 240);
 
-  --accent: oklch(0.96 0 0);
-  --accent-foreground: oklch(0.09 0 0);
+  --accent: var(--azure-50);
+  --accent-foreground: var(--azure-800);
 
-  --destructive: oklch(0.55 0.22 27);
+  --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.90 0 0);
-  --input: oklch(0.90 0 0);
-  --ring: oklch(0.55 0.18 254);
+  --border: oklch(0.90 0.008 235);
+  --input: oklch(0.90 0.008 235);
+  --ring: var(--azure-500);
 
-  --sidebar: oklch(0.97 0 0);
-  --sidebar-foreground: oklch(0.09 0 0);
-  --sidebar-primary: oklch(0.55 0.18 254);
+  --success: oklch(0.55 0.16 152);
+  --success-soft: oklch(0.96 0.04 152);
+  --warning: oklch(0.65 0.16 75);
+  --warning-soft: oklch(0.97 0.05 80);
+  --info: var(--azure-600);
+  --info-soft: var(--azure-50);
+  --danger: oklch(0.58 0.22 27);
+  --danger-soft: oklch(0.96 0.04 27);
+
+  --sidebar: oklch(0.975 0.006 235);
+  --sidebar-foreground: oklch(0.180 0.020 240);
+  --sidebar-primary: var(--azure-600);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.93 0 0);
-  --sidebar-accent-foreground: oklch(0.09 0 0);
-  --sidebar-border: oklch(0.90 0 0);
-  --sidebar-ring: oklch(0.55 0.18 254);
+  --sidebar-accent: var(--azure-50);
+  --sidebar-accent-foreground: var(--azure-800);
+  --sidebar-border: oklch(0.90 0.008 235);
+  --sidebar-ring: var(--azure-500);
 
-  --chart-1: oklch(0.55 0.18 254);
-  --chart-2: oklch(0.60 0.12 200);
-  --chart-3: oklch(0.55 0.10 150);
-  --chart-4: oklch(0.60 0.14 300);
-  --chart-5: oklch(0.58 0.16 30);
+  --chart-1: var(--azure-500);
+  --chart-2: oklch(0.62 0.14 200);
+  --chart-3: oklch(0.58 0.12 152);
+  --chart-4: oklch(0.62 0.15 300);
+  --chart-5: oklch(0.62 0.18 30);
 }
 
 /* ─── Dark mode ──────────────────────────────────────────────────────────── */
 .dark {
-  --background: oklch(0.10 0 0);
-  --foreground: oklch(0.97 0 0);
-  --card: oklch(0.13 0 0);
-  --card-foreground: oklch(0.97 0 0);
-  --popover: oklch(0.13 0 0);
-  --popover-foreground: oklch(0.97 0 0);
+  --azure-50:  oklch(0.20 0.03 235);
+  --azure-100: oklch(0.24 0.05 235);
+  --azure-200: oklch(0.30 0.08 235);
+  --azure-300: oklch(0.40 0.12 235);
+  --azure-400: oklch(0.55 0.16 235);
+  --azure-500: oklch(0.685 0.180 235);
+  --azure-600: oklch(0.745 0.170 235);
+  --azure-700: oklch(0.810 0.140 235);
+  --azure-800: oklch(0.875 0.090 235);
+  --azure-900: oklch(0.940 0.040 235);
 
-  --primary: oklch(0.65 0.18 254);
-  --primary-foreground: oklch(0.09 0 0);
+  --background: oklch(0.105 0.015 240);
+  --foreground: oklch(0.965 0.005 235);
+  --card: oklch(0.140 0.018 240);
+  --card-foreground: oklch(0.965 0.005 235);
+  --popover: oklch(0.140 0.018 240);
+  --popover-foreground: oklch(0.965 0.005 235);
 
-  --secondary: oklch(0.18 0 0);
+  --primary: var(--azure-500);
+  --primary-foreground: oklch(0.09 0.005 240);
+
+  --secondary: oklch(0.185 0.020 240);
   --secondary-foreground: oklch(0.97 0 0);
 
-  --muted: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.55 0 0);
+  --muted: oklch(0.185 0.020 240);
+  --muted-foreground: oklch(0.62 0.018 235);
 
-  --accent: oklch(0.18 0 0);
-  --accent-foreground: oklch(0.97 0 0);
+  --accent: oklch(0.225 0.045 235);
+  --accent-foreground: var(--azure-700);
 
-  --destructive: oklch(0.65 0.20 27);
+  --destructive: oklch(0.66 0.20 27);
   --destructive-foreground: oklch(0.09 0 0);
 
-  --border: oklch(0.20 0 0);
-  --input: oklch(0.20 0 0);
-  --ring: oklch(0.65 0.18 254);
+  --border: oklch(0.22 0.020 240);
+  --input: oklch(0.22 0.020 240);
+  --ring: var(--azure-500);
 
-  --sidebar: oklch(0.12 0 0);
-  --sidebar-foreground: oklch(0.97 0 0);
-  --sidebar-primary: oklch(0.65 0.18 254);
+  --success: oklch(0.66 0.17 152);
+  --success-soft: oklch(0.22 0.07 152);
+  --warning: oklch(0.72 0.17 75);
+  --warning-soft: oklch(0.22 0.06 75);
+  --info: var(--azure-500);
+  --info-soft: oklch(0.22 0.07 235);
+  --danger: oklch(0.66 0.20 27);
+  --danger-soft: oklch(0.22 0.07 27);
+
+  --sidebar: oklch(0.115 0.018 240);
+  --sidebar-foreground: oklch(0.965 0.005 235);
+  --sidebar-primary: var(--azure-500);
   --sidebar-primary-foreground: oklch(0.09 0 0);
-  --sidebar-accent: oklch(0.18 0 0);
-  --sidebar-accent-foreground: oklch(0.97 0 0);
-  --sidebar-border: oklch(0.20 0 0);
-  --sidebar-ring: oklch(0.65 0.18 254);
+  --sidebar-accent: oklch(0.205 0.040 235);
+  --sidebar-accent-foreground: var(--azure-700);
+  --sidebar-border: oklch(0.22 0.020 240);
+  --sidebar-ring: var(--azure-500);
 
-  --chart-1: oklch(0.65 0.18 254);
-  --chart-2: oklch(0.65 0.12 200);
-  --chart-3: oklch(0.60 0.10 150);
-  --chart-4: oklch(0.65 0.14 300);
-  --chart-5: oklch(0.63 0.16 30);
+  --chart-1: var(--azure-400);
+  --chart-2: oklch(0.66 0.14 200);
+  --chart-3: oklch(0.62 0.12 152);
+  --chart-4: oklch(0.66 0.15 300);
+  --chart-5: oklch(0.64 0.18 30);
 }
 
 @layer base {
@@ -246,15 +305,18 @@
 
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
   }
 
-  /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+    background-color: var(--background);
+    background-image:
+      radial-gradient(circle at 0% -10%, color-mix(in oklch, var(--azure-100), transparent 60%), transparent 45%),
+      radial-gradient(circle at 100% 0%, color-mix(in oklch, var(--azure-200), transparent 78%), transparent 50%);
+    background-attachment: fixed;
   }
 
-  /* Monospace numbers in tables */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
@@ -271,34 +333,28 @@
     padding-left: var(--page-px);
     padding-right: var(--page-px);
   }
-
   .page-py {
     padding-top: var(--page-py);
     padding-bottom: var(--page-py);
   }
-
   .card-px {
     padding-left: var(--card-px);
     padding-right: var(--card-px);
   }
-
   .card-py {
     padding-top: var(--card-py);
     padding-bottom: var(--card-py);
   }
-
   .layout-page {
     display: flex;
     flex-direction: column;
     gap: var(--page-gap);
   }
-
   .layout-section {
     display: flex;
     flex-direction: column;
     gap: var(--section-gap);
   }
-
   .layout-stack {
     display: flex;
     flex-direction: column;
@@ -311,16 +367,62 @@
     border-style: solid;
     border-color: var(--border);
     background-color: var(--card);
+    box-shadow: 0 1px 0 0 color-mix(in oklch, var(--azure-100), transparent 70%);
   }
-
   .surface-pad {
     padding-left: var(--card-px);
     padding-right: var(--card-px);
     padding-top: var(--card-py);
     padding-bottom: var(--card-py);
   }
-
   .control-row {
     @apply flex items-center gap-2;
+  }
+
+  /* Distinctive azure utilities */
+  .shadow-azure-soft {
+    box-shadow:
+      0 1px 2px 0 color-mix(in oklch, var(--azure-700), transparent 92%),
+      0 0 0 1px color-mix(in oklch, var(--azure-500), transparent 88%);
+  }
+  .shadow-azure-glow {
+    box-shadow:
+      0 8px 24px -8px color-mix(in oklch, var(--azure-500), transparent 70%),
+      0 2px 8px -2px color-mix(in oklch, var(--azure-700), transparent 80%);
+  }
+
+  .bg-azure-atmosphere {
+    background-color: var(--background);
+    background-image:
+      radial-gradient(ellipse 60% 50% at 20% 0%, color-mix(in oklch, var(--azure-100), transparent 30%), transparent 70%),
+      radial-gradient(ellipse 50% 60% at 100% 100%, color-mix(in oklch, var(--azure-200), transparent 55%), transparent 65%);
+  }
+
+  .bg-azure-gradient {
+    background-image: linear-gradient(135deg,
+      color-mix(in oklch, var(--azure-100), transparent 40%) 0%,
+      color-mix(in oklch, var(--azure-50), transparent 30%) 50%,
+      transparent 100%
+    );
+  }
+
+  .bg-azure-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in oklch, var(--azure-300), transparent 92%) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklch, var(--azure-300), transparent 92%) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .tonal-success { background-color: var(--success-soft); color: var(--success); }
+  .tonal-warning { background-color: var(--warning-soft); color: var(--warning); }
+  .tonal-info    { background-color: var(--info-soft);    color: var(--info); }
+  .tonal-danger  { background-color: var(--danger-soft);  color: var(--danger); }
+
+  /* Editorial small-caps label */
+  .label-caps {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
   }
 }

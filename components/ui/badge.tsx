@@ -18,6 +18,17 @@ const badgeVariants = cva(
           "border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         link: "text-primary underline-offset-4 [a&]:hover:underline",
+        // Token-driven tonal variants — used everywhere status/category labels render.
+        tonal:
+          "bg-azure-50 text-azure-700 border-azure-200/60",
+        success:
+          "bg-[var(--success-soft)] text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_70%)]",
+        warning:
+          "bg-[var(--warning-soft)] text-[var(--warning)] border-[color-mix(in_oklch,var(--warning),transparent_70%)]",
+        info:
+          "bg-[var(--info-soft)] text-[var(--info)] border-[color-mix(in_oklch,var(--info),transparent_70%)]",
+        danger:
+          "bg-[var(--danger-soft)] text-[var(--danger)] border-[color-mix(in_oklch,var(--danger),transparent_70%)]",
       },
     },
     defaultVariants: {

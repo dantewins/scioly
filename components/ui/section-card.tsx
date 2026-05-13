@@ -16,10 +16,10 @@ export function SectionCard({
   return (
     <div className={cn("surface", className)}>
       {(title || action) && (
-        <div className="flex items-center justify-between gap-4 border-b border-border px-[var(--card-px)] py-[var(--card-py)]">
+        <div className="flex items-center justify-between gap-4 border-b border-border/70 px-[var(--card-px)] py-[var(--card-py)]">
           <div className="min-w-0">
-            {title && <p className="text-sm font-medium text-foreground">{title}</p>}
-            {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
+            {title && <p className="label-caps text-azure-700">{title}</p>}
+            {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
           </div>
           {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
         </div>
