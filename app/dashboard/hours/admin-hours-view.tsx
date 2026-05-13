@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Card, CardContent,
-} from "@/components/ui/card"
+import { EntityCard } from "@/components/ui/entity-card"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -130,7 +128,7 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
           <p className="text-sm text-muted-foreground">No pending hour entries.</p>
         ) : (
           <>
-            <div className="flex items-center justify-between gap-2 rounded-[var(--radius)] border bg-muted/30 px-3 py-2">
+            <div className="flex items-center justify-between gap-2 rounded-[var(--radius)] border border-azure-200/60 bg-azure-50/40 px-3 py-2">
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={selectedIds.size > 0 && selectedIds.size === entries.length}
@@ -148,7 +146,7 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-green-600"
+                    className="text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_75%)] hover:bg-[var(--success-soft)]"
                     onClick={() => review([...selectedIds], "approve")}
                     disabled={loading}
                   >
@@ -158,7 +156,7 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-destructive"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/5"
                     onClick={() => setRejectingIds([...selectedIds])}
                     disabled={loading}
                   >
@@ -169,63 +167,87 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
               )}
             </div>
             {entries.map((entry) => (
-              <Card key={entry.id}>
-                <CardContent className="flex items-start gap-4">
-                  <div className="pt-0.5">
+              <EntityCard
+                key={entry.id}
+                tone="warning"
+                title={entry.title}
+                titleSize="sm"
+                metrics={
+                  <>
+                    <span>
+                      <span className="text-foreground/80">{Number(entry.totalHours).toFixed(1)}h</span>
+                    </span>
+                    <span>{entry.category.name}</span>
+                    <span>{entry.memberSeason.user.firstName} {entry.memberSeason.user.lastName}</span>
+                    {entry.proofUrl && (
+                      <a href={entry.proofUrl} target="_blank" rel="noopener noreferrer" className="text-azure-700 underline-offset-4 hover:underline">
+                        View proof
+                      </a>
+                    )}
+                  </>
+                }
+                trailing={
+                  <>
                     <Checkbox
                       checked={selectedIds.has(entry.id)}
                       onCheckedChange={() => toggleSelected(entry.id)}
                       aria-label={`Select ${entry.title}`}
                     />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm truncate">{entry.title}</p>
-                      <Badge variant="secondary" className="text-xs shrink-0">{Number(entry.totalHours).toFixed(1)} hrs</Badge>
-                      <Badge variant="outline" className="text-xs shrink-0">{entry.category.name}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {entry.memberSeason.user.firstName} {entry.memberSeason.user.lastName}
-                      {entry.description && ` · ${entry.description.slice(0, 80)}`}
-                    </p>
-                    {entry.proofUrl && (
-                      <a href={entry.proofUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline mt-0.5 block">
-                        View proof
-                      </a>
-                    )}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button size="icon-sm" variant="outline" className="text-green-600" onClick={() => review([entry.id], "approve")} disabled={loading}>
+                    <Button
+                      size="icon-sm"
+                      variant="outline"
+                      className="text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_75%)] hover:bg-[var(--success-soft)]"
+                      onClick={() => review([entry.id], "approve")}
+                      disabled={loading}
+                      aria-label={`Approve ${entry.title}`}
+                    >
                       <IconCheck className="size-4" />
                     </Button>
-                    <Button size="icon-sm" variant="outline" className="text-destructive" onClick={() => setRejectingIds([entry.id])} disabled={loading}>
+                    <Button
+                      size="icon-sm"
+                      variant="outline"
+                      className="text-destructive border-destructive/30 hover:bg-destructive/5"
+                      onClick={() => setRejectingIds([entry.id])}
+                      disabled={loading}
+                      aria-label={`Reject ${entry.title}`}
+                    >
                       <IconX className="size-4" />
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  </>
+                }
+                alwaysShowTrailing
+              >
+                {entry.description && (
+                  <p className="text-xs text-muted-foreground">{entry.description.slice(0, 120)}</p>
+                )}
+              </EntityCard>
             ))}
           </>
         )}
       </TabsContent>
 
-      <TabsContent value="categories" className="mt-4 space-y-3">
+      <TabsContent value="categories" className="mt-4 space-y-2">
         {categories.map((cat) => (
-          <Card key={cat.id}>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm">{cat.name}</p>
-                  {cat.description && <p className="text-xs text-muted-foreground">{cat.description}</p>}
-                  <div className="flex items-center gap-3 mt-1">
-                    {cat.requiredHours && <span className="text-xs">Required: {Number(cat.requiredHours)}h</span>}
-                    <span className="text-xs text-muted-foreground">{cat._count.hourEntries} entries</span>
-                    {!cat.requiresApproval && <Badge variant="outline" className="text-xs">Auto-approved</Badge>}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <EntityCard
+            key={cat.id}
+            tone={cat.requiresApproval ? "brand" : "success"}
+            title={cat.name}
+            titleSize="sm"
+            description={cat.description ?? undefined}
+            status={!cat.requiresApproval ? <Badge variant="success" className="text-[10px]">Auto-approved</Badge> : undefined}
+            metrics={
+              <>
+                {cat.requiredHours && (
+                  <span>
+                    Required: <span className="text-foreground/80">{Number(cat.requiredHours)}h</span>
+                  </span>
+                )}
+                <span>
+                  <span className="text-foreground/80">{cat._count.hourEntries}</span> entries
+                </span>
+              </>
+            }
+          />
         ))}
 
         {canManageCategories && (

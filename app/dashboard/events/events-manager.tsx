@@ -4,10 +4,8 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { IconPlus, IconEdit, IconTrash } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Card, CardContent,
-} from "@/components/ui/card"
+import { IconUsers } from "@tabler/icons-react"
+import { EntityCard } from "@/components/ui/entity-card"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -101,33 +99,52 @@ export function EventsManager({ initialEvents, canManage, canCreate }: Props) {
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((event) => (
-          <Card key={event.id}>
-            <CardContent>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-medium text-sm truncate">{event.name}</p>
-                    {event.code && <span className="text-xs text-muted-foreground">({event.code})</span>}
-                  </div>
-                  {event.isTrialEvent && <Badge variant="outline" className="text-xs mt-1">Trial</Badge>}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {event.minParticipants}–{event.maxParticipants} members ·{" "}
-                    {event._count.enrollments} enrolled
-                  </p>
-                </div>
-                {canManage && (
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon-sm" onClick={() => setEditing(event)}>
-                      <IconEdit className="size-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(event.id)}>
-                      <IconTrash className="size-3.5 text-destructive" />
-                    </Button>
-                  </div>
+          <EntityCard
+            key={event.id}
+            tone={event.isTrialEvent ? "amber" : "brand"}
+            kicker={
+              <>
+                {event.isTrialEvent ? "Trial Event" : "Event"}
+                {event.code && (
+                  <>
+                    <span className="text-border" aria-hidden>·</span>
+                    <span className="text-muted-foreground">{event.code}</span>
+                  </>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              </>
+            }
+            title={event.name}
+            titleSize="sm"
+            metrics={
+              <>
+                <span>
+                  <span className="text-foreground/80">{event.minParticipants}–{event.maxParticipants}</span> members
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <IconUsers className="size-3 shrink-0" aria-hidden />
+                  <span className="text-foreground/80">{event._count.enrollments}</span> enrolled
+                </span>
+              </>
+            }
+            trailing={
+              canManage ? (
+                <>
+                  <Button variant="ghost" size="icon-sm" onClick={() => setEditing(event)} aria-label={`Edit ${event.name}`}>
+                    <IconEdit className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDelete(event.id)}
+                    aria-label={`Delete ${event.name}`}
+                  >
+                    <IconTrash className="size-3.5" />
+                  </Button>
+                </>
+              ) : undefined
+            }
+          />
         ))}
       </div>
 

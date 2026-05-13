@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { IconPlus, IconCalendar } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { EntityCard } from "@/components/ui/entity-card"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -77,29 +77,34 @@ export function SeasonManager({ seasons: initial, canManage }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {seasons.map((s) => (
-        <Card key={s.id}>
-          <CardContent className="flex items-center gap-4">
-            <IconCalendar className="size-4 text-muted-foreground shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{s.name}</p>
-              <p className="text-xs text-muted-foreground">{s.schoolYear} · {s._count.members} members</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {s.isActive && <Badge variant="secondary">Active</Badge>}
-              {canManage && (
-                <div className="flex items-center gap-1.5">
-                  <Switch
-                    checked={s.isActive}
-                    onCheckedChange={(v) => toggleActive(s.id, v)}
-                  />
-                  <span className="text-xs text-muted-foreground">Active</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <EntityCard
+          key={s.id}
+          tone={s.isActive ? "brand" : "neutral"}
+          kicker={<><IconCalendar className="size-3 shrink-0" aria-hidden /> Season</>}
+          title={s.name}
+          titleSize="sm"
+          status={s.isActive ? <Badge variant="info" className="text-[10px]">Active</Badge> : undefined}
+          metrics={
+            <>
+              <span>{s.schoolYear}</span>
+              <span>
+                <span className="text-foreground/80">{s._count.members}</span> members
+              </span>
+            </>
+          }
+          trailing={
+            canManage ? (
+              <Switch
+                checked={s.isActive}
+                onCheckedChange={(v) => toggleActive(s.id, v)}
+                aria-label={s.isActive ? "Deactivate season" : "Activate season"}
+              />
+            ) : undefined
+          }
+          alwaysShowTrailing
+        />
       ))}
 
       {seasons.length === 0 && (

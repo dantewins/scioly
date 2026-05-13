@@ -6,7 +6,7 @@ import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { apiCall } from "@/lib/api-client"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { EntityCard } from "@/components/ui/entity-card"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -79,22 +79,36 @@ export function AdminFormsView({ formTypes: initial, canCreate }: Props) {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {formTypes.map((ft) => (
-          <Card key={ft.id}>
-            <CardContent className="space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-medium text-sm">{ft.name}</p>
-                <Badge variant="outline" className="text-xs shrink-0">{ft.category}</Badge>
-              </div>
-              {ft.description && <p className="text-xs text-muted-foreground">{ft.description}</p>}
-              <div className="flex items-center gap-2 flex-wrap">
-                {ft.isRequired && <Badge variant="secondary" className="text-xs">Required</Badge>}
-                {ft.requiresUpload && <Badge variant="outline" className="text-xs">Upload</Badge>}
-                <span className="text-xs text-muted-foreground">
-                  {ft._count.submissions} submitted · {ft.submissions.length} pending
+          <EntityCard
+            key={ft.id}
+            tone={ft.isRequired ? "brand" : "neutral"}
+            kicker={
+              <>
+                {ft.isRequired ? "Required" : "Optional"}
+                <span className="text-border" aria-hidden>·</span>
+                <span className="text-muted-foreground">{ft.category.replace(/_/g, " ").toLowerCase()}</span>
+                {ft.requiresUpload && (
+                  <>
+                    <span className="text-border" aria-hidden>·</span>
+                    <span className="text-muted-foreground">Upload</span>
+                  </>
+                )}
+              </>
+            }
+            title={ft.name}
+            titleSize="sm"
+            description={ft.description ?? undefined}
+            metrics={
+              <>
+                <span>
+                  <span className="text-foreground/80">{ft._count.submissions}</span> submitted
                 </span>
-              </div>
-            </CardContent>
-          </Card>
+                <span>
+                  <span className="text-foreground/80">{ft.submissions.length}</span> pending
+                </span>
+              </>
+            }
+          />
         ))}
         {formTypes.length === 0 && (
           <p className="text-sm text-muted-foreground col-span-full">No form types yet.</p>

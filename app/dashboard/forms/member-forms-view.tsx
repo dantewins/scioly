@@ -2,16 +2,17 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { IconUpload, IconCheck, IconClock, IconX } from "@tabler/icons-react"
+import { IconUpload } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { EntityCard, type EntityCardTone } from "@/components/ui/entity-card"
+import { StatusBadge } from "@/components/ui/status-badge"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { formatDateOnly } from "@/lib/format"
+import { formatDateCompact } from "@/lib/format"
 import { apiCall } from "@/lib/api-client"
 
 interface Submission {
@@ -36,10 +37,12 @@ interface Props {
   formTypes: FormType[]
 }
 
-const STATUS_MAP: Record<string, { label: string; className: string; icon: React.ElementType }> = {
-  SUBMITTED: { label: "Submitted", className: "bg-blue-100 text-blue-800", icon: IconClock },
-  VERIFIED: { label: "Verified", className: "bg-green-100 text-green-800", icon: IconCheck },
-  REJECTED: { label: "Rejected", className: "bg-red-100 text-red-800", icon: IconX },
+function toneFor(sub: Submission | undefined, isRequired: boolean): EntityCardTone {
+  if (!sub) return isRequired ? "brand" : "neutral"
+  if (sub.status === "VERIFIED") return "success"
+  if (sub.status === "REJECTED") return "danger"
+  if (sub.status === "SUBMITTED") return "warning"
+  return "neutral"
 }
 
 export function MemberFormsView({ formTypes: initial }: Props) {
@@ -71,52 +74,51 @@ export function MemberFormsView({ formTypes: initial }: Props) {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {formTypes.map((ft) => {
         const sub = ft.submissions[0]
-        const statusInfo = sub ? STATUS_MAP[sub.status] : null
-
+        const needsAction = !sub || sub.status === "REJECTED"
         return (
-          <Card key={ft.id} className="flex flex-col">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle className="text-sm font-medium leading-tight">{ft.name}</CardTitle>
-                {statusInfo ? (
-                  <Badge className={`shrink-0 text-xs ${statusInfo.className}`}>
-                    {statusInfo.label}
-                  </Badge>
-                ) : ft.isRequired ? (
-                  <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">Required</Badge>
-                ) : (
-                  <Badge variant="outline" className="shrink-0 text-xs text-muted-foreground">Optional</Badge>
+          <EntityCard
+            key={ft.id}
+            tone={toneFor(sub, ft.isRequired)}
+            kicker={
+              <>
+                {ft.isRequired ? "Required" : "Optional"}
+                <span className="text-border" aria-hidden>·</span>
+                <span className="text-muted-foreground">{ft.category.replace(/_/g, " ").toLowerCase()}</span>
+              </>
+            }
+            status={sub ? <StatusBadge status={sub.status} withDot /> : (
+              ft.isRequired
+                ? <Badge variant="outline" className="text-[10px] text-muted-foreground">Required</Badge>
+                : <Badge variant="outline" className="text-[10px] text-muted-foreground">Optional</Badge>
+            )}
+            title={ft.name}
+            titleSize="sm"
+            description={ft.description ?? undefined}
+            metrics={
+              <>
+                {ft.dueAt && <span>Due {formatDateCompact(new Date(ft.dueAt))}</span>}
+                {sub?.status === "SUBMITTED" && sub.submittedAt && (
+                  <span>Submitted {formatDateCompact(new Date(sub.submittedAt))}</span>
                 )}
-              </div>
-              {ft.dueAt && (
-                <p className="text-xs text-muted-foreground">Due {formatDateOnly(new Date(ft.dueAt))}</p>
-              )}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 pt-0 flex-1">
-              {ft.description && (
-                <p className="text-xs text-muted-foreground">{ft.description}</p>
-              )}
-              {sub?.status === "SUBMITTED" && (
-                <p className="text-xs text-muted-foreground">
-                  Submitted {sub.submittedAt ? formatDateOnly(new Date(sub.submittedAt)) : ""}
-                </p>
-              )}
-              {(!sub || sub.status === "REJECTED") && (
+              </>
+            }
+            trailing={
+              needsAction ? (
                 <Button
                   size="sm"
                   variant="outline"
-                  className="mt-auto w-full"
                   onClick={() => setSubmitting(ft.id)}
                 >
                   <IconUpload className="size-3.5 mr-1.5" />
                   {sub?.status === "REJECTED" ? "Resubmit" : "Submit"}
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              ) : undefined
+            }
+            alwaysShowTrailing
+          />
         )
       })}
 

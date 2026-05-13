@@ -1,75 +1,76 @@
 "use client"
 
-import Link from "next/link"
-import {
-  IconArrowRight,
-  IconClock,
-  IconFileText,
-  IconLayout,
-} from "@tabler/icons-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { IconClock, IconLayout, IconFileText } from "@tabler/icons-react"
+import { EntityCard, type EntityCardTone } from "@/components/ui/entity-card"
+import { StatusBadge } from "@/components/ui/status-badge"
 import type { MemberPracticeFeedRecord } from "@/lib/practice-assessments"
 
+const FORMAT_LABEL: Record<string, string> = {
+  TEST: "Test",
+  STATIONS: "Stations",
+  QUIZ: "Quiz",
+  PROBLEM_SET: "Problem Set",
+}
+
+function toneFor(assessment: MemberPracticeFeedRecord): EntityCardTone {
+  if (assessment.hasInProgressAttempt) return "warning"
+  if (assessment.recommended) return "brand"
+  return "neutral"
+}
+
+function statusFor(assessment: MemberPracticeFeedRecord): string {
+  if (assessment.hasInProgressAttempt) return "In progress"
+  if (assessment.recommended) return "Recommended"
+  return "Available"
+}
+
 export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedRecord }) {
+  const partLabel = assessment.format === "STATIONS" ? "station" : "part"
+  const status = statusFor(assessment)
   return (
-    <Card className="gap-2">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="text-sm font-medium">{assessment.title}</CardTitle>
-              <Badge variant="outline" className="text-xs">{assessment.format}</Badge>
-              {assessment.recommended && (
-                <Badge variant="secondary" className="text-xs">Recommended</Badge>
-              )}
-              {assessment.hasInProgressAttempt && (
-                <Badge className="text-xs">In Progress</Badge>
-              )}
-            </div>
-            {assessment.event && (
-              <p className="text-xs text-muted-foreground mt-0.5">{assessment.event.name}</p>
-            )}
-          </div>
-          <Button size="sm" variant="outline" asChild className="shrink-0">
-            <Link href={`/dashboard/practice/${assessment.id}`}>
-              View
-              <IconArrowRight className="size-3.5 ml-1" />
-            </Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+    <EntityCard
+      href={`/dashboard/practice/${assessment.id}`}
+      tone={toneFor(assessment)}
+      kicker={
+        <>
+          {FORMAT_LABEL[assessment.format] ?? assessment.format}
+          {assessment.event && <span className="text-border" aria-hidden>·</span>}
+          {assessment.event && <span className="text-muted-foreground">{assessment.event.name}</span>}
+        </>
+      }
+      status={<StatusBadge status={status} withDot />}
+      title={assessment.title}
+      metrics={
+        <>
           {assessment.timeLimitMinutes && (
-            <span className="flex items-center gap-1">
-              <IconClock className="size-3" />
+            <span className="inline-flex items-center gap-1">
+              <IconClock className="size-3 shrink-0" aria-hidden />
               {assessment.timeLimitMinutes} min
             </span>
           )}
           {assessment.parts.length > 0 && (
-            <span className="flex items-center gap-1">
-              <IconLayout className="size-3" />
-              {assessment.parts.length} {assessment.format === "STATIONS" ? "station" : "part"}{assessment.parts.length !== 1 ? "s" : ""}
+            <span className="inline-flex items-center gap-1">
+              <IconLayout className="size-3 shrink-0" aria-hidden />
+              {assessment.parts.length} {partLabel}{assessment.parts.length !== 1 ? "s" : ""}
             </span>
           )}
-          {assessment.attemptCount > 0 && (
-            <span>{assessment.attemptCount} attempt{assessment.attemptCount !== 1 ? "s" : ""}</span>
-          )}
+          <span>
+            <span className="text-foreground/80">{assessment.attemptCount}</span> attempt{assessment.attemptCount !== 1 ? "s" : ""}
+          </span>
           {assessment.sourcePdfUrl && (
             <a
               href={assessment.sourcePdfUrl}
               target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 hover:text-foreground transition-colors"
+              rel="noreferrer noopener"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
             >
-              <IconFileText className="size-3" />
-              Open Packet
+              <IconFileText className="size-3 shrink-0" aria-hidden />
+              Packet
             </a>
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </>
+      }
+    />
   )
 }

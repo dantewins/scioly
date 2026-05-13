@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
+import { EntityCard, type EntityCardTone } from "@/components/ui/entity-card"
+import { StatusBadge } from "@/components/ui/status-badge"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { formatDateOnly } from "@/lib/format"
+import { formatDateCompact } from "@/lib/format"
 import { apiCall } from "@/lib/api-client"
 
 interface Entry {
@@ -41,13 +41,13 @@ interface Props {
   canSubmit: boolean
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  APPROVED: "bg-green-100 text-green-800",
-  REJECTED: "bg-red-100 text-red-800",
-}
-
 const EMPTY_FORM = { categoryId: "", title: "", description: "", totalHours: "", proofUrl: "" }
+
+function toneForEntry(status: string): EntityCardTone {
+  if (status === "APPROVED") return "success"
+  if (status === "REJECTED") return "danger"
+  return "warning"
+}
 
 export function MemberHoursView({ entries: initial, categories, canSubmit }: Props) {
   const [entries, setEntries] = useState<Entry[]>(initial)
@@ -55,9 +55,22 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
   const [editingId, setEditingId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL")
 
   const selectedCategory = categories.find((c) => c.id === form.categoryId)
   const isEditing = editingId !== null
+
+  const counts = useMemo(() => ({
+    ALL: entries.length,
+    PENDING: entries.filter((e) => e.status === "PENDING").length,
+    APPROVED: entries.filter((e) => e.status === "APPROVED").length,
+    REJECTED: entries.filter((e) => e.status === "REJECTED").length,
+  }), [entries])
+
+  const visibleEntries = useMemo(
+    () => statusFilter === "ALL" ? entries : entries.filter((e) => e.status === statusFilter),
+    [entries, statusFilter],
+  )
 
   function openEdit(entry: Entry) {
     setEditingId(entry.id)
@@ -146,27 +159,47 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
         </Button>
       )}
 
+      <div className="flex flex-wrap items-center gap-1.5">
+        {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map((s) => {
+          const active = statusFilter === s
+          return (
+            <Button
+              key={s}
+              size="sm"
+              variant={active ? "default" : "outline"}
+              onClick={() => setStatusFilter(s)}
+              aria-pressed={active}
+            >
+              {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()} ({counts[s]})
+            </Button>
+          )
+        })}
+      </div>
+
       <div className="space-y-2">
-        {entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No hour entries yet.</p>
+        {visibleEntries.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {statusFilter === "ALL" ? "No hour entries yet." : `No ${statusFilter.toLowerCase()} entries.`}
+          </p>
         ) : (
-          entries.map((entry) => (
-            <Card key={entry.id} className="flex flex-row items-start gap-3 px-[var(--card-px)] py-[var(--card-py)]">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-sm truncate">{entry.title}</p>
-                  <Badge variant="secondary" className="text-xs shrink-0">{Number(entry.totalHours).toFixed(1)} hrs</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">{entry.category.name} · {formatDateOnly(new Date(entry.submittedAt))}</p>
-                {entry.rejectionReason && (
-                  <p className="text-xs text-destructive mt-0.5">{entry.rejectionReason}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Badge className={STATUS_COLORS[entry.status] ?? ""} variant="outline">
-                  {entry.status}
-                </Badge>
-                {entry.status === "PENDING" && canSubmit && (
+          visibleEntries.map((entry) => (
+            <EntityCard
+              key={entry.id}
+              tone={toneForEntry(entry.status)}
+              title={entry.title}
+              titleSize="sm"
+              status={<StatusBadge status={entry.status} withDot />}
+              metrics={
+                <>
+                  <span>
+                    <span className="text-foreground/80">{Number(entry.totalHours).toFixed(1)}h</span>
+                  </span>
+                  <span>{entry.category.name}</span>
+                  <span>{formatDateCompact(new Date(entry.submittedAt))}</span>
+                </>
+              }
+              trailing={
+                entry.status === "PENDING" && canSubmit ? (
                   <>
                     <Button
                       variant="ghost"
@@ -188,9 +221,14 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
                       <IconTrash className="size-4" />
                     </Button>
                   </>
-                )}
-              </div>
-            </Card>
+                ) : undefined
+              }
+              alwaysShowTrailing
+            >
+              {entry.rejectionReason && (
+                <p className="text-xs text-[var(--danger)]">{entry.rejectionReason}</p>
+              )}
+            </EntityCard>
           ))
         )}
       </div>

@@ -11,7 +11,8 @@ import {
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { EntityCard } from "@/components/ui/entity-card"
+import { StatusBadge } from "@/components/ui/status-badge"
 
 type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
 type AssessmentPartType = "SECTION" | "STATION"
@@ -55,104 +56,101 @@ interface PracticeTestCardProps {
   onSetAnswerKey: (test: PracticeTestCardData) => void
 }
 
+const FORMAT_LABEL: Record<AssessmentFormat, string> = {
+  TEST: "Test",
+  STATIONS: "Stations",
+  HYBRID: "Hybrid",
+}
+
 export function PracticeTestCard({
-  test,
-  canManage,
-  onEdit,
-  onDelete,
-  onSetAnswerKey,
+  test, canManage, onEdit, onDelete, onSetAnswerKey,
 }: PracticeTestCardProps) {
+  const partLabel = test.format === "STATIONS" ? "station" : "part"
   return (
-    <Card className="group">
-      <CardContent className="space-y-1.5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-medium leading-none">{test.title}</p>
-              <Badge variant={test.isPublished ? "default" : "secondary"} className="text-xs">
-                {test.isPublished ? "Published" : "Draft"}
+    <EntityCard
+      tone={test.isPublished ? "brand" : "neutral"}
+      kicker={
+        <>
+          {FORMAT_LABEL[test.format]}
+          {test.event && <span className="text-border" aria-hidden>·</span>}
+          {test.event && <span className="text-muted-foreground">{test.event.name}</span>}
+          {test.answerKey && (
+            <>
+              <span className="text-border" aria-hidden>·</span>
+              <Badge variant="info" className="text-[10px] gap-1">
+                <IconKey size={10} />
+                Key set
               </Badge>
-              <Badge variant="outline" className="text-xs">
-                {test.format}
-              </Badge>
-              {test.answerKey && (
-                <Badge variant="outline" className="text-xs gap-1">
-                  <IconKey size={10} />
-                  Answer key set
-                </Badge>
-              )}
-            </div>
-          </div>
-          {canManage && (
-            <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="px-2.5 text-xs gap-1"
-                onClick={() => onSetAnswerKey(test)}
-              >
-                <IconKey size={12} />
-                {test.answerKey ? "Update key" : "Set key"}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => onEdit(test)}
-              >
-                <IconPencil size={13} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:text-destructive"
-                onClick={() => onDelete(test.id)}
-              >
-                <IconTrash size={13} />
-              </Button>
-            </div>
+            </>
           )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          {test.event && (
-            <span className="font-medium text-foreground">{test.event.name}</span>
-          )}
+        </>
+      }
+      status={<StatusBadge status={test.isPublished ? "Published" : "Draft"} withDot />}
+      title={test.title}
+      metrics={
+        <>
           {test.timeLimitMinutes && (
-            <span className="flex items-center gap-1">
-              <IconClock size={12} />
+            <span className="inline-flex items-center gap-1">
+              <IconClock size={12} aria-hidden />
               {test.timeLimitMinutes} min
             </span>
           )}
           {test.parts.length > 0 && (
-            <span className="flex items-center gap-1">
-              <IconLayout size={12} />
-              {test.parts.length} {test.format === "STATIONS" ? "station" : "part"}{test.parts.length !== 1 ? "s" : ""}
+            <span className="inline-flex items-center gap-1">
+              <IconLayout size={12} aria-hidden />
+              {test.parts.length} {partLabel}{test.parts.length !== 1 ? "s" : ""}
             </span>
           )}
-          <span className="flex items-center gap-1">
-            <IconUsers size={12} />
-            {test.attemptCount} attempt{test.attemptCount !== 1 ? "s" : ""}
+          <span className="inline-flex items-center gap-1">
+            <IconUsers size={12} aria-hidden />
+            <span className="text-foreground/80">{test.attemptCount}</span> attempt{test.attemptCount !== 1 ? "s" : ""}
           </span>
-          <a
-            href={test.sourcePdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 hover:text-foreground transition-colors"
-          >
-            <IconFileTypePdf size={12} />
-            Open Packet
-          </a>
+          {test.sourcePdfUrl && (
+            <a
+              href={test.sourcePdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
+            >
+              <IconFileTypePdf size={12} aria-hidden />
+              Packet
+            </a>
+          )}
           {test.answerKeyPdfUrl && (
             <a
               href={test.answerKeyPdfUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
             >
-              Answer Key PDF
+              Answer Key
             </a>
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </>
+      }
+      trailing={
+        canManage ? (
+          <>
+            <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => onSetAnswerKey(test)}>
+              <IconKey size={12} />
+              {test.answerKey ? "Update key" : "Set key"}
+            </Button>
+            <Button variant="ghost" size="icon-sm" onClick={() => onEdit(test)} aria-label={`Edit ${test.title}`}>
+              <IconPencil size={13} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => onDelete(test.id)}
+              aria-label={`Delete ${test.title}`}
+            >
+              <IconTrash size={13} />
+            </Button>
+          </>
+        ) : undefined
+      }
+      interactive={!canManage}
+    />
   )
 }

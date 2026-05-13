@@ -1,15 +1,9 @@
 "use client"
 
-import {
-  IconCalendar,
-  IconMapPin,
-  IconClock,
-  IconUsers,
-  IconPencil,
-  IconTrash,
-} from "@tabler/icons-react"
+import { IconMapPin, IconUsers, IconPencil, IconTrash } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { EntityCard, type EntityCardTone } from "@/components/ui/entity-card"
+import { formatDateCompact, formatRelativeDate } from "@/lib/format"
 
 type ClubEventType =
   | "MEETING"
@@ -40,29 +34,17 @@ const TYPE_LABELS: Record<ClubEventType, string> = {
   OTHER: "Other",
 }
 
-const TYPE_COLORS: Record<ClubEventType, string> = {
-  MEETING: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  SUPER_SATURDAY: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  FUNDRAISER: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  WORKSHOP: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  FIELD_TRIP: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
-  OTHER: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
+const TYPE_TONE: Record<ClubEventType, EntityCardTone> = {
+  MEETING:        "brand",
+  SUPER_SATURDAY: "violet",
+  FUNDRAISER:     "emerald",
+  WORKSHOP:       "amber",
+  FIELD_TRIP:     "teal",
+  OTHER:          "zinc",
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  })
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
 }
 
 interface ClubEventCardProps {
@@ -73,68 +55,65 @@ interface ClubEventCardProps {
 }
 
 export function ClubEventCard({ event, canManage, onEdit, onDelete }: ClubEventCardProps) {
+  const startsAt = new Date(event.startsAt)
+  const relative = formatRelativeDate(startsAt)
+  const isPast = startsAt.getTime() < Date.now()
+
   return (
-    <Card className="group">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-sm font-medium">{event.name}</CardTitle>
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[event.type]}`}
-              >
-                {TYPE_LABELS[event.type]}
-              </span>
-            </div>
-          </div>
-          {canManage && (
-            <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => onEdit(event)}
-              >
-                <IconPencil size={13} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:text-destructive"
-                onClick={() => onDelete(event.id)}
-              >
-                <IconTrash size={13} />
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0 space-y-1.5">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <IconCalendar size={12} />
-          <span>
-            {formatDate(event.startsAt)} at {formatTime(event.startsAt)}
-            {event.endsAt && ` — ${formatTime(event.endsAt)}`}
-          </span>
-        </div>
-        {event.location && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <IconMapPin size={12} />
-            <span>{event.location}</span>
-          </div>
-        )}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+    <EntityCard
+      tone={TYPE_TONE[event.type]}
+      kicker={
+        <>
+          {TYPE_LABELS[event.type]}
           {event.hoursValue > 0 && (
-            <span className="flex items-center gap-1">
-              <IconClock size={12} />
-              {event.hoursValue}h
+            <>
+              <span className="text-border" aria-hidden>·</span>
+              <span className="text-muted-foreground">{event.hoursValue}h credit</span>
+            </>
+          )}
+        </>
+      }
+      title={event.name}
+      metrics={
+        <>
+          <span className="inline-flex items-baseline gap-1.5">
+            <span className="text-foreground/90">{formatDateCompact(startsAt)}</span>
+            <span>·</span>
+            <span>{formatTime(event.startsAt)}{event.endsAt && `–${formatTime(event.endsAt)}`}</span>
+          </span>
+          {relative && (
+            <span className={isPast ? "text-muted-foreground" : "text-foreground/70"}>· {relative}</span>
+          )}
+          {event.location && (
+            <span className="inline-flex items-center gap-1">
+              <IconMapPin className="size-3 shrink-0" aria-hidden />
+              {event.location}
             </span>
           )}
-          <span className="flex items-center gap-1">
-            <IconUsers size={12} />
-            {event._count.attendance} attended
+          <span className="inline-flex items-center gap-1">
+            <IconUsers className="size-3 shrink-0" aria-hidden />
+            <span className="text-foreground/80">{event._count.attendance}</span> attended
           </span>
-        </div>
-      </CardContent>
-    </Card>
+        </>
+      }
+      trailing={
+        canManage ? (
+          <>
+            <Button variant="ghost" size="icon-sm" onClick={() => onEdit(event)} aria-label={`Edit ${event.name}`}>
+              <IconPencil size={13} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => onDelete(event.id)}
+              aria-label={`Delete ${event.name}`}
+            >
+              <IconTrash size={13} />
+            </Button>
+          </>
+        ) : undefined
+      }
+    />
   )
 }
