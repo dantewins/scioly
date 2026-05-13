@@ -1,12 +1,17 @@
 import { redirect } from "next/navigation"
-import { IconUsers, IconUserCheck, IconClock, IconCalendarEvent } from "@tabler/icons-react"
+import { IconUsers, IconUserCheck, IconClock, IconCalendarEvent, IconPinFilled, IconSpeakerphone } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { MetricCard } from "@/components/ui/metric-card"
 import { SectionCard } from "@/components/ui/section-card"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { PageHeader } from "@/components/ui/page-header"
-import { formatDateOnly, formatMonthYear } from "@/lib/format"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
+import { formatDateCompact, formatMonthYear } from "@/lib/format"
+import { canEdit } from "@/lib/permissions"
+import { AnnouncementComposer } from "./announcement-composer"
 
 
 export default async function DashboardPage() {
@@ -19,7 +24,8 @@ export default async function DashboardPage() {
     orderBy: { startsAt: "desc" },
   })
 
-  const [memberCount, pendingCount, pendingHoursCount, upcomingEvents] = season
+  const now = new Date()
+  const [memberCount, pendingCount, pendingHoursCount, upcomingEvents, announcements] = season
     ? await Promise.all([
         prisma.memberSeason.count({
           where: { seasonId: season.id, membershipStatus: "ACTIVE" },
@@ -43,53 +49,119 @@ export default async function DashboardPage() {
           orderBy: { startsAt: "asc" },
           take: 5,
         }),
+        prisma.announcement.findMany({
+          where: {
+            seasonId: season.id,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            publishedAt: { not: null, lte: now },
+          },
+          select: { id: true, title: true, body: true, isPinned: true, publishedAt: true },
+          orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
+          take: 5,
+        }),
       ])
-    : [0, 0, 0, []]
+    : [0, 0, 0, [], []]
+
+  const canPostAnnouncements = canEdit(user.permissions, "club_settings")
 
   return (
     <div className="layout-page">
       <PageHeader
-        title="Dashboard"
-        description={season ? `${season.name} · ${formatMonthYear(new Date())}` : "No active season"}
+        title={`Welcome back, ${user.firstName}`}
+        kicker={season ? `${season.name} · ${formatMonthYear(new Date())}` : "No active season"}
+        description={season ? "Here's what's moving across the club today." : "Create a season in Settings to begin."}
       />
 
-      {/* Metrics row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <MetricCard label="Active Members" value={memberCount} icon={IconUsers} />
-        <MetricCard label="Pending Applications" value={pendingCount} icon={IconUserCheck} />
-        <MetricCard label="Hours Awaiting Review" value={pendingHoursCount} icon={IconClock} />
-        <MetricCard label="Upcoming Events" value={upcomingEvents.length} icon={IconCalendarEvent} />
+        <MetricCard
+          label="Active Members"
+          value={memberCount}
+          icon={IconUsers}
+          tone="brand"
+          href="/dashboard/members"
+        />
+        <MetricCard
+          label="Pending Applications"
+          value={pendingCount}
+          icon={IconUserCheck}
+          tone={pendingCount > 0 ? "warning" : "neutral"}
+          href="/dashboard/applications"
+        />
+        <MetricCard
+          label="Hours Awaiting Review"
+          value={pendingHoursCount}
+          icon={IconClock}
+          tone={pendingHoursCount > 0 ? "warning" : "neutral"}
+          href="/dashboard/hours"
+        />
+        <MetricCard
+          label="Upcoming Events"
+          value={upcomingEvents.length}
+          icon={IconCalendarEvent}
+          tone="neutral"
+          href="/dashboard/club-events"
+        />
       </div>
 
-      {/* Upcoming club events */}
+      {(announcements.length > 0 || canPostAnnouncements) && (
+        <SectionCard
+          title="Announcements"
+          action={canPostAnnouncements ? <AnnouncementComposer /> : undefined}
+          flush
+        >
+          {announcements.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-3 px-[var(--card-px)]">
+              No announcements yet. Post the first one for the season.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border/60">
+              {announcements.map((a) => (
+                <li key={a.id} className="px-[var(--card-px)] py-3 flex items-start gap-3">
+                  <span className="text-muted-foreground mt-0.5">
+                    {a.isPinned ? <IconPinFilled className="size-4 text-azure-600" /> : <IconSpeakerphone className="size-4" />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-serif text-base leading-tight tracking-tight">{a.title}</p>
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap mt-1">{a.body}</p>
+                    {a.publishedAt && (
+                      <p className="text-[11px] font-mono tabular-nums text-muted-foreground mt-1">{formatDateCompact(a.publishedAt)}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+      )}
+
       {upcomingEvents.length > 0 && (
         <SectionCard title="Upcoming Events" flush>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="h-9 px-[var(--card-px)] text-left text-xs font-medium text-muted-foreground">Name</th>
-                <th className="h-9 px-[var(--card-px)] text-left text-xs font-medium text-muted-foreground">Type</th>
-                <th className="h-9 px-[var(--card-px)] text-left text-xs font-medium text-muted-foreground">Date</th>
-                <th className="h-9 px-[var(--card-px)] text-left text-xs font-medium text-muted-foreground">Attendance</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Attendance</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {upcomingEvents.map((e) => (
-                <tr key={e.id} className="border-b border-border last:border-0" style={{ height: "var(--row-h)" }}>
-                  <td className="px-[var(--card-px)] align-middle font-medium text-foreground">{e.name}</td>
-                  <td className="px-[var(--card-px)] align-middle">
-                    <StatusBadge status={e.type} />
-                  </td>
-                  <td className="px-[var(--card-px)] align-middle text-muted-foreground tabular-nums">
-                    {formatDateOnly(e.startsAt)}
-                  </td>
-                  <td className="px-[var(--card-px)] align-middle text-muted-foreground tabular-nums">
+                <TableRow key={e.id}>
+                  <TableCell className="font-serif text-base leading-tight tracking-tight">{e.name}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={e.type} tone="brand" />
+                  </TableCell>
+                  <TableCell className="font-mono tabular-nums text-muted-foreground">
+                    {formatDateCompact(e.startsAt)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono tabular-nums text-muted-foreground">
                     {e._count.attendance}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </SectionCard>
       )}
 
@@ -97,7 +169,7 @@ export default async function DashboardPage() {
         <SectionCard>
           <p className="text-sm text-muted-foreground text-center py-8">
             No active season. Go to{" "}
-            <a href="/dashboard/settings" className="text-primary underline underline-offset-4">Settings</a>
+            <a href="/dashboard/settings" className="text-azure-700 underline underline-offset-4">Settings</a>
             {" "}to create one.
           </p>
         </SectionCard>

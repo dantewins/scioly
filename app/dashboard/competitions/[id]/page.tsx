@@ -7,8 +7,7 @@ import { canView, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { listCanonicalCompetitionRosters } from "@/lib/competition-ontology"
 import { PageHeader } from "@/components/ui/page-header"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDateOnly } from "@/lib/format"
 import { CompetitionScheduleTable } from "@/components/tables/competition-schedule-table"
@@ -98,23 +97,24 @@ export default async function CompetitionDetailPage({ params }: Props) {
 
   return (
     <div className="layout-page">
-      <div className="flex items-start gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/dashboard/competitions"><IconArrowLeft className="size-4" /></Link>
-        </Button>
-        <div className="min-w-0 flex-1">
-          <PageHeader
-            title={competition.name}
-            description={[
-              competition.location ? `${competition.location}` : null,
-              formatDateOnly(competition.startsAt),
-            ].filter(Boolean).join(" · ")}
-          >
-            <Badge variant="outline">{TYPE_LABELS[competition.type] ?? competition.type}</Badge>
-            {competition.isPublished && <Badge variant="secondary">Published</Badge>}
-          </PageHeader>
-        </div>
-      </div>
+      <Link
+        href="/dashboard/competitions"
+        className="group inline-flex items-center gap-1.5 label-caps text-muted-foreground hover:text-azure-700 transition-colors w-fit"
+      >
+        <IconArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+        Competitions
+      </Link>
+
+      <PageHeader
+        title={competition.name}
+        kicker={TYPE_LABELS[competition.type] ?? competition.type}
+        description={[
+          competition.location ? competition.location : null,
+          formatDateOnly(competition.startsAt),
+        ].filter(Boolean).join(" · ")}
+      >
+        <StatusBadge status={competition.isPublished ? "Live" : "Draft"} withDot />
+      </PageHeader>
 
       <Tabs defaultValue="rosters">
         <TabsList>

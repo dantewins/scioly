@@ -2,8 +2,11 @@
 
 import { IconCreditCard } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { formatDateOnly } from "@/lib/format"
+import { StatusBadge } from "@/components/ui/status-badge"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell,
+} from "@/components/ui/table"
+import { formatDateCompact } from "@/lib/format"
 
 export interface InvoiceRow {
   id: string
@@ -21,15 +24,6 @@ export interface InvoiceRow {
   payments: { id: string; amountCents: number; method: string; paidAt: string; referenceNumber: string | null }[]
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  OPEN: "bg-blue-100 text-blue-800",
-  PARTIALLY_PAID: "bg-yellow-100 text-yellow-800",
-  PAID: "bg-green-100 text-green-800",
-  OVERDUE: "bg-red-100 text-red-800",
-  DRAFT: "bg-gray-100 text-gray-800",
-  VOID: "bg-gray-100 text-gray-500",
-}
-
 interface Props {
   invoices: InvoiceRow[]
   canEdit: boolean
@@ -37,44 +31,49 @@ interface Props {
   onVoid: (invoiceId: string) => void
 }
 
+function dollars(cents: number): string {
+  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 export function InvoicesTable({ invoices, canEdit, onRecordPayment, onVoid }: Props) {
   if (invoices.length === 0) return null
 
   return (
-    <div className="overflow-x-auto">
-    <div className="overflow-hidden rounded-[var(--radius)] border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="text-left px-4 py-2 font-medium">Member</th>
-            <th className="text-left px-4 py-2 font-medium">Invoice</th>
-            <th className="text-left px-4 py-2 font-medium">Amount</th>
-            <th className="text-left px-4 py-2 font-medium">Paid</th>
-            <th className="text-left px-4 py-2 font-medium">Status</th>
-            <th className="text-left px-4 py-2 font-medium">Due</th>
-            {canEdit && <th className="px-4 py-2" />}
-          </tr>
-        </thead>
-        <tbody>
+    <TableShell>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Member</TableHead>
+            <TableHead>Invoice</TableHead>
+            <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-right">Paid</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Due</TableHead>
+            {canEdit && <TableHead className="text-right" />}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {invoices.map((inv) => (
-            <tr key={inv.id} className="border-t">
-              <td className="px-4 py-2 text-xs">
+            <TableRow key={inv.id}>
+              <TableCell className="font-medium text-foreground">
                 {inv.memberSeason.user.firstName} {inv.memberSeason.user.lastName}
-              </td>
-              <td className="px-4 py-2 font-medium">{inv.title}</td>
-              <td className="px-4 py-2">${(inv.amountCents / 100).toFixed(2)}</td>
-              <td className="px-4 py-2">${(inv.amountPaidCents / 100).toFixed(2)}</td>
-              <td className="px-4 py-2">
-                <Badge variant="outline" className={`text-xs ${STATUS_COLORS[inv.status] ?? ""}`}>
-                  {inv.status}
-                </Badge>
-              </td>
-              <td className="px-4 py-2 text-muted-foreground">
-                {formatDateOnly(inv.dueAt ? new Date(inv.dueAt) : undefined)}
-              </td>
+              </TableCell>
+              <TableCell className="font-serif text-base leading-tight tracking-tight">{inv.title}</TableCell>
+              <TableCell className="font-mono tabular-nums text-right text-foreground">
+                {dollars(inv.amountCents)}
+              </TableCell>
+              <TableCell className="font-mono tabular-nums text-right text-muted-foreground">
+                {dollars(inv.amountPaidCents)}
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={inv.status} withDot />
+              </TableCell>
+              <TableCell className="font-mono tabular-nums text-muted-foreground">
+                {inv.dueAt ? formatDateCompact(new Date(inv.dueAt)) : "—"}
+              </TableCell>
               {canEdit && (
-                <td className="px-4 py-2">
-                  <div className="flex gap-1">
+                <TableCell className="text-right">
+                  <div className="flex gap-1 justify-end">
                     {["OPEN", "PARTIALLY_PAID"].includes(inv.status) && (
                       <Button
                         size="xs"
@@ -96,13 +95,12 @@ export function InvoicesTable({ invoices, canEdit, onRecordPayment, onVoid }: Pr
                       </Button>
                     )}
                   </div>
-                </td>
+                </TableCell>
               )}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
-    </div>
+        </TableBody>
+      </Table>
+    </TableShell>
   )
 }

@@ -6,12 +6,11 @@ import { getCurrentUser } from "@/lib/auth"
 import { canView } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Card, CardContent, CardHeader, CardTitle,
-} from "@/components/ui/card"
+import { SectionCard } from "@/components/ui/section-card"
+import { MetricCard } from "@/components/ui/metric-card"
 import { MemberEventsTable } from "@/components/tables/member-events-table"
 import { MemberHoursTable } from "@/components/tables/member-hours-table"
 import { MemberInvoicesTable } from "@/components/tables/member-invoices-table"
@@ -21,14 +20,6 @@ import { formatDateOnly } from "@/lib/format"
 
 interface Props {
   params: Promise<{ id: string }>
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-green-100 text-green-800",
-  INACTIVE: "bg-yellow-100 text-yellow-800",
-  ALUMNI: "bg-blue-100 text-blue-800",
-  REMOVED: "bg-red-100 text-red-800",
-  PENDING: "bg-gray-100 text-gray-800",
 }
 
 export default async function MemberDetailPage({ params }: Props) {
@@ -126,22 +117,35 @@ export default async function MemberDetailPage({ params }: Props) {
 
   return (
     <div className="layout-page">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/dashboard/members"><IconArrowLeft className="size-4" /></Link>
-        </Button>
-        <div>
-          <h1 className="text-xl font-semibold">
-            {targetUser.firstName} {targetUser.lastName}
-          </h1>
-          <p className="text-sm text-muted-foreground">{targetUser.email}</p>
+      {/* Breadcrumb back-link */}
+      <Link
+        href="/dashboard/members"
+        className="group inline-flex items-center gap-1.5 label-caps text-muted-foreground hover:text-azure-700 transition-colors w-fit"
+      >
+        <IconArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+        Members
+      </Link>
+
+      {/* Header — azure-tinted banner */}
+      <div className="relative overflow-hidden rounded-[var(--radius)] border border-border/80 bg-azure-gradient">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-20 -top-20 size-72 rounded-full bg-azure-200/40 blur-3xl"
+        />
+        <div className="relative flex items-end gap-3 px-[var(--card-px)] py-[var(--card-py)] sm:px-5 sm:py-5">
+          <div className="min-w-0 flex-1">
+            <p className="label-caps text-azure-700">Member</p>
+            <h1 className="mt-1 font-serif text-2xl sm:text-3xl leading-tight tracking-tight">
+              {targetUser.firstName} {targetUser.lastName}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">{targetUser.email}</p>
+          </div>
+          {ms && (
+            <div className="self-end mb-1">
+              <StatusBadge status={ms.membershipStatus} withDot />
+            </div>
+          )}
         </div>
-        {ms && (
-          <Badge className={STATUS_COLORS[ms.membershipStatus] ?? ""} variant="outline">
-            {ms.membershipStatus}
-          </Badge>
-        )}
       </div>
 
       <Tabs defaultValue="overview">
@@ -154,117 +158,108 @@ export default async function MemberDetailPage({ params }: Props) {
           <TabsTrigger value="application">Application</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4 mt-4">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Grade</CardTitle></CardHeader>
-              <CardContent><p className="text-lg font-semibold">{targetUser.gradeLevel ?? "—"}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Shirt Size</CardTitle></CardHeader>
-              <CardContent><p className="text-lg font-semibold">{ms?.shirtSize ?? "—"}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Approved Hours</CardTitle></CardHeader>
-              <CardContent><p className="text-lg font-semibold">{totalApprovedHours.toFixed(1)}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-1"><CardTitle className="text-xs text-muted-foreground">Roles</CardTitle></CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-1">
-                  {ms?.roles.length
-                    ? ms.roles.map((r) => <Badge key={r.clubRole.id} variant="secondary" className="text-xs">{r.clubRole.name}</Badge>)
-                    : <span className="text-sm text-muted-foreground">None</span>
-                  }
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MetricCard label="Grade" value={targetUser.gradeLevel ?? "—"} tone="brand" />
+            <MetricCard label="Shirt Size" value={ms?.shirtSize ?? "—"} tone="neutral" />
+            <MetricCard label="Approved Hours" value={totalApprovedHours.toFixed(1)} tone="success" />
+            <div className="surface surface-pad">
+              <p className="label-caps text-muted-foreground">Roles</p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {ms?.roles.length
+                  ? ms.roles.map((r) => (
+                      <Badge key={r.clubRole.id} variant="tonal" className="text-xs">
+                        {r.clubRole.name}
+                      </Badge>
+                    ))
+                  : <span className="text-sm text-muted-foreground">None</span>
+                }
+              </div>
+            </div>
           </div>
 
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Contact Info</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 gap-2 text-sm">
-              <div><span className="text-muted-foreground">Email</span><p>{targetUser.email}</p></div>
-              <div><span className="text-muted-foreground">Phone</span><p>{targetUser.phone ?? "—"}</p></div>
-              <div><span className="text-muted-foreground">Graduation Year</span><p>{targetUser.graduationYear ?? "—"}</p></div>
-            </CardContent>
-          </Card>
+          <SectionCard title="Contact Info">
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="label-caps text-muted-foreground">Email</dt>
+                <dd className="mt-1 font-mono text-[13px]">{targetUser.email}</dd>
+              </div>
+              <div>
+                <dt className="label-caps text-muted-foreground">Phone</dt>
+                <dd className="mt-1 font-mono text-[13px]">{targetUser.phone ?? "—"}</dd>
+              </div>
+              <div>
+                <dt className="label-caps text-muted-foreground">Graduation Year</dt>
+                <dd className="mt-1 font-mono text-[13px] tabular-nums">{targetUser.graduationYear ?? "—"}</dd>
+              </div>
+            </dl>
+          </SectionCard>
         </TabsContent>
 
-        {/* Events Tab */}
         <TabsContent value="events" className="mt-4">
           <MemberEventsTable enrollments={ms?.eventEnrollments ?? []} />
         </TabsContent>
 
-        {/* Hours Tab */}
         <TabsContent value="hours" className="mt-4">
           <MemberHoursTable entries={ms?.hourEntries ?? []} />
         </TabsContent>
 
-        {/* Dues Tab */}
         <TabsContent value="dues" className="mt-4">
           <MemberInvoicesTable invoices={ms?.invoices ?? []} />
         </TabsContent>
 
-        {/* Forms Tab */}
         <TabsContent value="forms" className="mt-4">
           <MemberFormsTable submissions={ms?.formSubmissions ?? []} />
         </TabsContent>
 
         <TabsContent value="application" className="space-y-4 mt-4">
           {!applicationDetails ? (
-            <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">
+            <SectionCard>
+              <p className="text-sm text-muted-foreground">
                 No application details available for this member.
-              </CardContent>
-            </Card>
+              </p>
+            </SectionCard>
           ) : (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Application Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Submitted</p>
-                      <p className="text-sm font-medium">
-                        {applicationDetails.submittedAt
-                          ? formatDateOnly(new Date(applicationDetails.submittedAt))
-                          : "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Returning Member</p>
-                      <p className="text-sm font-medium">
-                        {applicationDetails.isReturning ? "Yes" : "No"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Can Travel</p>
-                      <p className="text-sm font-medium">
-                        {applicationDetails.canTravel ? "Yes" : "No"}
-                      </p>
-                    </div>
-                  </div>
-
+              <SectionCard title="Application Summary">
+                <div className="grid gap-4 sm:grid-cols-3">
                   <div>
-                    <p className="text-xs text-muted-foreground">Event Choices</p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {applicationDetails.eventChoices.length ? (
-                        applicationDetails.eventChoices.map((choice) => (
-                          <Badge key={choice.event.id} variant="outline" className="text-xs">
-                            {choice.event.code ?? choice.event.name}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-sm text-muted-foreground">None provided</span>
-                      )}
-                    </div>
+                    <p className="label-caps text-muted-foreground">Submitted</p>
+                    <p className="mt-1 font-mono text-[13px] tabular-nums">
+                      {applicationDetails.submittedAt
+                        ? formatDateOnly(new Date(applicationDetails.submittedAt))
+                        : "—"}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <p className="label-caps text-muted-foreground">Returning Member</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {applicationDetails.isReturning ? "Yes" : "No"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="label-caps text-muted-foreground">Can Travel</p>
+                    <p className="mt-1 text-sm font-medium">
+                      {applicationDetails.canTravel ? "Yes" : "No"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <p className="label-caps text-muted-foreground">Event Choices</p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {applicationDetails.eventChoices.length ? (
+                      applicationDetails.eventChoices.map((choice) => (
+                        <Badge key={choice.event.id} variant="tonal" className="text-xs">
+                          {choice.event.code ?? choice.event.name}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">None provided</span>
+                    )}
+                  </div>
+                </div>
+              </SectionCard>
 
               {[
                 ["Why Join", applicationDetails.whyJoin],
@@ -274,14 +269,11 @@ export default async function MemberDetailPage({ params }: Props) {
                 ["Math Classes", applicationDetails.mathClasses],
                 ["Questions", applicationDetails.questions],
               ].map(([label, value]) => (
-                <Card key={label}>
-                  <CardHeader>
-                    <CardTitle className="text-sm">{label}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm leading-6 text-foreground">
+                <SectionCard key={label} title={label as string}>
+                  <p className="text-sm leading-6 text-foreground whitespace-pre-line">
                     {value || <span className="text-muted-foreground">No response provided.</span>}
-                  </CardContent>
-                </Card>
+                  </p>
+                </SectionCard>
               ))}
             </>
           )}

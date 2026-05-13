@@ -1,5 +1,8 @@
-import { Badge } from "@/components/ui/badge"
-import { formatDateOnly } from "@/lib/format"
+import { StatusBadge } from "@/components/ui/status-badge"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell,
+} from "@/components/ui/table"
+import { formatDateCompact } from "@/lib/format"
 
 interface HourEntry {
   id: string
@@ -19,31 +22,34 @@ export function MemberHoursTable({ entries }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto">
-    <div className="overflow-hidden rounded-[var(--radius)] border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="text-left px-4 py-2 font-medium">Title</th>
-            <th className="text-left px-4 py-2 font-medium">Hours</th>
-            <th className="text-left px-4 py-2 font-medium">Status</th>
-            <th className="text-left px-4 py-2 font-medium">Submitted</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((h) => (
-            <tr key={h.id} className="border-t">
-              <td className="px-4 py-2">{h.title}</td>
-              <td className="px-4 py-2">{parseFloat(String(h.totalHours)).toFixed(1)}</td>
-              <td className="px-4 py-2"><Badge variant="outline">{h.status}</Badge></td>
-              <td className="px-4 py-2 text-muted-foreground">
-                {formatDateOnly(h.submittedAt instanceof Date ? h.submittedAt : h.submittedAt ? new Date(h.submittedAt) : undefined)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    </div>
+    <TableShell>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Title</TableHead>
+            <TableHead className="text-right">Hours</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Submitted</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {entries.map((h) => {
+            const date = h.submittedAt instanceof Date ? h.submittedAt : h.submittedAt ? new Date(h.submittedAt) : null
+            return (
+              <TableRow key={h.id}>
+                <TableCell className="font-serif text-base leading-tight tracking-tight">{h.title}</TableCell>
+                <TableCell className="font-mono tabular-nums text-right text-foreground">
+                  {parseFloat(String(h.totalHours)).toFixed(1)}
+                </TableCell>
+                <TableCell><StatusBadge status={h.status} withDot /></TableCell>
+                <TableCell className="font-mono tabular-nums text-muted-foreground">
+                  {date ? formatDateCompact(date) : "—"}
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </TableShell>
   )
 }

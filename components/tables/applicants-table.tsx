@@ -112,7 +112,7 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
           <Button
             size="xs"
             variant="outline"
-            className="text-green-600 border-green-200 hover:bg-green-50"
+            className="text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_75%)] hover:bg-[var(--success-soft)]"
             onClick={() => handleApprove(row.original.id)}
             disabled={loading}
           >
@@ -140,7 +140,7 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-[var(--radius)] border">
+      <div className="overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)]">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (

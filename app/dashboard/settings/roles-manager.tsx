@@ -444,7 +444,7 @@ export function RolesManager({ roles: initialRoles, canManage }: Props) {
                             handleToggle(perm.flag, checked, perm.autoEnable)
                           }
                           disabled={!canManage}
-                          className="shrink-0 data-[state=checked]:bg-green-500"
+                          className="shrink-0 data-[state=checked]:bg-azure-600"
                         />
                       </div>
                     ))}

@@ -11,7 +11,7 @@ import {
   IconDeviceFloppy,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/page-header"
 import type { MemberPracticeAttemptDetail } from "@/lib/practice-assessments"
@@ -119,32 +119,24 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
 
   return (
     <div className="layout-page">
-      <div className="flex items-start gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`/dashboard/practice/${assessment.id}`}>
-            <IconArrowLeft className="size-4" />
-          </Link>
-        </Button>
-        <div className="min-w-0 flex-1">
-          <PageHeader
-            title={assessment.title}
-            description={assessment.event?.name ?? undefined}
-          />
-        </div>
-      </div>
+      <Link
+        href={`/dashboard/practice/${assessment.id}`}
+        className="group inline-flex items-center gap-1.5 label-caps text-muted-foreground hover:text-azure-700 transition-colors w-fit"
+      >
+        <IconArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+        {assessment.title}
+      </Link>
+
+      <PageHeader
+        title={assessment.title}
+        description={assessment.event?.name ?? undefined}
+      />
 
       {/* Status bar */}
       <div className="flex flex-wrap items-center gap-3">
-        <Badge
-          variant={
-            attempt.status === "IN_PROGRESS" ? "default" :
-            attempt.status === "SCORED" ? "secondary" : "outline"
-          }
-        >
-          {attempt.status.replace("_", " ")}
-        </Badge>
+        <StatusBadge status={attempt.status} withDot />
         {attempt.status === "SCORED" && attempt.score !== null && attempt.scorePossible !== null && (
-          <span className="flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
+          <span className="flex items-center gap-1.5 text-sm font-mono tabular-nums font-medium text-[var(--success)]">
             <IconTrophy className="size-4" />
             {attempt.score} / {attempt.scorePossible}
           </span>
@@ -279,7 +271,7 @@ function PromptRow({ prompt, response, canEdit, onChange }: PromptRowProps) {
                 {prompt.responseText ?? <em className="text-xs">No answer</em>}
               </span>
               {prompt.isCorrect === true && (
-                <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                <span className="flex items-center gap-1 text-xs text-[var(--success)]">
                   <IconCheck className="size-3.5" />
                   {prompt.pointsAwarded !== null ? `${prompt.pointsAwarded} pt` : "Correct"}
                 </span>

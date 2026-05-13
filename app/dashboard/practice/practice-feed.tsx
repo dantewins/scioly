@@ -3,8 +3,8 @@
 import Link from "next/link"
 import { IconPlayerPlay, IconTrophy } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { SectionCard } from "@/components/ui/section-card"
+import { EntityCard } from "@/components/ui/entity-card"
 import { AssessmentCard } from "@/components/cards/assessment-card"
 import { formatMonthDay } from "@/lib/format"
 import type { MemberPracticeFeed } from "@/lib/practice-assessments"
@@ -25,51 +25,49 @@ export function PracticeFeed({ feed }: Props) {
   return (
     <div className="space-y-6">
       {continueAttempts.length > 0 && (
-        <SectionCard title="Continue Practice">
-          <div className="space-y-2">
+        <SectionCard title="Continue Practice" flush>
+          <div className="space-y-2 p-[var(--card-px)]">
             {continueAttempts.map((attempt) => (
-              <Card
+              <EntityCard
                 key={attempt.attemptId}
-                className="flex flex-row items-center justify-between gap-3 px-[var(--card-px)] py-[var(--card-py)]"
+                tone="warning"
+                title={attempt.title}
+                titleSize="sm"
+                kicker={attempt.eventName ?? undefined}
+                trailing={
+                  <Button size="sm" asChild>
+                    <Link href={`/dashboard/practice/attempts/${attempt.attemptId}`}>
+                      <IconPlayerPlay className="size-3.5 mr-1" />
+                      Continue
+                    </Link>
+                  </Button>
+                }
+                alwaysShowTrailing
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium truncate">{attempt.title}</p>
-                    {attempt.eventName && (
-                      <span className="text-xs text-muted-foreground">{attempt.eventName}</span>
-                    )}
+                {attempt.promptCount > 0 ? (
+                  <div className="flex items-center gap-2 text-[11px] font-mono tabular-nums text-muted-foreground">
+                    <div className="h-1 w-28 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-azure-500 transition-all"
+                        style={{ width: `${attempt.progressPercent}%` }}
+                      />
+                    </div>
+                    <span>{attempt.answeredCount}/{attempt.promptCount} answered</span>
                   </div>
-                  <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
-                    {attempt.promptCount > 0 ? (
-                      <>
-                        <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-primary transition-all"
-                            style={{ width: `${attempt.progressPercent}%` }}
-                          />
-                        </div>
-                        <span>{attempt.answeredCount}/{attempt.promptCount} answered</span>
-                      </>
-                    ) : (
-                      <span>Started {formatMonthDay(attempt.startedAt)}</span>
-                    )}
-                  </div>
-                </div>
-                <Button size="sm" asChild>
-                  <Link href={`/dashboard/practice/attempts/${attempt.attemptId}`}>
-                    <IconPlayerPlay className="size-3.5 mr-1" />
-                    Continue
-                  </Link>
-                </Button>
-              </Card>
+                ) : (
+                  <p className="text-[11px] font-mono tabular-nums text-muted-foreground">
+                    Started {formatMonthDay(attempt.startedAt)}
+                  </p>
+                )}
+              </EntityCard>
             ))}
           </div>
         </SectionCard>
       )}
 
       {recommendedAssessments.length > 0 && (
-        <SectionCard title="Recommended for Your Events">
-          <div className="space-y-3">
+        <SectionCard title="Recommended for Your Events" flush>
+          <div className="space-y-2 p-[var(--card-px)]">
             {recommendedAssessments.map((assessment) => (
               <AssessmentCard key={assessment.id} assessment={assessment} />
             ))}
@@ -77,8 +75,8 @@ export function PracticeFeed({ feed }: Props) {
         </SectionCard>
       )}
 
-      <SectionCard title="All Assessments">
-        <div className="space-y-3">
+      <SectionCard title="All Assessments" flush>
+        <div className="space-y-2 p-[var(--card-px)]">
           {assessments.map((assessment) => (
             <AssessmentCard key={assessment.id} assessment={assessment} />
           ))}
@@ -86,40 +84,38 @@ export function PracticeFeed({ feed }: Props) {
       </SectionCard>
 
       {recentAttempts.length > 0 && (
-        <SectionCard title="Recent Results">
-          <div className="space-y-2">
-            {recentAttempts.map((attempt) => (
-              <Card
-                key={attempt.attemptId}
-                className="flex flex-row items-center justify-between gap-3 px-[var(--card-px)] py-[var(--card-py)]"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium truncate">{attempt.title}</p>
-                    {attempt.eventName && (
-                      <span className="text-xs text-muted-foreground">{attempt.eventName}</span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                    {attempt.status === "SCORED" && attempt.score !== null && attempt.scorePossible !== null ? (
-                      <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
-                        <IconTrophy className="size-3" />
-                        {attempt.score}/{attempt.scorePossible}
-                      </span>
-                    ) : (
-                      <span>Submitted · pending score</span>
-                    )}
-                    <span>·</span>
-                    <span>{formatMonthDay(attempt.submittedAt)}</span>
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" asChild>
-                  <Link href={`/dashboard/practice/attempts/${attempt.attemptId}`}>
-                    Review
-                  </Link>
-                </Button>
-              </Card>
-            ))}
+        <SectionCard title="Recent Results" flush>
+          <div className="space-y-2 p-[var(--card-px)]">
+            {recentAttempts.map((attempt) => {
+              const isScored = attempt.status === "SCORED" && attempt.score !== null && attempt.scorePossible !== null
+              const pct = isScored && attempt.scorePossible
+                ? Math.round((attempt.score! / attempt.scorePossible) * 100)
+                : null
+              return (
+                <EntityCard
+                  key={attempt.attemptId}
+                  tone={isScored ? "success" : "neutral"}
+                  href={`/dashboard/practice/attempts/${attempt.attemptId}`}
+                  title={attempt.title}
+                  titleSize="sm"
+                  kicker={attempt.eventName ?? undefined}
+                  metrics={
+                    <>
+                      {isScored ? (
+                        <span className="inline-flex items-center gap-1 text-[var(--success)] font-medium">
+                          <IconTrophy className="size-3" />
+                          {attempt.score}/{attempt.scorePossible}
+                          {pct !== null && <span className="text-muted-foreground"> · {pct}%</span>}
+                        </span>
+                      ) : (
+                        <span>Submitted · pending score</span>
+                      )}
+                      <span>{formatMonthDay(attempt.submittedAt)}</span>
+                    </>
+                  }
+                />
+              )
+            })}
           </div>
         </SectionCard>
       )}

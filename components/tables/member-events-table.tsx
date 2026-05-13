@@ -1,4 +1,7 @@
-import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableShell,
+} from "@/components/ui/table"
 
 interface EventEnrollment {
   id: string
@@ -16,27 +19,26 @@ export function MemberEventsTable({ enrollments }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto">
-    <div className="overflow-hidden rounded-[var(--radius)] border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="text-left px-4 py-2 font-medium">Event</th>
-            <th className="text-left px-4 py-2 font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody>
+    <TableShell>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Event</TableHead>
+            <TableHead className="w-32">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {enrollments.map((e) => (
-            <tr key={e.id} className="border-t">
-              <td className="px-4 py-2">{e.event.name}</td>
-              <td className="px-4 py-2">
-                <Badge variant="outline">{e.status}</Badge>
-              </td>
-            </tr>
+            <TableRow key={e.id}>
+              <TableCell className="font-serif text-base leading-tight tracking-tight">
+                {e.event.name}
+                {e.event.code && <span className="ml-2 label-caps text-muted-foreground">{e.event.code}</span>}
+              </TableCell>
+              <TableCell><StatusBadge status={e.status} withDot /></TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-    </div>
-    </div>
+        </TableBody>
+      </Table>
+    </TableShell>
   )
 }

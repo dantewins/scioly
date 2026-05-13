@@ -122,7 +122,7 @@ export function PracticeTestList({ tests }: Props) {
                   </span>
                 )}
                 {test.answerKey && attempted && best !== null && (
-                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+                  <span className="flex items-center gap-1 text-[var(--success)] font-medium">
                     <IconTrophy size={12} />
                     Best: {best} correct
                   </span>
