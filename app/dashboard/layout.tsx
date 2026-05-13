@@ -21,7 +21,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           } as CSSProperties
         }
       >
-        <NextTopLoader height={2} color="#0085C7" showSpinner={false} shadow={false} />
+        {/* Azure-tinted top progress loader; hex matches --azure-500. */}
+        <NextTopLoader height={2} color="#1c8aef" showSpinner={false} shadow="0 0 10px #1c8aef,0 0 5px #1c8aef" />
         <AppSidebar variant="inset" />
         <SidebarInset className="flex min-h-screen flex-col">
           <SiteHeader />

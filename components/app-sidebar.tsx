@@ -97,15 +97,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 href="/dashboard"
                 className="flex w-full items-center gap-2 group-data-[collapsible=icon]:justify-center"
               >
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-[var(--radius)] bg-primary text-primary-foreground group-data-[collapsible=icon]:mx-auto">
-                  <IconAtom size={18} strokeWidth={2.25} />
+                <div className="relative flex size-8 shrink-0 items-center justify-center rounded-[var(--radius)] bg-gradient-to-br from-azure-500 to-azure-700 text-white shadow-azure-soft group-data-[collapsible=icon]:mx-auto">
+                  <IconAtom size={18} strokeWidth={2.25} className="relative" />
                 </div>
 
-                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                  <span className="truncate font-semibold text-foreground">
+                <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                  <span className="truncate font-serif text-base tracking-tight text-foreground">
                     Scioly
                   </span>
-                  <span className="truncate text-xs text-muted-foreground">
+                  <span className="truncate text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                     {domainLabel}
                   </span>
                 </div>
@@ -129,7 +129,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuButton
                       asChild
                       isActive={active(item.href)}
-                      className="h-8 text-sm"
+                      className="relative h-8 text-sm data-[active=true]:bg-azure-50 data-[active=true]:text-azure-700 data-[active=true]:font-medium data-[active=true]:before:absolute data-[active=true]:before:left-0 data-[active=true]:before:top-1 data-[active=true]:before:bottom-1 data-[active=true]:before:w-[2px] data-[active=true]:before:rounded-r-sm data-[active=true]:before:bg-azure-500"
                     >
                       <Link href={item.href}>
                         <item.icon className="size-4" />
@@ -156,7 +156,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuButton
                       asChild
                       isActive={active(item.href)}
-                      className="h-8 text-sm"
+                      className="relative h-8 text-sm data-[active=true]:bg-azure-50 data-[active=true]:text-azure-700 data-[active=true]:font-medium data-[active=true]:before:absolute data-[active=true]:before:left-0 data-[active=true]:before:top-1 data-[active=true]:before:bottom-1 data-[active=true]:before:w-[2px] data-[active=true]:before:rounded-r-sm data-[active=true]:before:bg-azure-500"
                     >
                       <Link href={item.href}>
                         <item.icon className="size-4" />

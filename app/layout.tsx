@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/context/AuthContext"
 import { getCurrentUser } from "@/lib/auth"
-import { Toaster } from "sonner"
+import { Toaster } from "@/components/ui/sonner"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,7 +37,7 @@ export default async function RootLayout({
   return (
     <html lang="en" data-density="comfortable" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} font-sans antialiased`}>
-        <Toaster position="top-right" richColors />
+        <Toaster />
         <AuthProvider initialUser={user}>{children}</AuthProvider>
       </body>
     </html>
