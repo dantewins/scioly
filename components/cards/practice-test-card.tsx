@@ -8,8 +8,6 @@ import {
   IconClock,
   IconUsers,
   IconLayout,
-  IconCircleDot,
-  IconCircleCheck,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -67,18 +65,8 @@ export function PracticeTestCard({ test, canManage, onEdit, onDelete, onSetAnswe
   const partLabel = test.format === "STATIONS" ? "station" : "part"
   return (
     <div className="group relative flex flex-col gap-3 rounded-[var(--radius)] border border-border/80 bg-card px-3 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-4">
-      {/* Status pill column (left of title) */}
+      {/* Content column */}
       <div className="flex items-center gap-3 min-w-0">
-        <span
-          className={cn(
-            "inline-flex size-8 shrink-0 items-center justify-center rounded-full",
-            test.isPublished ? "bg-azure-50 text-azure-700" : "bg-muted text-muted-foreground",
-          )}
-          aria-hidden
-        >
-          {test.isPublished ? <IconCircleCheck className="size-4" /> : <IconCircleDot className="size-4" />}
-        </span>
-
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span
