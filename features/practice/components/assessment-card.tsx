@@ -28,12 +28,18 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
   const recommended = assessment.recommended
 
   return (
-    <Link
-      href={`/dashboard/practice/${assessment.id}`}
-      className="group relative block overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-    >
+    <div className="group relative overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+      {/* Primary click target — the whole card opens the assessment. Sits
+          behind the Packet link via z-index so the inner anchor remains
+          independently clickable and avoids nested interactive elements. */}
+      <Link
+        href={`/dashboard/practice/${assessment.id}`}
+        aria-label={`Open ${assessment.title}`}
+        className="absolute inset-0 z-0 rounded-[var(--radius)] focus:outline-none"
+      />
+
       {/* Top tag bar — wraps cleanly on narrow viewports */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/50 bg-azure-50/30 px-3 py-1.5 sm:px-4 text-[10px] font-medium uppercase tracking-[0.14em]">
+      <div className="relative z-0 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/50 bg-azure-50/30 px-3 py-1.5 sm:px-4 text-[10px] font-medium uppercase tracking-[0.14em] pointer-events-none">
         {recommended && (
           <span className="text-azure-700">Recommended</span>
         )}
@@ -54,7 +60,7 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
       </div>
 
       {/* Body — stacks title above time stat on mobile, side-by-side on sm+ */}
-      <div className="grid items-start gap-3 px-3 py-3 sm:grid-cols-[1fr_auto] sm:gap-4 sm:px-4 sm:py-4">
+      <div className="relative z-0 grid items-start gap-3 px-3 py-3 sm:grid-cols-[1fr_auto] sm:gap-4 sm:px-4 sm:py-4 pointer-events-none">
         <div className="min-w-0 space-y-2">
           <h3 className="font-serif text-xl leading-[1.15] tracking-tight text-foreground sm:text-2xl">
             {assessment.title}
@@ -71,18 +77,16 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
               attempt{assessment.attemptCount !== 1 ? "s" : ""}
             </span>
             {assessment.sourcePdfUrl && (
-              <span
-                role="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  window.open(assessment.sourcePdfUrl, "_blank")
-                }}
-                className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline cursor-pointer"
+              <a
+                href={assessment.sourcePdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="pointer-events-auto relative z-10 inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline focus-visible:text-foreground focus-visible:underline focus:outline-none"
               >
                 <IconFileText className="size-3.5" aria-hidden />
                 Packet
-              </span>
+              </a>
             )}
           </div>
         </div>
@@ -103,7 +107,7 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
       </div>
 
       {/* CTA chip — fills on hover */}
-      <div className="flex items-center justify-end border-t border-border/50 px-3 py-2 sm:px-4">
+      <div className="relative z-0 flex items-center justify-end border-t border-border/50 px-3 py-2 sm:px-4 pointer-events-none">
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors",
@@ -125,6 +129,6 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
           )}
         </span>
       </div>
-    </Link>
+    </div>
   )
 }

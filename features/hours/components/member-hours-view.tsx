@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -56,6 +57,8 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [statusFilter, setStatusFilter] = useState<"ALL" | "PENDING" | "APPROVED" | "REJECTED">("ALL")
+  const [withdrawTarget, setWithdrawTarget] = useState<Entry | null>(null)
+  const [withdrawing, setWithdrawing] = useState(false)
 
   const selectedCategory = categories.find((c) => c.id === form.categoryId)
   const isEditing = editingId !== null
@@ -92,16 +95,23 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
     }
   }
 
-  async function handleDelete(entryId: string) {
-    if (!window.confirm("Withdraw this pending entry? This cannot be undone.")) return
-    setLoading(true)
+  function handleDelete(entry: Entry) {
+    setWithdrawTarget(entry)
+  }
+
+  async function confirmWithdraw() {
+    if (!withdrawTarget) return
+    setWithdrawing(true)
     try {
-      await apiCall(`/api/member/hours/${entryId}`, { method: "DELETE" })
-      setEntries((e) => e.filter((x) => x.id !== entryId))
+      await apiCall(`/api/member/hours/${withdrawTarget.id}`, { method: "DELETE" })
+      setEntries((e) => e.filter((x) => x.id !== withdrawTarget.id))
       toast.success("Entry withdrawn.")
+      setWithdrawTarget(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to withdraw.")
-    } finally { setLoading(false) }
+    } finally {
+      setWithdrawing(false)
+    }
   }
 
   async function handleSubmit() {
@@ -228,7 +238,7 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
                     variant="ghost"
                     size="icon-sm"
                     className="text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(entry.id)}
+                    onClick={() => handleDelete(entry)}
                     disabled={loading}
                     aria-label={`Withdraw ${entry.title}`}
                   >
@@ -284,6 +294,21 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={withdrawTarget !== null}
+        title="Withdraw hour entry?"
+        description={
+          withdrawTarget
+            ? `"${withdrawTarget.title}" will be removed from your pending submissions. This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Withdraw"
+        destructive
+        loading={withdrawing}
+        onConfirm={confirmWithdraw}
+        onCancel={() => setWithdrawTarget(null)}
+      />
     </div>
   )
 }

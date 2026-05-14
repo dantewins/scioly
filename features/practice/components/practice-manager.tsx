@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { PracticeTestCard, type PracticeTestCardData } from "@/features/practice/components/practice-test-card"
 import { PracticeTestForm } from "@/features/practice/components/practice-test-form"
@@ -63,6 +64,8 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
   const [editingTest, setEditingTest] = useState<PracticeTest | null>(null)
   const [answerKeyTest, setAnswerKeyTest] = useState<PracticeTest | null>(null)
   const [answerKeyText, setAnswerKeyText] = useState("")
+  const [deletingTest, setDeletingTest] = useState<PracticeTest | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [loading, setLoading] = useState(false)
 
   function openEdit(test: PracticeTestCardData) {
@@ -183,14 +186,23 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this assessment? All attempts will be lost.")) return
+  function handleDelete(id: string) {
+    const target = tests.find((t) => t.id === id)
+    if (target) setDeletingTest(target)
+  }
+
+  async function confirmDelete() {
+    if (!deletingTest) return
+    setDeleting(true)
     try {
-      await apiCall(`/api/admin/practice/${id}`, { method: "DELETE" })
-      setTests((t) => t.filter((x) => x.id !== id))
+      await apiCall(`/api/admin/practice/${deletingTest.id}`, { method: "DELETE" })
+      setTests((t) => t.filter((x) => x.id !== deletingTest.id))
       toast.success("Assessment deleted.")
+      setDeletingTest(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete assessment.")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -324,6 +336,17 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deletingTest !== null}
+        title={deletingTest ? `Delete "${deletingTest.title}"?` : "Delete assessment?"}
+        description="The assessment, its parts, answer key, and every attempt and response will be permanently removed. This cannot be undone."
+        confirmLabel="Delete Assessment"
+        destructive
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeletingTest(null)}
+      />
     </div>
   )
 }

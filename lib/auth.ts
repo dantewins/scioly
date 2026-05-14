@@ -156,21 +156,6 @@ async function loadCurrentUser(sub: string): Promise<CurrentUser | null> {
           },
         },
       },
-      seasonMemberships: {
-        where: {
-          membershipStatus: "ACTIVE",
-          season: {
-            isActive: true,
-          },
-        },
-        take: 1,
-        orderBy: { season: { startsAt: "desc" } },
-        select: {
-          roles: {
-            select: { clubRole: { select: { name: true, permissions: true } } },
-          },
-        },
-      },
     },
   })
   if (!user) {
@@ -178,24 +163,38 @@ async function loadCurrentUser(sub: string): Promise<CurrentUser | null> {
     return null
   }
 
-  const { club, seasonMemberships, ...userFields } = user
+  const { club, ...userFields } = user
   const clubDomain = club?.emailDomains[0]?.domain ?? club?.schoolDomain ?? null
   const finalize = (value: CurrentUser) => {
     setCachedCurrentUser(sub, value)
     return value
   }
 
-  // WEBSITE_OWNER has all permissions — bypass DB role lookup
+  // WEBSITE_OWNER has all permissions — skip the season-roles join entirely
   if (user.role === UserRole.WEBSITE_OWNER) {
     return finalize({ ...userFields, clubDomain, permissions: allPermissions() })
   }
 
-  // APPLICANT has no dashboard permissions
+  // APPLICANT has no dashboard permissions — skip the join
   if (user.role === UserRole.APPLICANT) {
     return finalize({ ...userFields, clubDomain, permissions: {} })
   }
 
-  const memberSeason = seasonMemberships[0]
+  // Only members/admins need season-role permissions — fetch them in a second
+  // query so the OWNER path above doesn't pay for a JOIN it won't use.
+  const memberSeason = await prisma.memberSeason.findFirst({
+    where: {
+      userId: sub,
+      membershipStatus: "ACTIVE",
+      season: { isActive: true, clubId: user.clubId },
+    },
+    orderBy: { season: { startsAt: "desc" } },
+    select: {
+      roles: {
+        select: { clubRole: { select: { name: true, permissions: true } } },
+      },
+    },
+  })
   if (!memberSeason) return finalize({ ...userFields, clubDomain, permissions: {} })
 
   const assignedRoles = memberSeason.roles.map((role) => role.clubRole)

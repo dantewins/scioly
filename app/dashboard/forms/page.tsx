@@ -69,6 +69,7 @@ export default async function FormsPage() {
         <EmptyState icon={IconFileCheck} title="No forms required" description="No forms have been assigned for this season." />
       ) : (
         <MemberFormsView
+          seasonId={season?.id ?? null}
           formTypes={formTypes.map(ft => ({
             ...ft,
             dueAt: ft.dueAt?.toISOString() ?? null,

@@ -28,6 +28,10 @@ export default async function CompetitionsPage() {
     isPublished: boolean
     _count: { rosters: number; eventSchedules: number }
   }> = []
+  // For non-admins, we need to know whether the season has any competitions at
+  // all (vs. just none assigned to this member) so the empty state copy can
+  // distinguish "nothing scheduled" from "you aren't on a roster yet".
+  let seasonHasCompetitions = false
 
   if (season) {
     if (canManage) {
@@ -36,6 +40,7 @@ export default async function CompetitionsPage() {
         include: { _count: { select: { rosters: true, eventSchedules: true } } },
         orderBy: { startsAt: "asc" },
       })
+      seasonHasCompetitions = competitions.length > 0
     } else {
       const ms = await getMemberSeason(user.id, user.clubId)
       if (ms) {
@@ -55,6 +60,10 @@ export default async function CompetitionsPage() {
           orderBy: { startsAt: "asc" },
         })
       }
+      const publishedCount = await prisma.competition.count({
+        where: { seasonId: season.id, isPublished: true },
+      })
+      seasonHasCompetitions = publishedCount > 0
     }
   }
 
@@ -69,8 +78,18 @@ export default async function CompetitionsPage() {
       ) : competitions.length === 0 ? (
         canManage ? (
           <EmptyState icon={IconTrophy} title="No competitions yet" description="Add your first competition for this season." />
+        ) : seasonHasCompetitions ? (
+          <EmptyState
+            icon={IconTrophy}
+            title="No competitions assigned"
+            description="You haven't been assigned to a competition yet — talk to your admin to be added to a roster."
+          />
         ) : (
-          <EmptyState icon={IconTrophy} title="No competitions assigned" description="Talk to your admin to be added to a competition roster." />
+          <EmptyState
+            icon={IconTrophy}
+            title="No competitions scheduled"
+            description="No competitions have been scheduled for this season yet."
+          />
         )
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

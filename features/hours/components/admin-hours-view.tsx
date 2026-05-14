@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { IconCheck, IconX, IconPlus } from "@tabler/icons-react"
+import { IconCheck, IconX, IconPlus, IconClock } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { EmptyState } from "@/components/empty-state"
 import { RejectHoursDialog } from "@/features/hours/components/reject-hours-dialog"
 import { apiCall } from "@/lib/api-client"
 
@@ -125,7 +126,11 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
 
       <TabsContent value="pending" className="mt-4 space-y-3">
         {entries.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No pending hour entries.</p>
+          <EmptyState
+            icon={IconClock}
+            title="No pending hours"
+            description="Submitted hour entries awaiting review will appear here."
+          />
         ) : (
           <>
             <div className="flex items-center justify-between gap-2 rounded-[var(--radius)] border border-azure-200/60 bg-azure-50/40 px-3 py-2">

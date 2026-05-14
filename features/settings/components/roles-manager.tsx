@@ -178,9 +178,15 @@ const PERMISSION_SECTIONS: PermissionSection[] = [
         autoEnable: "view_roles",
       },
       {
+        flag: "view_club_settings",
+        label: "View Settings",
+        description: "Can view (but not edit) club settings and seasons",
+      },
+      {
         flag: "edit_club_settings",
         label: "Manage Settings",
         description: "Can edit club settings and seasons",
+        autoEnable: "view_club_settings",
       },
     ],
   },

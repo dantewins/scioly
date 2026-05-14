@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ClubEventCard, type ClubEventCardData } from "@/features/club-events/components/club-event-card"
 import { ClubEventForm } from "@/features/club-events/components/club-event-form"
 
@@ -82,6 +83,8 @@ export function ClubEventsManager({
   const [events, setEvents] = useState<ClubEvent[]>(initialEvents)
   const [showCreate, setShowCreate] = useState(false)
   const [editingEvent, setEditingEvent] = useState<ClubEvent | null>(null)
+  const [deletingEvent, setDeletingEvent] = useState<ClubEvent | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const now = new Date()
@@ -186,14 +189,23 @@ export function ClubEventsManager({
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this event? This cannot be undone.")) return
+  function handleDelete(id: string) {
+    const target = events.find((e) => e.id === id)
+    if (target) setDeletingEvent(target)
+  }
+
+  async function confirmDelete() {
+    if (!deletingEvent) return
+    setDeleting(true)
     try {
-      await apiCall(`/api/admin/club-events/${id}`, { method: "DELETE" })
-      setEvents((ev) => ev.filter((e) => e.id !== id))
+      await apiCall(`/api/admin/club-events/${deletingEvent.id}`, { method: "DELETE" })
+      setEvents((ev) => ev.filter((e) => e.id !== deletingEvent.id))
       toast.success("Event deleted.")
+      setDeletingEvent(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete event.")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -296,6 +308,17 @@ export function ClubEventsManager({
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deletingEvent !== null}
+        title={deletingEvent ? `Delete "${deletingEvent.name}"?` : "Delete event?"}
+        description="The event and any hour credits tied to its attendees will be removed. This cannot be undone."
+        confirmLabel="Delete Event"
+        destructive
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeletingEvent(null)}
+      />
     </div>
   )
 }

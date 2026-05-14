@@ -11,7 +11,7 @@ export type ClubEmailDomainRecord = {
   isPrimary: boolean
 }
 
-type ActiveSeasonRecord = { id: string } | null
+type ActiveSeasonRecord = { id: string; name: string } | null
 type MemberSeasonRecord = { id: string } | null
 type LookupCacheEntry<T> = { value: T; expiresAt: number }
 
@@ -76,14 +76,14 @@ export function clearSeasonLookupCaches(): void {
   getMemberSeasonStore().clear()
 }
 
-export const getActiveSeason = cache(async (clubId: string): Promise<{ id: string } | null> => {
+export const getActiveSeason = cache(async (clubId: string): Promise<{ id: string; name: string } | null> => {
   const store = getActiveSeasonStore()
   const cached = readLookupCache(store, clubId)
   if (cached !== undefined) return cached
 
   const season = await prisma.season.findFirst({
     where: { clubId, isActive: true },
-    select: { id: true },
+    select: { id: true, name: true },
     orderBy: { startsAt: "desc" },
   })
   writeLookupCache(store, clubId, season)

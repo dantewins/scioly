@@ -11,6 +11,7 @@ import {
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { SectionCard } from "@/components/ui/section-card"
 import {
   CompetitionRosterDialog,
@@ -140,6 +141,20 @@ export function CompetitionRosterManager({
 
   const [autoAssigning, setAutoAssigning] = useState(false)
   const [createForSchedule, setCreateForSchedule] = useState<string | null>(null)
+  const [rosterToDelete, setRosterToDelete] = useState<CompetitionRosterRecord | null>(null)
+  const [rosterDeleting, setRosterDeleting] = useState(false)
+  const [assignmentToDelete, setAssignmentToDelete] = useState<{
+    roster: CompetitionRosterRecord
+    assignmentId: string
+  } | null>(null)
+  const [assignmentDeleting, setAssignmentDeleting] = useState(false)
+  const [participantToRemove, setParticipantToRemove] = useState<{
+    rosterId: string
+    assignmentId: string
+    participantId: string
+    memberName?: string
+  } | null>(null)
+  const [participantRemoving, setParticipantRemoving] = useState(false)
 
   // Build time rows from schedules — group events that share the same start time.
   type TimeRow = {
@@ -280,16 +295,24 @@ export function CompetitionRosterManager({
     }
   }
 
-  async function deleteRoster(roster: CompetitionRosterRecord) {
-    if (!confirm(`Delete ${roster.label}?`)) return
+  function deleteRoster(roster: CompetitionRosterRecord) {
+    setRosterToDelete(roster)
+  }
+
+  async function confirmDeleteRoster() {
+    if (!rosterToDelete) return
+    setRosterDeleting(true)
     try {
-      await apiCall(`/api/admin/competitions/${competitionId}/rosters/${roster.id}`, {
+      await apiCall(`/api/admin/competitions/${competitionId}/rosters/${rosterToDelete.id}`, {
         method: "DELETE",
       })
-      setRosters((current) => current.filter((item) => item.id !== roster.id))
+      setRosters((current) => current.filter((item) => item.id !== rosterToDelete.id))
       toast.success("Roster deleted.")
+      setRosterToDelete(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete roster.")
+    } finally {
+      setRosterDeleting(false)
     }
   }
 
@@ -394,17 +417,25 @@ export function CompetitionRosterManager({
     }
   }
 
-  async function deleteAssignment(roster: CompetitionRosterRecord, assignmentId: string) {
-    if (!confirm("Delete this event assignment?")) return
+  function deleteAssignment(roster: CompetitionRosterRecord, assignmentId: string) {
+    setAssignmentToDelete({ roster, assignmentId })
+  }
+
+  async function confirmDeleteAssignment() {
+    if (!assignmentToDelete) return
+    setAssignmentDeleting(true)
     try {
       await apiCall(
-        `/api/admin/competitions/${competitionId}/rosters/${roster.id}/assignments/${assignmentId}`,
+        `/api/admin/competitions/${competitionId}/rosters/${assignmentToDelete.roster.id}/assignments/${assignmentToDelete.assignmentId}`,
         { method: "DELETE" },
       )
-      removeAssignment(roster.id, assignmentId)
+      removeAssignment(assignmentToDelete.roster.id, assignmentToDelete.assignmentId)
       toast.success("Assignment deleted.")
+      setAssignmentToDelete(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete assignment.")
+    } finally {
+      setAssignmentDeleting(false)
     }
   }
 
@@ -448,8 +479,20 @@ export function CompetitionRosterManager({
     }
   }
 
-  async function removeParticipant(rosterId: string, assignmentId: string, participantId: string) {
-    if (!confirm("Remove this member from the assignment?")) return
+  function removeParticipant(rosterId: string, assignmentId: string, participantId: string) {
+    const roster = rosters.find((r) => r.id === rosterId)
+    const assignment = roster?.assignments.find((a) => a.id === assignmentId)
+    const participant = assignment?.participants.find((p) => p.id === participantId)
+    const memberName = participant
+      ? `${participant.memberSeason.user.firstName} ${participant.memberSeason.user.lastName}`.trim() || undefined
+      : undefined
+    setParticipantToRemove({ rosterId, assignmentId, participantId, memberName })
+  }
+
+  async function confirmRemoveParticipant() {
+    if (!participantToRemove) return
+    const { rosterId, assignmentId, participantId } = participantToRemove
+    setParticipantRemoving(true)
     try {
       await apiCall(
         `/api/admin/competitions/${competitionId}/rosters/${rosterId}/assignments/${assignmentId}/participants`,
@@ -476,8 +519,11 @@ export function CompetitionRosterManager({
         ),
       )
       toast.success("Member removed.")
+      setParticipantToRemove(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to remove member.")
+    } finally {
+      setParticipantRemoving(false)
     }
   }
 
@@ -698,6 +744,43 @@ export function CompetitionRosterManager({
         availableMembers={availableMembers}
         loading={loading}
         onSubmit={addParticipant}
+      />
+
+      <ConfirmDialog
+        open={rosterToDelete !== null}
+        title={rosterToDelete ? `Delete "${rosterToDelete.label}"?` : "Delete roster?"}
+        description="All event assignments and participant slots on this roster will be removed. This cannot be undone."
+        confirmLabel="Delete Roster"
+        destructive
+        loading={rosterDeleting}
+        onConfirm={confirmDeleteRoster}
+        onCancel={() => setRosterToDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={assignmentToDelete !== null}
+        title="Delete event assignment?"
+        description="The assignment and all participant slots in it will be removed. This cannot be undone."
+        confirmLabel="Delete Assignment"
+        destructive
+        loading={assignmentDeleting}
+        onConfirm={confirmDeleteAssignment}
+        onCancel={() => setAssignmentToDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={participantToRemove !== null}
+        title={
+          participantToRemove?.memberName
+            ? `Remove ${participantToRemove.memberName}?`
+            : "Remove member from assignment?"
+        }
+        description="They will no longer be slotted for this event assignment. You can re-add them later."
+        confirmLabel="Remove"
+        destructive
+        loading={participantRemoving}
+        onConfirm={confirmRemoveParticipant}
+        onCancel={() => setParticipantToRemove(null)}
       />
     </div>
   )

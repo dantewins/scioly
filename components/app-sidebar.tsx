@@ -48,7 +48,7 @@ interface NavItem {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, signOut, canView, isOwner } = useAuth()
+  const { user, signOut, canView } = useAuth()
   const pathname = usePathname()
 
   function active(href: string) {
@@ -68,7 +68,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const activityItems: NavItem[] = [
     ...(canView("hours") ? [{ href: "/dashboard/hours", label: "Hours", icon: IconClock }] : []),
-    ...(canView("finances") ? [{ href: "/dashboard/finances", label: "Finances", icon: IconWallet }] : []),
+    // Finances is dual-purpose: admins see club-wide view; members see their own invoices.
+    { href: "/dashboard/finances", label: "Finances", icon: IconWallet },
     ...(canView("forms") ? [{ href: "/dashboard/forms", label: "Forms", icon: IconFileCheck }] : []),
     ...(canView("club_events") ? [{ href: "/dashboard/club-events", label: "Club Events", icon: IconCalendarEvent }] : []),
     ...(canView("practice") ? [{ href: "/dashboard/practice", label: "Assessments", icon: IconBooks }] : []),
@@ -193,17 +194,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <p className="text-xs font-medium text-foreground">{user?.firstName} {user?.lastName}</p>
                   <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                 </div>
-                {(isOwner || canView("club_settings")) && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/settings">
-                        <IconSettings className="size-4" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings">
+                    <IconSettings className="size-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"

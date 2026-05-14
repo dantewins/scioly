@@ -10,13 +10,29 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { formatDateCompact, formatMonthYear } from "@/lib/format"
-import { canEdit } from "@/lib/permissions"
+import { canView, canEdit } from "@/lib/permissions"
 import { AnnouncementComposer } from "@/features/announcements/components/announcement-composer"
+import { loadMemberDashboard } from "@/features/dashboard/lib/load-member-dashboard"
+import { MemberDashboard } from "@/features/dashboard/components/member-dashboard"
 
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
   if (!user) redirect("/login")
+
+  // Members (anyone without admin-area visibility) get the personalized
+  // dashboard. Owners and any role with admin-area visibility see the existing
+  // admin overview.
+  const isAdminViewer =
+    user.role === "WEBSITE_OWNER" ||
+    canView(user.permissions, "members") ||
+    canView(user.permissions, "finances") ||
+    canView(user.permissions, "roles")
+
+  if (!isAdminViewer) {
+    const data = await loadMemberDashboard(user)
+    return <MemberDashboard user={user} data={data} />
+  }
 
   const season = await prisma.season.findFirst({
     where: { clubId: user.clubId, isActive: true },

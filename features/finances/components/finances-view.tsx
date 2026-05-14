@@ -8,6 +8,7 @@ import { apiCall } from "@/lib/api-client"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { InvoicesTable, type InvoiceRow } from "@/features/finances/components/invoices-table"
 import { InvoiceForm } from "@/features/finances/components/invoice-form"
 import { PaymentForm } from "@/features/finances/components/payment-form"
@@ -30,6 +31,8 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
   const [invoices, setInvoices] = useState<Invoice[]>(initial)
   const [showCreate, setShowCreate] = useState(false)
   const [recordingFor, setRecordingFor] = useState<Invoice | null>(null)
+  const [voidingId, setVoidingId] = useState<string | null>(null)
+  const [voiding, setVoiding] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleCreateInvoice(form: {
@@ -101,17 +104,25 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
     } finally { setLoading(false) }
   }
 
-  async function handleVoid(invoiceId: string) {
-    if (!confirm("Void this invoice? This cannot be undone.")) return
+  function handleVoid(invoiceId: string) {
+    setVoidingId(invoiceId)
+  }
+
+  async function confirmVoid() {
+    if (!voidingId) return
+    setVoiding(true)
     try {
-      await apiCall(`/api/admin/dues/${invoiceId}`, {
+      await apiCall(`/api/admin/dues/${voidingId}`, {
         method: "PATCH",
         body: JSON.stringify({ status: "VOID" }),
       })
-      setInvoices((inv) => inv.map((x) => x.id === invoiceId ? { ...x, status: "VOID" } : x))
+      setInvoices((inv) => inv.map((x) => x.id === voidingId ? { ...x, status: "VOID" } : x))
       toast.success("Invoice voided.")
+      setVoidingId(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to void invoice.")
+    } finally {
+      setVoiding(false)
     }
   }
 
@@ -162,6 +173,17 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
           />
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={voidingId !== null}
+        title="Void this invoice?"
+        description="The invoice will be marked as void and cannot be restored. Recorded payments are preserved."
+        confirmLabel="Void Invoice"
+        destructive
+        loading={voiding}
+        onConfirm={confirmVoid}
+        onCancel={() => setVoidingId(null)}
+      />
     </div>
   )
 }

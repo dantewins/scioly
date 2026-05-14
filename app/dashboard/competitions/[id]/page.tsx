@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { canView, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
+import { getMemberSeason } from "@/lib/db"
 import { listCanonicalCompetitionRosters } from "@/lib/competition-ontology"
 import { PageHeader } from "@/components/ui/page-header"
 import { StatusBadge } from "@/components/ui/status-badge"
@@ -15,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDateOnly } from "@/lib/format"
 import { CompetitionScheduleTable } from "@/features/competitions/components/competition-schedule-table"
 import { CompetitionRosterManager } from "@/features/competitions/components/competition-roster-manager"
+import { MyCompetitionView } from "@/features/competitions/components/my-competition-view"
 
 
 const TYPE_LABELS: Record<string, string> = {
@@ -49,6 +51,116 @@ export default async function CompetitionDetailPage({ params }: Props) {
   if (!competition) notFound()
 
   const canManage = canEdit(user.permissions, "competitions")
+
+  // Non-managers (members) get a focused view of just their own assignments.
+  if (!canManage) {
+    const memberSeason = await getMemberSeason(user.id, user.clubId)
+    const myParticipants = memberSeason
+      ? await prisma.competitionAssignmentParticipant.findMany({
+          where: {
+            memberSeasonId: memberSeason.id,
+            competitionEventAssignment: {
+              competitionRoster: { competitionId: competition.id },
+            },
+          },
+          select: {
+            id: true,
+            role: true,
+            seatNumber: true,
+            competitionEventAssignment: {
+              select: {
+                status: true,
+                room: true,
+                event: { select: { id: true, name: true, code: true } },
+                schedule: { select: { slotLabel: true, room: true, startsAt: true, endsAt: true } },
+                slot: { select: { label: true, room: true, startsAt: true, endsAt: true } },
+                competitionRoster: {
+                  select: { id: true, label: true, division: true },
+                },
+                participants: {
+                  select: {
+                    id: true,
+                    role: true,
+                    memberSeason: {
+                      select: {
+                        id: true,
+                        user: { select: { firstName: true, lastName: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        })
+      : []
+
+    const myAssignments = myParticipants.map((p) => {
+      const a = p.competitionEventAssignment
+      return {
+        id: p.id,
+        role: p.role,
+        seatNumber: p.seatNumber,
+        event: a.event,
+        rosterId: a.competitionRoster.id,
+        rosterLabel: a.competitionRoster.label,
+        division: a.competitionRoster.division,
+        status: a.status,
+        room: a.room ?? a.schedule?.room ?? a.slot?.room ?? null,
+        slotLabel: a.schedule?.slotLabel ?? a.slot?.label ?? null,
+        startsAt: (a.schedule?.startsAt ?? a.slot?.startsAt)?.toISOString() ?? null,
+        endsAt: (a.schedule?.endsAt ?? a.slot?.endsAt)?.toISOString() ?? null,
+        partners: a.participants.map((part) => ({
+          id: part.id,
+          firstName: part.memberSeason.user.firstName,
+          lastName: part.memberSeason.user.lastName,
+          role: part.role,
+          isSelf: part.memberSeason.id === memberSeason?.id,
+        })),
+      }
+    })
+
+    return (
+      <div className="layout-page">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard/competitions">Competitions</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{competition.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <PageHeader
+          title={competition.name}
+          kicker={TYPE_LABELS[competition.type] ?? competition.type}
+          description={[
+            competition.location ? competition.location : null,
+            formatDateOnly(competition.startsAt),
+          ].filter(Boolean).join(" · ")}
+        >
+          <StatusBadge status={competition.isPublished ? "Live" : "Draft"} withDot />
+        </PageHeader>
+
+        <MyCompetitionView
+          myAssignments={myAssignments}
+          competitionStartsAt={competition.startsAt?.toISOString() ?? null}
+          isPublished={competition.isPublished}
+        />
+      </div>
+    )
+  }
 
   const [rosters, seasonRosters, activeMembers, slots, events, eventSchedules] = await Promise.all([
     listCanonicalCompetitionRosters(competition.id),

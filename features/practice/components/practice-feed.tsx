@@ -98,14 +98,24 @@ export function PracticeFeed({ feed }: Props) {
             {recentAttempts.map((attempt) => {
               const isScored = attempt.status === "SCORED" && attempt.score !== null && attempt.scorePossible !== null
               const pct = isScored && attempt.scorePossible ? Math.round((attempt.score! / attempt.scorePossible) * 100) : null
+              // Score-tiered color: green at >=80%, amber at >=60%, red below.
+              const scoreColorVar =
+                pct === null
+                  ? "var(--success)"
+                  : pct >= 80
+                    ? "var(--success)"
+                    : pct >= 60
+                      ? "var(--warning)"
+                      : "var(--destructive)"
               return (
                 <Link
                   key={attempt.attemptId}
                   href={`/dashboard/practice/attempts/${attempt.attemptId}`}
                   className={cn(
                     "group relative flex items-center gap-4 rounded-[var(--radius)] border bg-card px-4 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft",
-                    isScored ? "border-[color-mix(in_oklch,var(--success),transparent_70%)]" : "border-border/80",
+                    isScored ? "border-border/80" : "border-border/80",
                   )}
+                  style={isScored ? { borderColor: `color-mix(in oklch, ${scoreColorVar}, transparent 70%)` } : undefined}
                 >
                   <div className="flex-1 min-w-0">
                     {attempt.eventName && (
@@ -127,7 +137,10 @@ export function PracticeFeed({ feed }: Props) {
                   {/* Hero percentage */}
                   {pct !== null ? (
                     <div className="flex flex-col items-end shrink-0">
-                      <span className="font-serif text-3xl leading-none tabular-nums text-[var(--success)]">
+                      <span
+                        className="font-serif text-3xl leading-none tabular-nums"
+                        style={{ color: scoreColorVar }}
+                      >
                         {pct}<span className="text-base text-muted-foreground">%</span>
                       </span>
                     </div>

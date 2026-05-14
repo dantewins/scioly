@@ -8,8 +8,8 @@ import { StatusBadge } from "@/components/ui/status-badge"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { FileUpload, type UploadedAsset } from "@/components/ui/file-upload"
 import { formatDateCompact } from "@/lib/format"
 import { apiCall } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
@@ -34,6 +34,7 @@ interface FormType {
 
 interface Props {
   formTypes: FormType[]
+  seasonId?: string | null
 }
 
 function borderFor(sub: Submission | undefined): string {
@@ -43,32 +44,59 @@ function borderFor(sub: Submission | undefined): string {
   return "border-border/80"
 }
 
-export function MemberFormsView({ formTypes: initial }: Props) {
+export function MemberFormsView({ formTypes: initial, seasonId }: Props) {
   const [formTypes, setFormTypes] = useState<FormType[]>(initial)
   const [submitting, setSubmitting] = useState<string | null>(null)
-  const [fileUrl, setFileUrl] = useState("")
+  const [asset, setAsset] = useState<UploadedAsset | null>(null)
   const [loading, setLoading] = useState(false)
 
+  const activeFormType = formTypes.find((ft) => ft.id === submitting)
+  const requiresUpload = Boolean(activeFormType?.requiresUpload)
+
+  function resetDialog() {
+    setSubmitting(null)
+    setAsset(null)
+  }
+
   async function handleSubmit(formTypeId: string) {
+    if (requiresUpload && !asset) {
+      toast.error("Please upload the required document.")
+      return
+    }
     setLoading(true)
     try {
       const data = await apiCall<{ id: string }>("/api/member/forms", {
         method: "PATCH",
-        body: JSON.stringify({ formTypeId, action: "submit", fileUrl: fileUrl || undefined }),
+        body: JSON.stringify({
+          formTypeId,
+          action: "submit",
+          fileAssetId: asset?.id,
+        }),
       })
       setFormTypes((fts) =>
         fts.map((ft) =>
           ft.id === formTypeId
-            ? { ...ft, submissions: [{ id: data.id, status: "SUBMITTED", submittedAt: new Date().toISOString(), fileUrl: fileUrl || null }] }
+            ? {
+                ...ft,
+                submissions: [
+                  {
+                    id: data.id,
+                    status: "SUBMITTED",
+                    submittedAt: new Date().toISOString(),
+                    fileUrl: asset?.publicUrl ?? null,
+                  },
+                ],
+              }
             : ft
         )
       )
-      setSubmitting(null)
-      setFileUrl("")
+      resetDialog()
       toast.success("Form submitted successfully.")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to submit.")
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -123,32 +151,37 @@ export function MemberFormsView({ formTypes: initial }: Props) {
         )
       })}
 
-      <Dialog open={!!submitting} onOpenChange={(o) => { if (!o) { setSubmitting(null); setFileUrl("") } }}>
+      <Dialog open={!!submitting} onOpenChange={(o) => { if (!o) resetDialog() }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Submit Form</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {formTypes.find((ft) => ft.id === submitting)?.requiresUpload && (
+            {requiresUpload ? (
               <div className="space-y-1.5">
-                <Label>File URL</Label>
-                <Input
-                  placeholder="https://drive.google.com/..."
-                  value={fileUrl}
-                  onChange={(e) => setFileUrl(e.target.value)}
+                <Label>Upload document</Label>
+                <FileUpload
+                  kind="FORM_SUBMISSION"
+                  seasonId={seasonId ?? undefined}
+                  value={asset}
+                  onChange={setAsset}
                 />
-                <p className="text-xs text-muted-foreground">Paste a link to your uploaded document.</p>
+                <p className="text-xs text-muted-foreground">
+                  PDF, PNG, JPG, or WebP, up to 10 MB.
+                </p>
               </div>
-            )}
-            {!formTypes.find((ft) => ft.id === submitting)?.requiresUpload && (
+            ) : (
               <p className="text-sm text-muted-foreground">
                 Confirm that you have completed this form and want to submit it for review.
               </p>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setSubmitting(null); setFileUrl("") }}>Cancel</Button>
-            <Button onClick={() => submitting && handleSubmit(submitting)} disabled={loading}>
+            <Button variant="outline" onClick={resetDialog}>Cancel</Button>
+            <Button
+              onClick={() => submitting && handleSubmit(submitting)}
+              disabled={loading || (requiresUpload && !asset)}
+            >
               {loading ? "Submitting…" : "Submit"}
             </Button>
           </DialogFooter>

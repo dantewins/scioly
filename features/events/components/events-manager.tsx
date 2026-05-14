@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { EventForm } from "@/features/events/components/event-form"
 import { apiCall } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
@@ -41,6 +42,8 @@ export function EventsManager({ initialEvents, canManage, canCreate }: Props) {
   const [events, setEvents] = useState<Event[]>(initialEvents)
   const [editing, setEditing] = useState<Event | null>(null)
   const [creating, setCreating] = useState(false)
+  const [deleting, setDeleting] = useState<Event | null>(null)
+  const [deletingNow, setDeletingNow] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleCreate(form: EventFormValues) {
@@ -83,14 +86,23 @@ export function EventsManager({ initialEvents, canManage, canCreate }: Props) {
     } finally { setLoading(false) }
   }
 
-  async function handleDelete(eventId: string) {
-    if (!confirm("Delete this event? All enrollments will be removed.")) return
+  function handleDelete(eventId: string) {
+    const target = events.find((e) => e.id === eventId)
+    if (target) setDeleting(target)
+  }
+
+  async function confirmDelete() {
+    if (!deleting) return
+    setDeletingNow(true)
     try {
-      await apiCall(`/api/admin/events/${eventId}`, { method: "DELETE" })
-      setEvents((e) => e.filter((x) => x.id !== eventId))
+      await apiCall(`/api/admin/events/${deleting.id}`, { method: "DELETE" })
+      setEvents((e) => e.filter((x) => x.id !== deleting.id))
       toast.success("Event deleted.")
+      setDeleting(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete.")
+    } finally {
+      setDeletingNow(false)
     }
   }
 
@@ -189,6 +201,21 @@ export function EventsManager({ initialEvents, canManage, canCreate }: Props) {
           </DialogContent>
         </Dialog>
       )}
+
+      <ConfirmDialog
+        open={deleting !== null}
+        title={deleting ? `Delete "${deleting.name}"?` : "Delete event?"}
+        description={
+          deleting
+            ? `All ${deleting._count.enrollments} enrollment${deleting._count.enrollments === 1 ? "" : "s"} for this event will be removed. This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete Event"
+        destructive
+        loading={deletingNow}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleting(null)}
+      />
     </div>
   )
 }

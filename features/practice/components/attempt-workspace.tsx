@@ -10,6 +10,7 @@ import {
   IconDeviceFloppy,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/page-header"
@@ -39,6 +40,7 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
   )
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved")
   const [submitting, setSubmitting] = useState(false)
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pausedUntil = useRef(0)
 
@@ -85,8 +87,11 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
     await doAutosave(responses)
   }
 
-  async function handleSubmit() {
-    if (!confirm("Submit your answers? You cannot make changes after submitting.")) return
+  function handleSubmit() {
+    setShowSubmitConfirm(true)
+  }
+
+  async function confirmSubmit() {
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
     setSubmitting(true)
     try {
@@ -96,6 +101,7 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
       })
       setAttempt(updated)
       toast.success("Attempt submitted!")
+      setShowSubmitConfirm(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to submit.")
     } finally {
@@ -248,6 +254,37 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showSubmitConfirm}
+        title="Submit attempt?"
+        description="Once submitted, your responses are scored and you can't make further changes."
+        confirmLabel="Submit Attempt"
+        loading={submitting}
+        onConfirm={confirmSubmit}
+        onCancel={() => setShowSubmitConfirm(false)}
+      >
+        {(() => {
+          const total = prompts.length
+          const answered = prompts.reduce(
+            (n, p) => (responses[p.id]?.trim() ? n + 1 : n),
+            0,
+          )
+          const blank = total - answered
+          return (
+            <div className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm">
+              <p className="font-medium">
+                You&rsquo;ve answered {answered} of {total} prompts.
+              </p>
+              {blank > 0 && (
+                <p className="mt-1 text-xs text-[var(--warning)]">
+                  {blank} prompt{blank === 1 ? "" : "s"} will be submitted blank.
+                </p>
+              )}
+            </div>
+          )
+        })()}
+      </ConfirmDialog>
     </div>
   )
 }
