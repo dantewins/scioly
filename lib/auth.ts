@@ -12,10 +12,10 @@ import {
   type PermissionMap,
 } from "./permissions"
 
-const secret = new TextEncoder().encode(process.env.APP_JWT_SECRET!)
 const ALG = "HS256"
 const CURRENT_USER_CACHE_TTL_MS = 5_000
 const CURRENT_USER_CACHE_MAX = 10_000
+const MIN_SESSION_SECRET_LENGTH = 32
 
 export interface CurrentUser {
   id: string
@@ -71,17 +71,42 @@ function setCachedCurrentUser(sub: string, value: CurrentUser | null): void {
   }
 }
 
+export function clearCurrentUserCache(userId?: string): void {
+  const store = getCurrentUserCacheStore()
+  if (userId) {
+    store.delete(userId)
+    return
+  }
+  store.clear()
+}
+
+function getSessionSecret(): Uint8Array {
+  const rawSecret = process.env.APP_JWT_SECRET?.trim() || process.env.JWT_SECRET?.trim()
+
+  if (!rawSecret) {
+    throw new Error("APP_JWT_SECRET or JWT_SECRET must be set.")
+  }
+
+  if (rawSecret.length < MIN_SESSION_SECRET_LENGTH) {
+    throw new Error(
+      `Session secret must be at least ${MIN_SESSION_SECRET_LENGTH} characters.`,
+    )
+  }
+
+  return new TextEncoder().encode(rawSecret)
+}
+
 export async function signSession(payload: { sub: string }, ttl = "7d") {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: ALG })
     .setSubject(payload.sub)
     .setIssuedAt()
     .setExpirationTime(ttl)
-    .sign(secret)
+    .sign(getSessionSecret())
 }
 
 export async function verifySession(token: string) {
-  const { payload } = await jwtVerify(token, secret, { algorithms: [ALG] })
+  const { payload } = await jwtVerify(token, getSessionSecret(), { algorithms: [ALG] })
   return payload as { sub: string; iat: number; exp: number }
 }
 
@@ -133,6 +158,7 @@ async function loadCurrentUser(sub: string): Promise<CurrentUser | null> {
       },
       seasonMemberships: {
         where: {
+          membershipStatus: "ACTIVE",
           season: {
             isActive: true,
           },

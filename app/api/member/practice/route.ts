@@ -1,4 +1,4 @@
-import { withMemberAuth, ok, err } from "@/lib/api"
+import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import {
   listPracticeAssessmentsForMember,
@@ -6,7 +6,7 @@ import {
 
 export const dynamic = "force-dynamic"
 
-export const GET = withMemberAuth(async (_req, _ctx, user) => {
+export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)
 

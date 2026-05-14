@@ -33,9 +33,13 @@ export const PATCH = withPermission(
     const event = await resolveEvent(id, user.clubId)
     if (!event) return err("Event not found.", 404)
 
-    const updated = await prisma.event.update({
-      where: { id },
-      data: parsed.data,
+    const updated = await prisma.$transaction(async (tx) => {
+      const nextEvent = await tx.event.update({
+        where: { id },
+        data: parsed.data,
+      })
+      await syncCompetitionEventsForSeason(event.seasonId, tx)
+      return nextEvent
     })
     return ok(updated)
   },

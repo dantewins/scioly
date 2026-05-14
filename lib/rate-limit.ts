@@ -113,7 +113,7 @@ function shouldFallbackToMemory(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     return ["P2021", "P2022"].includes(error.code)
   }
-  return error instanceof Error
+  return false
 }
 
 function warnMemoryFallback(error: unknown) {

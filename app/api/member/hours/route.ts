@@ -1,14 +1,14 @@
 // app/api/member/hours/route.ts
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { withMemberAuth, ok, err } from "@/lib/api"
+import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { hasPermission } from "@/lib/permissions"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
 // GET — current member's own hour entries
-export const GET = withMemberAuth(async (_req, _ctx, user) => {
+export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
   const ms = await getMemberSeason(user.id, user.clubId)
   if (!ms) return err("Not a member this season.", 403)
 
@@ -30,7 +30,7 @@ const submitSchema = z.object({
 })
 
 // POST — submit a new hour entry (requires create_hours permission)
-export const POST = withMemberAuth(async (req, _ctx, user) => {
+export const POST = withActiveMemberAuth(async (req, _ctx, user) => {
   if (!hasPermission(user.permissions, "create_hours")) {
     return err("Forbidden.", 403)
   }

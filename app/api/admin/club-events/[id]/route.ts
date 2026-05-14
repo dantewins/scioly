@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { syncClubEventAttendanceHourEntries } from "@/lib/club-event-hours"
 
 export const dynamic = "force-dynamic"
 
@@ -29,7 +30,19 @@ export const PATCH = withPermission(
     })
     if (!event) return err("Club event not found.", 404)
 
-    const updated = await prisma.clubEvent.update({ where: { id }, data: parsed.data })
+    if (parsed.data.categoryId) {
+      const category = await prisma.hourCategory.findFirst({
+        where: { id: parsed.data.categoryId, seasonId: event.seasonId },
+        select: { id: true },
+      })
+      if (!category) return err("Hour category not found.", 404)
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const nextEvent = await tx.clubEvent.update({ where: { id }, data: parsed.data })
+      await syncClubEventAttendanceHourEntries(id, user.id, tx)
+      return nextEvent
+    })
     return ok(updated)
   },
 )

@@ -4,8 +4,9 @@ import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { sendPasswordSetupEmail } from "@/lib/email"
-import { getActiveSeason } from "@/lib/db"
+import { clearSeasonLookupCaches, getActiveSeason } from "@/lib/db"
 import { listPendingApplicants } from "@/lib/applications"
+import { clearCurrentUserCache } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
@@ -104,6 +105,8 @@ export const PATCH = withPermission("edit_members", async (req, _ctx, user) => {
         },
       )
     })
+    clearSeasonLookupCaches()
+    clearCurrentUserCache(ms.user.id)
     return ok({ ok: true })
   }
 
@@ -156,5 +159,7 @@ export const PATCH = withPermission("edit_members", async (req, _ctx, user) => {
     // Don't fail the approval if email fails
   }
 
+  clearSeasonLookupCaches()
+  clearCurrentUserCache(ms.user.id)
   return ok({ ok: true })
 })

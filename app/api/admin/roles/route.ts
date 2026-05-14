@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
+import { clearCurrentUserCache } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
@@ -32,5 +33,6 @@ export const POST = withAnyPermission(["create_roles", "edit_roles"], async (req
   const role = await prisma.clubRole.create({
     data: { clubId: user.clubId, ...parsed.data },
   })
+  clearCurrentUserCache()
   return ok(role, 201)
 })

@@ -1,6 +1,8 @@
 // app/api/admin/seasons/[id]/route.ts
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { clearCurrentUserCache } from "@/lib/auth"
+import { clearSeasonLookupCaches } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 
@@ -30,6 +32,8 @@ export const PATCH = withPermission(
       await prisma.season.update({ where: { id }, data: { isActive: false } })
     }
 
+    clearSeasonLookupCaches()
+    clearCurrentUserCache()
     return ok({ ok: true })
   },
 )

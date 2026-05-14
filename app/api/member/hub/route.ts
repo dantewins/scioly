@@ -1,4 +1,4 @@
-import { withMemberAuth, ok, err } from "@/lib/api"
+import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import { prisma } from "@/lib/prisma"
 import { getMemberPracticeFeed } from "@/lib/practice-assessments"
@@ -49,7 +49,7 @@ function calculateDayStreak(isoDates: string[]): number {
   return streak
 }
 
-export const GET = withMemberAuth(async (_req, _ctx, user) => {
+export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
   const limiter = await takeRateLimit(`member:hub:${user.id}`, 90, 60_000)
   if (!limiter.allowed) return err(rateLimitErrorMessage("member hub", limiter.retryAfterMs), 429)
 

@@ -28,7 +28,7 @@ SciOly Club Manager is a private web app for a Science Olympiad team. It replace
 
 ## Tech Stack
 
-- **Next.js 15** — App Router, Server Components, API routes
+- **Next.js 16** — App Router, Server Components, API routes
 - **TypeScript** — strict mode throughout
 - **Prisma + PostgreSQL** — full relational data model
 - **Custom JWT auth** — httpOnly cookie sessions, no NextAuth
@@ -40,7 +40,7 @@ SciOly Club Manager is a private web app for a Science Olympiad team. It replace
 | Variable | Description |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
-| `JWT_SECRET` | Secret for signing session tokens (min 32 chars) |
+| `APP_JWT_SECRET` | Secret for signing session tokens (min 32 chars). `JWT_SECRET` is accepted as a legacy fallback. |
 | `RESEND_API_KEY` | API key from resend.com for email |
 | `NEXT_PUBLIC_APP_URL` | Public base URL (e.g. `https://yourdomain.com`) |
 | `EMAIL_FROM` | Sender shown in outgoing emails |

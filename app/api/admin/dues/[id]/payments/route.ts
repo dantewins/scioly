@@ -20,33 +20,82 @@ export const POST = withPermission(
     const parsed = addPaymentSchema.safeParse(body)
     if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid.", 400)
 
-    const invoice = await prisma.duesInvoice.findFirst({
-      where: { id: invoiceId, season: { clubId: user.clubId } },
-    })
-    if (!invoice) return err("Invoice not found.", 404)
+    const result = await prisma.$transaction(async (tx) => {
+      const invoice = await tx.duesInvoice.findFirst({
+        where: { id: invoiceId, season: { clubId: user.clubId } },
+        select: {
+          id: true,
+          seasonId: true,
+          memberSeasonId: true,
+          title: true,
+          paidAt: true,
+          season: { select: { clubId: true } },
+        },
+      })
+      if (!invoice) return null
 
-    const newPaidCents = invoice.amountPaidCents + parsed.data.amountCents
-    const newStatus = newPaidCents >= invoice.amountCents ? "PAID" : "PARTIALLY_PAID"
-
-    await prisma.$transaction([
-      prisma.paymentRecord.create({
+      const payment = await tx.paymentRecord.create({
         data: {
           invoiceId,
           memberSeasonId: invoice.memberSeasonId,
           ...parsed.data,
           recordedById: user.id,
         },
-      }),
-      prisma.duesInvoice.update({
+        select: { id: true },
+      })
+
+      const updatedInvoice = await tx.duesInvoice.update({
+        where: { id: invoiceId },
+        data: { amountPaidCents: { increment: parsed.data.amountCents } },
+        select: { amountCents: true, amountPaidCents: true },
+      })
+
+      const newStatus =
+        updatedInvoice.amountPaidCents >= updatedInvoice.amountCents
+          ? "PAID"
+          : "PARTIALLY_PAID"
+
+      await tx.duesInvoice.update({
         where: { id: invoiceId },
         data: {
-          amountPaidCents: newPaidCents,
           status: newStatus,
-          ...(newStatus === "PAID" && { paidAt: new Date() }),
+          ...(newStatus === "PAID" && !invoice.paidAt ? { paidAt: new Date() } : {}),
         },
-      }),
-    ])
+      })
 
-    return ok({ ok: true })
+      const defaultAccount = await tx.financeAccount.findFirst({
+        where: {
+          clubId: invoice.season.clubId,
+          OR: [{ seasonId: invoice.seasonId }, { seasonId: null }],
+        },
+        select: { id: true },
+        orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+      })
+
+      await tx.financeEntry.create({
+        data: {
+          clubId: invoice.season.clubId,
+          seasonId: invoice.seasonId,
+          accountId: defaultAccount?.id ?? null,
+          memberSeasonId: invoice.memberSeasonId,
+          invoiceId,
+          paymentRecordId: payment.id,
+          recordedById: user.id,
+          direction: "CREDIT",
+          category: "DUES",
+          amountCents: parsed.data.amountCents,
+          title: `Payment: ${invoice.title}`,
+          externalRef: parsed.data.referenceNumber ?? null,
+          description: parsed.data.notes ?? null,
+          occurredAt: new Date(),
+        },
+      })
+
+      return { paymentId: payment.id, status: newStatus }
+    })
+
+    if (!result) return err("Invoice not found.", 404)
+
+    return ok({ ok: true, ...result })
   },
 )

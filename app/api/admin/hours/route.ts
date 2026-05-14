@@ -11,8 +11,13 @@ export const GET = withPermission("view_hours", async (req, _ctx, user) => {
   if (!season) return err("No active season.", 400)
 
   const url = new URL(req.url)
-  const status = url.searchParams.get("status") as "PENDING" | "APPROVED" | "REJECTED" | null
+  const statusParam = url.searchParams.get("status")
+  const status = ["PENDING", "APPROVED", "REJECTED"].includes(statusParam ?? "")
+    ? (statusParam as "PENDING" | "APPROVED" | "REJECTED")
+    : null
   const categoryId = url.searchParams.get("category") ?? undefined
+  const takeParam = Number(url.searchParams.get("take") ?? 100)
+  const take = Number.isFinite(takeParam) ? Math.min(Math.max(Math.trunc(takeParam), 1), 250) : 100
 
   const entries = await prisma.hourEntry.findMany({
     where: {
@@ -30,6 +35,7 @@ export const GET = withPermission("view_hours", async (req, _ctx, user) => {
       category: { select: { id: true, name: true } },
     },
     orderBy: { submittedAt: "desc" },
+    take,
   })
   return ok(entries)
 })

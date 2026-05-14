@@ -48,6 +48,7 @@ export async function listPracticeAssessmentsForMember(
     .map((assessment) =>
       mapPracticeAssessment(assessment, {
         recommended: Boolean(assessment.eventId && enrolledEventIds.has(assessment.eventId)),
+        includeAnswerKey: false,
       }),
     )
     .sort((a, b) => {
@@ -156,13 +157,15 @@ export async function getMemberPracticeAssessmentDetail(
     instructions: assessment.instructions ?? null,
     timeLimitMinutes: assessment.timeLimitMinutes ?? null,
     event: assessment.event,
-    assets: assessment.assets.map((asset) => ({
-      id: asset.id,
-      kind: asset.kind,
-      label: asset.label,
-      externalUrl: asset.externalUrl ?? null,
-      sortOrder: asset.sortOrder ?? null,
-    })),
+    assets: assessment.assets
+      .filter((asset) => asset.kind !== "ANSWER_KEY_PDF")
+      .map((asset) => ({
+        id: asset.id,
+        kind: asset.kind,
+        label: asset.label,
+        externalUrl: asset.externalUrl ?? null,
+        sortOrder: asset.sortOrder ?? null,
+      })),
     parts: assessment.parts.map((part) => ({
       id: part.id,
       title: part.title,
@@ -197,6 +200,6 @@ export async function getMemberPracticeAssessmentDetail(
     })),
     currentAttemptId: currentAttempt?.id ?? null,
     sourcePdfUrl: pickAssetUrl(assessment, ["SOURCE_PDF", "QUESTION_PDF"]),
-    answerKeyPdfUrl: pickAssetUrl(assessment, ["ANSWER_KEY_PDF"]),
+    answerKeyPdfUrl: null,
   }
 }

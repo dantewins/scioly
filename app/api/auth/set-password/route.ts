@@ -18,35 +18,47 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Password must be at least 8 characters." }, { status: 400 })
     }
 
-    const setupToken = await prisma.passwordSetupToken.findUnique({
-      where: { token },
-      include: { user: { select: { id: true } } },
-    })
-
-    if (!setupToken) {
-      return NextResponse.json({ message: "Invalid or expired link." }, { status: 400 })
-    }
-
-    if (setupToken.usedAt) {
-      return NextResponse.json({ message: "This link has already been used." }, { status: 400 })
-    }
-
-    if (setupToken.expiresAt < new Date()) {
-      return NextResponse.json({ message: "This link has expired. Please contact an admin." }, { status: 400 })
-    }
-
     const passwordHash = await bcrypt.hash(password, 12)
+    const now = new Date()
 
-    await prisma.$transaction([
-      prisma.user.update({
+    const result = await prisma.$transaction(async (tx) => {
+      const setupToken = await tx.passwordSetupToken.findUnique({
+        where: { token },
+        select: { id: true, userId: true, usedAt: true, expiresAt: true },
+      })
+
+      if (!setupToken) return "INVALID" as const
+      if (setupToken.usedAt) return "USED" as const
+      if (setupToken.expiresAt < now) return "EXPIRED" as const
+
+      const claimed = await tx.passwordSetupToken.updateMany({
+        where: {
+          id: setupToken.id,
+          usedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: { usedAt: now },
+      })
+
+      if (claimed.count !== 1) return "USED" as const
+
+      await tx.user.update({
         where: { id: setupToken.userId },
         data: { passwordHash },
-      }),
-      prisma.passwordSetupToken.update({
-        where: { id: setupToken.id },
-        data: { usedAt: new Date() },
-      }),
-    ])
+      })
+
+      return "OK" as const
+    })
+
+    if (result === "INVALID") {
+      return NextResponse.json({ message: "Invalid or expired link." }, { status: 400 })
+    }
+    if (result === "USED") {
+      return NextResponse.json({ message: "This link has already been used." }, { status: 400 })
+    }
+    if (result === "EXPIRED") {
+      return NextResponse.json({ message: "This link has expired. Please contact an admin." }, { status: 400 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

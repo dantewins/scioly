@@ -28,6 +28,7 @@ CLAUDE.md
 
 # user-uploaded assets (stored locally for demo; swap to S3/GCS in prod)
 /public/uploads/
+/.data/uploads/
 
 # debug
 npm-debug.log*

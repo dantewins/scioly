@@ -59,6 +59,19 @@ export async function POST(req: Request) {
       return err(`Email must end in @${normalizedDomain}.`, 400)
     }
 
+    const existingDomainClaim = await prisma.club.findFirst({
+      where: {
+        OR: [
+          { schoolDomain: normalizedDomain },
+          { emailDomains: { some: { domain: normalizedDomain, isActive: true } } },
+        ],
+      },
+      select: { id: true },
+    })
+    if (existingDomainClaim) {
+      return err("A club already exists for this email domain.", 409)
+    }
+
     // Check email not already registered
     const existing = await prisma.user.findFirst({
       where: {

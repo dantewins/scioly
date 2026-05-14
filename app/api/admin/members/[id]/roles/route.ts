@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { clearCurrentUserCache } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
@@ -38,6 +39,7 @@ export const POST = withPermission(
       create: { memberSeasonId: ms.id, clubRoleId: roleId },
       update: {},
     })
+    clearCurrentUserCache(targetUserId)
     return ok(memberRole, 201)
   },
 )
@@ -61,6 +63,7 @@ export const DELETE = withPermission(
     await prisma.memberRole.deleteMany({
       where: { memberSeasonId: ms.id, clubRoleId: roleId },
     })
+    clearCurrentUserCache(targetUserId)
     return ok({ ok: true })
   },
 )

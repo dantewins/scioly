@@ -32,11 +32,13 @@ export function calculateProgress(
 
 export function mapPracticeAssessment(
   assessment: PracticeAssessmentQueryResult,
-  options?: { recommended?: boolean },
+  options?: { recommended?: boolean; includeAnswerKey?: boolean },
 ): PracticeAssessmentRecord {
+  const includeAnswerKey = options?.includeAnswerKey ?? true
   const hasAnswerKey =
-    assessment.prompts.some((prompt) => Boolean(prompt.answerKeyText?.trim())) ||
-    Boolean(pickAssetUrl(assessment, ["ANSWER_KEY_PDF"]))
+    includeAnswerKey &&
+    (assessment.prompts.some((prompt) => Boolean(prompt.answerKeyText?.trim())) ||
+      Boolean(pickAssetUrl(assessment, ["ANSWER_KEY_PDF"])))
   const promptCount = assessment.prompts.length
   const latestAttempt = assessment.attempts[0] ?? null
   const hasInProgressAttempt = assessment.attempts.some((attempt) => attempt.status === "IN_PROGRESS")
@@ -53,7 +55,7 @@ export function mapPracticeAssessment(
     isPublished: assessment.isPublished,
     isArchived: assessment.isArchived,
     sourcePdfUrl: pickAssetUrl(assessment, ["SOURCE_PDF", "QUESTION_PDF"]) ?? "",
-    answerKeyPdfUrl: pickAssetUrl(assessment, ["ANSWER_KEY_PDF"]),
+    answerKeyPdfUrl: includeAnswerKey ? pickAssetUrl(assessment, ["ANSWER_KEY_PDF"]) : null,
     answerKey: hasAnswerKey ? { id: assessment.id } : null,
     parts: assessment.parts.map((part) => ({
       id: part.id,

@@ -1,6 +1,6 @@
 // app/api/member/events/[id]/enroll/route.ts
 import { prisma } from "@/lib/prisma"
-import { withMemberAuth, ok, err } from "@/lib/api"
+import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { hasPermission } from "@/lib/permissions"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic"
 // If the member was previously DROPPED, they're moved back to INTERESTED.
 // If the admin has already advanced the member past INTERESTED (TRYOUT_PENDING,
 // ACTIVE, WAITLISTED), the existing record is preserved and returned as-is.
-export const POST = withMemberAuth(async (_req, ctx: { params: Promise<{ id: string }> }, user) => {
+export const POST = withActiveMemberAuth(async (_req, ctx: { params: Promise<{ id: string }> }, user) => {
   if (!hasPermission(user.permissions, "view_events")) {
     return err("Forbidden.", 403)
   }
@@ -61,7 +61,7 @@ export const POST = withMemberAuth(async (_req, ctx: { params: Promise<{ id: str
 // Only allowed while the enrollment is still INTERESTED — once an admin moves
 // the member into TRYOUT_PENDING / ACTIVE / WAITLISTED, withdrawal must go
 // through the admin so the slot can be reassigned.
-export const DELETE = withMemberAuth(async (_req, ctx: { params: Promise<{ id: string }> }, user) => {
+export const DELETE = withActiveMemberAuth(async (_req, ctx: { params: Promise<{ id: string }> }, user) => {
   if (!hasPermission(user.permissions, "view_events")) {
     return err("Forbidden.", 403)
   }

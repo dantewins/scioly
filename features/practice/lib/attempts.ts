@@ -96,7 +96,7 @@ export async function getMemberPracticeAttemptDetail(
         }
       }),
       sourcePdfUrl: pickAssetUrl(attempt.assessment, ["SOURCE_PDF", "QUESTION_PDF"]),
-      answerKeyPdfUrl: pickAssetUrl(attempt.assessment, ["ANSWER_KEY_PDF"]),
+      answerKeyPdfUrl: null,
     },
   }
 }

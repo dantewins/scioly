@@ -71,6 +71,11 @@ function writeLookupCache<T>(
   pruneLookupStore(store, now)
 }
 
+export function clearSeasonLookupCaches(): void {
+  getActiveSeasonStore().clear()
+  getMemberSeasonStore().clear()
+}
+
 export const getActiveSeason = cache(async (clubId: string): Promise<{ id: string } | null> => {
   const store = getActiveSeasonStore()
   const cached = readLookupCache(store, clubId)
@@ -100,13 +105,31 @@ export const getMemberSeason = cache(async (
     return null
   }
 
-  const memberSeason = await prisma.memberSeason.findUnique({
-    where: { userId_seasonId: { userId, seasonId: activeSeason.id } },
+  const activeMemberSeason = await prisma.memberSeason.findFirst({
+    where: {
+      userId,
+      seasonId: activeSeason.id,
+      membershipStatus: "ACTIVE",
+      user: { clubId },
+      season: { id: activeSeason.id, clubId, isActive: true },
+    },
     select: { id: true },
   })
-  writeLookupCache(store, cacheKey, memberSeason)
-  return memberSeason
+  writeLookupCache(store, cacheKey, activeMemberSeason)
+  return activeMemberSeason
 })
+
+export const getActiveMemberSeason = getMemberSeason
+
+export async function assertSeasonBelongsToClub(
+  seasonId: string,
+  clubId: string,
+): Promise<{ id: string } | null> {
+  return prisma.season.findFirst({
+    where: { id: seasonId, clubId },
+    select: { id: true },
+  })
+}
 
 export async function getClubDomainConfig(
   clubId: string,

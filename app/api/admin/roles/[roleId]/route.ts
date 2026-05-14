@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { clearCurrentUserCache } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
@@ -28,6 +29,7 @@ export const PATCH = withPermission(
       where: { id: roleId },
       data: parsed.data,
     })
+    clearCurrentUserCache()
     return ok(role)
   },
 )
@@ -43,6 +45,7 @@ export const DELETE = withPermission(
     if (!existing) return err("Role not found.", 404)
 
     await prisma.clubRole.delete({ where: { id: roleId } })
+    clearCurrentUserCache()
     return ok({ ok: true })
   },
 )

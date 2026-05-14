@@ -1,13 +1,13 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { withMemberAuth, withPermission, ok, err } from "@/lib/api"
+import { withActiveMemberAuth, withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
 import { logActivity } from "@/lib/activity"
 
 export const dynamic = "force-dynamic"
 
 // Members + admins read; only managers post.
-export const GET = withMemberAuth(async (_req, _ctx, user) => {
+export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
   const season = await getActiveSeason(user.clubId)
   if (!season) return ok([])
 

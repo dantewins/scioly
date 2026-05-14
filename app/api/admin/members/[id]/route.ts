@@ -2,7 +2,8 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
-import { getActiveSeason } from "@/lib/db"
+import { clearSeasonLookupCaches, getActiveSeason } from "@/lib/db"
+import { clearCurrentUserCache } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
@@ -101,5 +102,7 @@ export const PATCH = withPermission("edit_members", async (req, ctx: { params: P
     },
   })
 
+  clearSeasonLookupCaches()
+  clearCurrentUserCache(targetUserId)
   return ok(updated)
 })

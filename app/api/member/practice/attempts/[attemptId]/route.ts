@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { withMemberAuth, ok, err } from "@/lib/api"
+import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { getMemberSeason } from "@/lib/db"
 import { rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
 import {
@@ -28,7 +28,7 @@ const submitSchema = z.object({
   answers: z.array(z.string()).optional(),
 })
 
-export const GET = withMemberAuth(
+export const GET = withActiveMemberAuth(
   async (_req, ctx: { params: Promise<{ attemptId: string }> }, user) => {
     const { attemptId } = await ctx.params
     const ms = await getMemberSeason(user.id, user.clubId)
@@ -40,7 +40,7 @@ export const GET = withMemberAuth(
   },
 )
 
-export const PATCH = withMemberAuth(
+export const PATCH = withActiveMemberAuth(
   async (req, ctx: { params: Promise<{ attemptId: string }> }, user) => {
     const { attemptId } = await ctx.params
     const ms = await getMemberSeason(user.id, user.clubId)
@@ -71,7 +71,7 @@ export const PATCH = withMemberAuth(
   },
 )
 
-export const POST = withMemberAuth(
+export const POST = withActiveMemberAuth(
   async (req, ctx: { params: Promise<{ attemptId: string }> }, user) => {
     const { attemptId } = await ctx.params
     const ms = await getMemberSeason(user.id, user.clubId)

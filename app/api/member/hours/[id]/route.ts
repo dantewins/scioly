@@ -1,7 +1,7 @@
 // app/api/member/hours/[id]/route.ts
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { withMemberAuth, ok, err } from "@/lib/api"
+import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { hasPermission } from "@/lib/permissions"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 
@@ -22,7 +22,7 @@ async function resolveOwnedPendingEntry(entryId: string, memberSeasonId: string)
   })
 }
 
-export const PATCH = withMemberAuth(
+export const PATCH = withActiveMemberAuth(
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     if (!hasPermission(user.permissions, "create_hours")) {
       return err("Forbidden.", 403)
@@ -59,7 +59,7 @@ export const PATCH = withMemberAuth(
   },
 )
 
-export const DELETE = withMemberAuth(
+export const DELETE = withActiveMemberAuth(
   async (_req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id } = await ctx.params
     const ms = await getMemberSeason(user.id, user.clubId)
