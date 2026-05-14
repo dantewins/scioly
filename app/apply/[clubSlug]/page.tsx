@@ -1,7 +1,7 @@
 // app/apply/[clubSlug]/page.tsx
 import { notFound } from "next/navigation"
 import { IconAtom } from "@tabler/icons-react"
-import { ApplyForm } from "@/components/forms/apply-form"
+import { ApplyForm } from "@/features/applications/components/apply-form"
 import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"

@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { canView, canCreate, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
-import { ClubEventsManager } from "./club-events-manager"
+import { ClubEventsManager } from "@/features/club-events/components/club-events-manager"
 import { PageHeader } from "@/components/ui/page-header"
 
 

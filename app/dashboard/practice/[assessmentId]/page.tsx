@@ -17,7 +17,7 @@ import { PageHeader } from "@/components/ui/page-header"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
 import { formatMonthDay } from "@/lib/format"
-import { StartAttemptButton } from "./start-attempt-button"
+import { StartAttemptButton } from "@/features/practice/components/start-attempt-button"
 
 
 interface Props { params: Promise<{ assessmentId: string }> }

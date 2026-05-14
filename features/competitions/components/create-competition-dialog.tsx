@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
-import { CompetitionForm } from "@/components/forms/competition-form"
+import { CompetitionForm } from "@/features/competitions/components/competition-form"
 import { apiCall } from "@/lib/api-client"
 
 export function CreateCompetitionDialog() {

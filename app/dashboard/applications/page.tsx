@@ -7,7 +7,7 @@ import { getActiveSeason } from "@/lib/db"
 import { listPendingApplicants } from "@/lib/applications"
 import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
-import { ApplicantsTable } from "@/components/tables/applicants-table"
+import { ApplicantsTable } from "@/features/applications/components/applicants-table"
 
 
 export default async function ApplicationsPage() {

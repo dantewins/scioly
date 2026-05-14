@@ -8,9 +8,9 @@ import { apiCall } from "@/lib/api-client"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
-import { InvoicesTable, type InvoiceRow } from "@/components/tables/invoices-table"
-import { InvoiceForm } from "@/components/forms/invoice-form"
-import { PaymentForm } from "@/components/forms/payment-form"
+import { InvoicesTable, type InvoiceRow } from "@/features/finances/components/invoices-table"
+import { InvoiceForm } from "@/features/finances/components/invoice-form"
+import { PaymentForm } from "@/features/finances/components/payment-form"
 
 type Invoice = InvoiceRow
 

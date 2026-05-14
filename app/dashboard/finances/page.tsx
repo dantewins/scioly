@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
 import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
-import { FinancesView } from "./finances-view"
+import { FinancesView } from "@/features/finances/components/finances-view"
 
 
 export default async function FinancesPage() {

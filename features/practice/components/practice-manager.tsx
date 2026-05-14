@@ -13,8 +13,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { PracticeTestCard, type PracticeTestCardData } from "@/components/cards/practice-test-card"
-import { PracticeTestForm } from "@/components/forms/practice-test-form"
+import { PracticeTestCard, type PracticeTestCardData } from "@/features/practice/components/practice-test-card"
+import { PracticeTestForm } from "@/features/practice/components/practice-test-form"
 
 type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
 type AssessmentPartType = "SECTION" | "STATION"

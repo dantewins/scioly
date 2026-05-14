@@ -5,8 +5,8 @@ import { canView, canEdit, canCreate } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import { PageHeader } from "@/components/ui/page-header"
-import { AdminHoursView } from "./admin-hours-view"
-import { MemberHoursView } from "./member-hours-view"
+import { AdminHoursView } from "@/features/hours/components/admin-hours-view"
+import { MemberHoursView } from "@/features/hours/components/member-hours-view"
 
 
 export default async function HoursPage() {

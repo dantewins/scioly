@@ -15,15 +15,15 @@ import { SectionCard } from "@/components/ui/section-card"
 import {
   CompetitionRosterDialog,
   type CompetitionRosterFormValues,
-} from "@/components/dialogs/competition-roster-dialog"
+} from "@/features/competitions/components/competition-roster-dialog"
 import {
   CompetitionAssignmentDialog,
   type CompetitionAssignmentFormValues,
-} from "@/components/dialogs/competition-assignment-dialog"
+} from "@/features/competitions/components/competition-assignment-dialog"
 import {
   CompetitionParticipantDialog,
   type CompetitionParticipantFormValues,
-} from "@/components/dialogs/competition-participant-dialog"
+} from "@/features/competitions/components/competition-participant-dialog"
 import { apiCall } from "@/lib/api-client"
 import {
   type AssignmentRecord,

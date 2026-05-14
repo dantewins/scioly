@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth"
 import { canView } from "@/lib/permissions"
 import { getMemberSeason } from "@/lib/db"
 import { getMemberPracticeAttemptDetail } from "@/lib/practice-assessments"
-import { AttemptWorkspace } from "./attempt-workspace"
+import { AttemptWorkspace } from "@/features/practice/components/attempt-workspace"
 
 
 interface Props { params: Promise<{ attemptId: string }> }

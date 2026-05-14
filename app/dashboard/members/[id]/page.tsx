@@ -14,10 +14,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SectionCard } from "@/components/ui/section-card"
 import { MetricCard } from "@/components/ui/metric-card"
-import { MemberEventsTable } from "@/components/tables/member-events-table"
-import { MemberHoursTable } from "@/components/tables/member-hours-table"
-import { MemberInvoicesTable } from "@/components/tables/member-invoices-table"
-import { MemberFormsTable } from "@/components/tables/member-forms-table"
+import { MemberEventsTable } from "@/features/members/components/member-events-table"
+import { MemberHoursTable } from "@/features/members/components/member-hours-table"
+import { MemberInvoicesTable } from "@/features/members/components/member-invoices-table"
+import { MemberFormsTable } from "@/features/members/components/member-forms-table"
 import { formatDateOnly } from "@/lib/format"
 
 

@@ -7,8 +7,8 @@ import { prisma } from "@/lib/prisma"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
-import { CompetitionCard } from "@/components/cards/competition-card"
-import { CreateCompetitionDialog } from "./create-competition-dialog"
+import { CompetitionCard } from "@/features/competitions/components/competition-card"
+import { CreateCompetitionDialog } from "@/features/competitions/components/create-competition-dialog"
 
 
 export default async function CompetitionsPage() {

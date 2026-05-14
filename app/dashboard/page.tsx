@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table"
 import { formatDateCompact, formatMonthYear } from "@/lib/format"
 import { canEdit } from "@/lib/permissions"
-import { AnnouncementComposer } from "./announcement-composer"
+import { AnnouncementComposer } from "@/features/announcements/components/announcement-composer"
 
 
 export default async function DashboardPage() {

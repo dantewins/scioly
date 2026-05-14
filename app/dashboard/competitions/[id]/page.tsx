@@ -13,8 +13,8 @@ import { PageHeader } from "@/components/ui/page-header"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDateOnly } from "@/lib/format"
-import { CompetitionScheduleTable } from "@/components/tables/competition-schedule-table"
-import { CompetitionRosterManager } from "./competition-roster-manager"
+import { CompetitionScheduleTable } from "@/features/competitions/components/competition-schedule-table"
+import { CompetitionRosterManager } from "@/features/competitions/components/competition-roster-manager"
 
 
 const TYPE_LABELS: Record<string, string> = {

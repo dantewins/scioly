@@ -3,8 +3,8 @@ import { getCurrentUser } from "@/lib/auth"
 import { canView, canEdit, canCreate } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
-import { PracticeManager } from "./practice-manager"
-import { PracticeFeed } from "./practice-feed"
+import { PracticeManager } from "@/features/practice/components/practice-manager"
+import { PracticeFeed } from "@/features/practice/components/practice-feed"
 import { PageHeader } from "@/components/ui/page-header"
 import {
   listPracticeAssessmentsForAdmin,

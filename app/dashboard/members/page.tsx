@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
 import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
-import { MembersTable } from "@/components/tables/members-table"
+import { MembersTable } from "@/features/members/components/members-table"
 
 
 export default async function MembersPage() {

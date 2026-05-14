@@ -5,10 +5,10 @@ import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { canEdit, canView } from "@/lib/permissions"
 import { getClubDomainConfig } from "@/lib/db"
-import { ClubSettingsForm } from "./club-settings-form"
-import { RolesManager } from "./roles-manager"
-import { SeasonManager } from "./season-manager"
-import { SettingsSection } from "./settings-section"
+import { ClubSettingsForm } from "@/features/settings/components/club-settings-form"
+import { RolesManager } from "@/features/settings/components/roles-manager"
+import { SeasonManager } from "@/features/settings/components/season-manager"
+import { SettingsSection } from "@/features/settings/components/settings-section"
 
 
 export default async function SettingsPage() {

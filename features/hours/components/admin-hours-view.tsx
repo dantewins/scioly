@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { RejectHoursDialog } from "@/components/dialogs/reject-hours-dialog"
+import { RejectHoursDialog } from "@/features/hours/components/reject-hours-dialog"
 import { apiCall } from "@/lib/api-client"
 
 interface Entry {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
-import { EventForm } from "@/components/forms/event-form"
+import { EventForm } from "@/features/events/components/event-form"
 import { apiCall } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 

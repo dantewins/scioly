@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
 import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
-import { EventsManager } from "./events-manager"
+import { EventsManager } from "@/features/events/components/events-manager"
 
 
 export default async function EventsPage() {

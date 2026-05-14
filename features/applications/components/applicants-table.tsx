@@ -17,7 +17,7 @@ import {
 import { formatDateOnly } from "@/lib/format"
 import { apiCall } from "@/lib/api-client"
 import type { ApplicantReviewRecord } from "@/lib/applications"
-import { DenyApplicationDialog } from "@/components/dialogs/deny-application-dialog"
+import { DenyApplicationDialog } from "@/features/applications/components/deny-application-dialog"
 
 interface Props {
   initialApplicants: ApplicantReviewRecord[]

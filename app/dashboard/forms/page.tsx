@@ -7,8 +7,8 @@ import { prisma } from "@/lib/prisma"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import { PageHeader } from "@/components/ui/page-header"
 import { EmptyState } from "@/components/empty-state"
-import { AdminFormsView } from "./admin-forms-view"
-import { MemberFormsView } from "./member-forms-view"
+import { AdminFormsView } from "@/features/forms/components/admin-forms-view"
+import { MemberFormsView } from "@/features/forms/components/member-forms-view"
 
 
 export default async function FormsPage() {

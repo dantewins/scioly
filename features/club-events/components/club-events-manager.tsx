@@ -11,8 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { ClubEventCard, type ClubEventCardData } from "@/components/cards/club-event-card"
-import { ClubEventForm } from "@/components/forms/club-event-form"
+import { ClubEventCard, type ClubEventCardData } from "@/features/club-events/components/club-event-card"
+import { ClubEventForm } from "@/features/club-events/components/club-event-form"
 
 type ClubEventType =
   | "MEETING"
