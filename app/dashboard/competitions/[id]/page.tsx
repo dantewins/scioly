@@ -1,8 +1,11 @@
 // app/dashboard/competitions/[id]/page.tsx
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
-import { IconArrowLeft } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { canView, canEdit } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { listCanonicalCompetitionRosters } from "@/lib/competition-ontology"
@@ -97,13 +100,25 @@ export default async function CompetitionDetailPage({ params }: Props) {
 
   return (
     <div className="layout-page">
-      <Link
-        href="/dashboard/competitions"
-        className="group inline-flex items-center gap-1.5 label-caps text-muted-foreground hover:text-azure-700 transition-colors w-fit"
-      >
-        <IconArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
-        Competitions
-      </Link>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard/competitions">Competitions</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{competition.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <PageHeader
         title={competition.name}

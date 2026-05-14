@@ -53,14 +53,14 @@ export function CompetitionCard({
     >
       <div className="flex">
         {/* Date stamp column */}
-        <div className={cn("flex flex-col items-center justify-center gap-0.5 px-4 py-4 ring-1 ring-inset", palette.stamp, palette.ring)}>
+        <div className={cn("flex flex-col items-center justify-center gap-0.5 px-3 py-3 ring-1 ring-inset shrink-0 sm:px-4 sm:py-4", palette.stamp, palette.ring)}>
           <span className={cn("font-mono text-[10px] font-semibold tracking-[0.18em]", palette.stampText)}>{month}</span>
-          <span className={cn("font-serif text-3xl leading-none tabular-nums", palette.stampText)}>{day}</span>
+          <span className={cn("font-serif text-2xl leading-none tabular-nums sm:text-3xl", palette.stampText)}>{day}</span>
           <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{weekday}</span>
         </div>
 
         {/* Content column */}
-        <div className="flex flex-1 flex-col min-w-0 px-4 py-4 gap-2">
+        <div className="flex flex-1 flex-col min-w-0 px-3 py-3 gap-2 sm:px-4 sm:py-4">
           <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.14em]">
             <span className={palette.tag}>{TYPE_LABEL[type] ?? type}</span>
             <span aria-hidden className="size-1 rounded-full bg-border" />
@@ -69,15 +69,15 @@ export function CompetitionCard({
             </span>
           </div>
 
-          <h3 className="font-serif text-xl leading-[1.1] tracking-tight text-foreground sm:text-2xl">
+          <h3 className="font-serif text-lg leading-[1.1] tracking-tight text-foreground sm:text-2xl">
             {name}
           </h3>
 
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
             {location && (
-              <span className="inline-flex items-center gap-1 truncate">
+              <span className="inline-flex items-center gap-1 min-w-0 max-w-full truncate">
                 <IconMapPin className="size-3 shrink-0" aria-hidden />
-                {location}
+                <span className="truncate">{location}</span>
               </span>
             )}
             {relative && (
@@ -89,13 +89,13 @@ export function CompetitionCard({
           </div>
 
           <div className="mt-auto flex items-center justify-between gap-2 pt-2 border-t border-border/60">
-            <div className="flex items-center gap-3 text-[11px] font-mono tabular-nums text-muted-foreground">
+            <div className="flex items-center gap-2 text-[11px] font-mono tabular-nums text-muted-foreground sm:gap-3">
               <span><span className="text-foreground/90">{rosterCount}</span> rosters</span>
               <span aria-hidden className="text-border">·</span>
               <span><span className="text-foreground/90">{eventCount}</span> events</span>
             </div>
             <IconArrowUpRight
-              className="size-4 text-muted-foreground/60 transition-all duration-200 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              className="size-4 shrink-0 text-muted-foreground/60 transition-all duration-200 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
               aria-hidden
             />
           </div>

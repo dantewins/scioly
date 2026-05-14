@@ -1,13 +1,16 @@
 // app/dashboard/members/[id]/page.tsx
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
-import { IconArrowLeft } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
 import { canView } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
 import { getActiveSeason } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/ui/status-badge"
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SectionCard } from "@/components/ui/section-card"
 import { MetricCard } from "@/components/ui/metric-card"
@@ -117,14 +120,25 @@ export default async function MemberDetailPage({ params }: Props) {
 
   return (
     <div className="layout-page">
-      {/* Breadcrumb back-link */}
-      <Link
-        href="/dashboard/members"
-        className="group inline-flex items-center gap-1.5 label-caps text-muted-foreground hover:text-azure-700 transition-colors w-fit"
-      >
-        <IconArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
-        Members
-      </Link>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard/members">Members</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{targetUser.firstName} {targetUser.lastName}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       {/* Header — azure-tinted banner */}
       <div className="relative overflow-hidden rounded-[var(--radius)] border border-border/80 bg-azure-gradient">
@@ -132,16 +146,15 @@ export default async function MemberDetailPage({ params }: Props) {
           aria-hidden
           className="pointer-events-none absolute -right-20 -top-20 size-72 rounded-full bg-azure-200/40 blur-3xl"
         />
-        <div className="relative flex items-end gap-3 px-[var(--card-px)] py-[var(--card-py)] sm:px-5 sm:py-5">
+        <div className="relative flex flex-wrap items-end gap-3 px-[var(--card-px)] py-[var(--card-py)] sm:px-5 sm:py-5">
           <div className="min-w-0 flex-1">
-            <p className="label-caps text-azure-700">Member</p>
-            <h1 className="mt-1 font-serif text-2xl sm:text-3xl leading-tight tracking-tight">
+            <h1 className="font-serif text-2xl sm:text-3xl leading-tight tracking-tight break-words">
               {targetUser.firstName} {targetUser.lastName}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">{targetUser.email}</p>
+            <p className="mt-1 text-sm text-muted-foreground break-all">{targetUser.email}</p>
           </div>
           {ms && (
-            <div className="self-end mb-1">
+            <div className="shrink-0">
               <StatusBadge status={ms.membershipStatus} withDot />
             </div>
           )}

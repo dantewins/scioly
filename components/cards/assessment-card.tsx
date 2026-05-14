@@ -6,7 +6,6 @@ import {
   IconClock,
   IconLayout,
   IconFileText,
-  IconSparkles,
   IconPlayerPlay,
 } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
@@ -33,34 +32,31 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
       href={`/dashboard/practice/${assessment.id}`}
       className="group relative block overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
-      {/* Top tag bar */}
-      <div className="flex items-center gap-1.5 border-b border-border/50 bg-azure-50/30 px-4 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em]">
+      {/* Top tag bar — wraps cleanly on narrow viewports */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/50 bg-azure-50/30 px-3 py-1.5 sm:px-4 text-[10px] font-medium uppercase tracking-[0.14em]">
         {recommended && (
-          <span className="inline-flex items-center gap-1 text-azure-700">
-            <IconSparkles className="size-3" aria-hidden />
-            Recommended
-          </span>
+          <span className="text-azure-700">Recommended</span>
         )}
         {recommended && <span aria-hidden className="text-border">·</span>}
         <span className="text-muted-foreground">{FORMAT_LABEL[assessment.format] ?? assessment.format}</span>
         {assessment.event && (
           <>
             <span aria-hidden className="text-border">·</span>
-            <span className="text-muted-foreground truncate">{assessment.event.name}</span>
+            <span className="text-muted-foreground truncate min-w-0">{assessment.event.name}</span>
           </>
         )}
         {inProgress && (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-amber-700 whitespace-nowrap">
             <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
             In progress
           </span>
         )}
       </div>
 
-      {/* Body */}
-      <div className="grid grid-cols-[1fr_auto] items-start gap-4 px-4 py-4">
+      {/* Body — stacks title above time stat on mobile, side-by-side on sm+ */}
+      <div className="grid items-start gap-3 px-3 py-3 sm:grid-cols-[1fr_auto] sm:gap-4 sm:px-4 sm:py-4">
         <div className="min-w-0 space-y-2">
-          <h3 className="font-serif text-2xl leading-[1.15] tracking-tight text-foreground">
+          <h3 className="font-serif text-xl leading-[1.15] tracking-tight text-foreground sm:text-2xl">
             {assessment.title}
           </h3>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
@@ -91,14 +87,14 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
           </div>
         </div>
 
-        {/* Time stat */}
+        {/* Time stat — moves above body on mobile? No, keep tucked top-right via order */}
         {assessment.timeLimitMinutes && (
-          <div className="flex flex-col items-end justify-center text-right">
+          <div className="flex items-baseline gap-1 self-start sm:flex-col sm:items-end sm:justify-center sm:text-right sm:gap-0">
             <span className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
               <IconClock className="size-3" aria-hidden />
               Time
             </span>
-            <span className="font-serif text-2xl leading-none tabular-nums text-foreground">
+            <span className="font-serif text-xl leading-none tabular-nums text-foreground sm:text-2xl">
               {assessment.timeLimitMinutes}
               <span className="text-sm text-muted-foreground"> min</span>
             </span>
@@ -107,7 +103,7 @@ export function AssessmentCard({ assessment }: { assessment: MemberPracticeFeedR
       </div>
 
       {/* CTA chip — fills on hover */}
-      <div className="flex items-center justify-end border-t border-border/50 px-4 py-2">
+      <div className="flex items-center justify-end border-t border-border/50 px-3 py-2 sm:px-4">
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors",

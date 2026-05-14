@@ -76,9 +76,9 @@ export function ClubEventCard({ event, canManage, onEdit, onDelete }: Props) {
   return (
     <div className="group relative flex overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft">
       {/* Ticket stub */}
-      <div className={cn("flex w-[88px] shrink-0 flex-col items-center justify-center gap-1 px-3 py-4", stub.bg, stub.fg)}>
+      <div className={cn("flex w-[72px] shrink-0 flex-col items-center justify-center gap-1 px-2 py-3 sm:w-[88px] sm:px-3 sm:py-4", stub.bg, stub.fg)}>
         <span className="font-mono text-[10px] font-semibold tracking-[0.18em] opacity-80">{month}</span>
-        <span className="font-serif text-4xl leading-none tabular-nums">{day}</span>
+        <span className="font-serif text-3xl leading-none tabular-nums sm:text-4xl">{day}</span>
         <span className="font-mono text-[10px] tabular-nums opacity-90">
           {formatTime(event.startsAt)}
         </span>
@@ -90,7 +90,7 @@ export function ClubEventCard({ event, canManage, onEdit, onDelete }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col min-w-0 px-4 py-3 gap-2">
+      <div className="flex flex-1 flex-col min-w-0 px-3 py-3 gap-2 sm:px-4">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {TYPE_LABELS[event.type]}

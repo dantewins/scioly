@@ -66,7 +66,7 @@ const FORMAT_LABEL: Record<AssessmentFormat, string> = {
 export function PracticeTestCard({ test, canManage, onEdit, onDelete, onSetAnswerKey }: Props) {
   const partLabel = test.format === "STATIONS" ? "station" : "part"
   return (
-    <div className="group relative grid grid-cols-[1fr_auto] items-center gap-4 rounded-[var(--radius)] border border-border/80 bg-card px-4 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft">
+    <div className="group relative flex flex-col gap-3 rounded-[var(--radius)] border border-border/80 bg-card px-3 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4 sm:px-4">
       {/* Status pill column (left of title) */}
       <div className="flex items-center gap-3 min-w-0">
         <span
@@ -145,10 +145,11 @@ export function PracticeTestCard({ test, canManage, onEdit, onDelete, onSetAnswe
       </div>
 
       {canManage && (
-        <div className="flex items-center gap-1 self-center shrink-0">
+        <div className="flex items-center gap-1 self-end sm:self-center shrink-0 border-t border-border/40 pt-3 sm:border-0 sm:pt-0 w-full sm:w-auto justify-end">
           <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => onSetAnswerKey(test)}>
             <IconKey size={12} />
-            {test.answerKey ? "Update key" : "Set key"}
+            <span className="hidden sm:inline">{test.answerKey ? "Update key" : "Set key"}</span>
+            <span className="sm:hidden">{test.answerKey ? "Update" : "Set"}</span>
           </Button>
           <Button variant="ghost" size="icon-sm" onClick={() => onEdit(test)} aria-label={`Edit ${test.title}`}>
             <IconPencil className="size-3.5" />

@@ -1,11 +1,14 @@
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import {
-  IconArrowLeft,
   IconArrowRight,
   IconClock,
   IconFileText,
 } from "@tabler/icons-react"
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { getCurrentUser } from "@/lib/auth"
 import { canView } from "@/lib/permissions"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
@@ -42,13 +45,25 @@ export default async function AssessmentDetailPage({ params }: Props) {
 
   return (
     <div className="layout-page">
-      <Link
-        href="/dashboard/practice"
-        className="group inline-flex items-center gap-1.5 label-caps text-muted-foreground hover:text-azure-700 transition-colors w-fit"
-      >
-        <IconArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
-        Assessments
-      </Link>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard/practice">Assessments</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{assessment.title}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <PageHeader
         title={assessment.title}

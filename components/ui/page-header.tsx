@@ -9,20 +9,20 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, kicker, children }: PageHeaderProps) {
   return (
-    <div className="flex items-end justify-between gap-3 border-b border-border/60 pb-3">
-      <div className="min-w-0">
+    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border/60 pb-3">
+      <div className="min-w-0 flex-1">
         {kicker && (
-          <p className="label-caps mb-1 text-azure-700">{kicker}</p>
+          <p className="label-caps mb-1 text-azure-700 truncate">{kicker}</p>
         )}
-        <h1 className="truncate font-serif text-2xl sm:text-3xl tracking-tight leading-[1.1] text-foreground">
+        <h1 className="font-serif text-xl sm:text-3xl tracking-tight leading-[1.1] text-foreground break-words">
           {title}
         </h1>
         {description && (
-          <p className="mt-1 truncate text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 text-sm text-muted-foreground break-words">{description}</p>
         )}
       </div>
       {children && (
-        <div className="control-row shrink-0">{children}</div>
+        <div className="control-row shrink-0 flex-wrap">{children}</div>
       )}
     </div>
   )

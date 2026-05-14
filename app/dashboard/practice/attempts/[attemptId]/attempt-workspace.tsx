@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
 import {
-  IconArrowLeft,
   IconCheck,
   IconX,
   IconTrophy,
@@ -14,6 +13,10 @@ import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Input } from "@/components/ui/input"
 import { PageHeader } from "@/components/ui/page-header"
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import type { MemberPracticeAttemptDetail } from "@/lib/practice-assessments"
 import { apiCall, ApiError } from "@/lib/api-client"
 
@@ -119,13 +122,25 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
 
   return (
     <div className="layout-page">
-      <Link
-        href={`/dashboard/practice/${assessment.id}`}
-        className="group inline-flex items-center gap-1.5 label-caps text-muted-foreground hover:text-azure-700 transition-colors w-fit"
-      >
-        <IconArrowLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
-        {assessment.title}
-      </Link>
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/dashboard/practice">Assessments</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href={`/dashboard/practice/${assessment.id}`}>{assessment.title}</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Attempt</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <PageHeader
         title={assessment.title}
