@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { IconPlus, IconCalendar } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { EntityCard } from "@/components/ui/entity-card"
+import { cn } from "@/lib/utils"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -78,33 +78,43 @@ export function SeasonManager({ seasons: initial, canManage }: Props) {
 
   return (
     <div className="space-y-2">
+      {/* Season rows — admin ledger style: calendar chip + name on left, switch on right */}
       {seasons.map((s) => (
-        <EntityCard
+        <div
           key={s.id}
-          tone={s.isActive ? "brand" : "neutral"}
-          kicker={<><IconCalendar className="size-3 shrink-0" aria-hidden /> Season</>}
-          title={s.name}
-          titleSize="sm"
-          status={s.isActive ? <Badge variant="info" className="text-[10px]">Active</Badge> : undefined}
-          metrics={
-            <>
-              <span>{s.schoolYear}</span>
-              <span>
-                <span className="text-foreground/80">{s._count.members}</span> members
-              </span>
-            </>
-          }
-          trailing={
-            canManage ? (
-              <Switch
-                checked={s.isActive}
-                onCheckedChange={(v) => toggleActive(s.id, v)}
-                aria-label={s.isActive ? "Deactivate season" : "Activate season"}
-              />
-            ) : undefined
-          }
-          alwaysShowTrailing
-        />
+          className={cn(
+            "group relative flex items-center gap-4 rounded-[var(--radius)] border bg-card px-4 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-shadow",
+            s.isActive ? "border-azure-300/60" : "border-border/80",
+          )}
+        >
+          <span
+            className={cn(
+              "inline-flex size-10 shrink-0 items-center justify-center rounded-md ring-1",
+              s.isActive ? "bg-azure-50 text-azure-700 ring-azure-200/70" : "bg-muted text-muted-foreground ring-border",
+            )}
+            aria-hidden
+          >
+            <IconCalendar className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-sm truncate">{s.name}</p>
+              {s.isActive && <Badge variant="info" className="text-[10px]">Active</Badge>}
+            </div>
+            <p className="mt-0.5 text-[11px] font-mono tabular-nums text-muted-foreground">
+              {s.schoolYear}
+              <span className="mx-1.5" aria-hidden>·</span>
+              <span className="text-foreground/80">{s._count.members}</span> members
+            </p>
+          </div>
+          {canManage && (
+            <Switch
+              checked={s.isActive}
+              onCheckedChange={(v) => toggleActive(s.id, v)}
+              aria-label={s.isActive ? "Deactivate season" : "Activate season"}
+            />
+          )}
+        </div>
       ))}
 
       {seasons.length === 0 && (

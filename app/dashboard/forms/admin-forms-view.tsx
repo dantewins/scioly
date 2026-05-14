@@ -6,7 +6,7 @@ import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { apiCall } from "@/lib/api-client"
 import { Badge } from "@/components/ui/badge"
-import { EntityCard } from "@/components/ui/entity-card"
+import { cn } from "@/lib/utils"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -77,39 +77,51 @@ export function AdminFormsView({ formTypes: initial, canCreate }: Props) {
         </Button>
       )}
 
+      {/* Form-type tile — "clipboard" feel: category chip top-right, name title, completion progress bar + submitted/pending counters */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {formTypes.map((ft) => (
-          <EntityCard
-            key={ft.id}
-            tone={ft.isRequired ? "brand" : "neutral"}
-            kicker={
-              <>
-                {ft.isRequired ? "Required" : "Optional"}
-                <span className="text-border" aria-hidden>·</span>
-                <span className="text-muted-foreground">{ft.category.replace(/_/g, " ").toLowerCase()}</span>
-                {ft.requiresUpload && (
-                  <>
-                    <span className="text-border" aria-hidden>·</span>
-                    <span className="text-muted-foreground">Upload</span>
-                  </>
-                )}
-              </>
-            }
-            title={ft.name}
-            titleSize="sm"
-            description={ft.description ?? undefined}
-            metrics={
-              <>
-                <span>
-                  <span className="text-foreground/80">{ft._count.submissions}</span> submitted
+        {formTypes.map((ft) => {
+          const total = ft._count.submissions
+          const pending = ft.submissions.length
+          const completed = Math.max(0, total - pending)
+          const pct = total === 0 ? 0 : Math.round((completed / total) * 100)
+          return (
+            <div
+              key={ft.id}
+              className={cn(
+                "group relative flex flex-col gap-3 rounded-[var(--radius)] border bg-card px-4 py-4 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-shadow",
+                ft.isRequired ? "border-azure-300/60" : "border-border/80",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <Badge variant={ft.isRequired ? "tonal" : "outline"} className="text-[10px]">
+                  {ft.isRequired ? "Required" : "Optional"}
+                </Badge>
+                <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                  {ft.category.replace(/_/g, " ")}
                 </span>
-                <span>
-                  <span className="text-foreground/80">{ft.submissions.length}</span> pending
-                </span>
-              </>
-            }
-          />
-        ))}
+              </div>
+
+              <h3 className="font-medium text-base leading-tight text-foreground">{ft.name}</h3>
+
+              {ft.description && (
+                <p className="text-xs text-muted-foreground line-clamp-2">{ft.description}</p>
+              )}
+
+              {/* Completion bar */}
+              <div className="mt-auto space-y-1.5">
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-full rounded-full bg-azure-500 transition-all" style={{ width: `${pct}%` }} />
+                </div>
+                <p className="text-[11px] font-mono tabular-nums text-muted-foreground flex items-center justify-between">
+                  <span><span className="text-foreground/80">{completed}</span>/{total} verified</span>
+                  {pending > 0 && (
+                    <span className="text-[var(--warning)]"><span className="font-medium">{pending}</span> pending</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          )
+        })}
         {formTypes.length === 0 && (
           <p className="text-sm text-muted-foreground col-span-full">No form types yet.</p>
         )}

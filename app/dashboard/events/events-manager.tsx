@@ -2,15 +2,14 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { IconPlus, IconEdit, IconTrash } from "@tabler/icons-react"
+import { IconPlus, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { IconUsers } from "@tabler/icons-react"
-import { EntityCard } from "@/components/ui/entity-card"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { EventForm } from "@/components/forms/event-form"
 import { apiCall } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 
 interface Event {
   id: string
@@ -97,54 +96,55 @@ export function EventsManager({ initialEvents, canManage, canCreate }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Catalog grid — each event is a reference tile with the event code as a mono code chip on the left */}
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((event) => (
-          <EntityCard
+          <div
             key={event.id}
-            tone={event.isTrialEvent ? "amber" : "brand"}
-            kicker={
-              <>
-                {event.isTrialEvent ? "Trial Event" : "Event"}
-                {event.code && (
-                  <>
-                    <span className="text-border" aria-hidden>·</span>
-                    <span className="text-muted-foreground">{event.code}</span>
-                  </>
+            className="group relative flex items-start gap-3 rounded-[var(--radius)] border border-border/80 bg-card px-3 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-azure-soft"
+          >
+            <span
+              className={cn(
+                "inline-flex h-10 min-w-[44px] shrink-0 items-center justify-center rounded-md px-1 font-mono text-[11px] font-semibold tabular-nums tracking-wide",
+                event.isTrialEvent
+                  ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200/70"
+                  : "bg-azure-50 text-azure-700 ring-1 ring-azure-200/70",
+              )}
+              aria-hidden
+            >
+              {event.code ?? "—"}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-sm leading-tight truncate">{event.name}</p>
+                {event.isTrialEvent && (
+                  <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-amber-700">Trial</span>
                 )}
-              </>
-            }
-            title={event.name}
-            titleSize="sm"
-            metrics={
-              <>
-                <span>
-                  <span className="text-foreground/80">{event.minParticipants}–{event.maxParticipants}</span> members
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <IconUsers className="size-3 shrink-0" aria-hidden />
-                  <span className="text-foreground/80">{event._count.enrollments}</span> enrolled
-                </span>
-              </>
-            }
-            trailing={
-              canManage ? (
-                <>
-                  <Button variant="ghost" size="icon-sm" onClick={() => setEditing(event)} aria-label={`Edit ${event.name}`}>
-                    <IconEdit className="size-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(event.id)}
-                    aria-label={`Delete ${event.name}`}
-                  >
-                    <IconTrash className="size-3.5" />
-                  </Button>
-                </>
-              ) : undefined
-            }
-          />
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                <span className="text-foreground/80">{event.minParticipants}–{event.maxParticipants}</span> members
+                <span className="mx-1.5" aria-hidden>·</span>
+                <IconUsers className="inline size-3 -mt-px mr-1" aria-hidden />
+                <span className="text-foreground/80">{event._count.enrollments}</span> enrolled
+              </p>
+            </div>
+            {canManage && (
+              <div className="flex items-center gap-0.5 self-center opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button variant="ghost" size="icon-sm" onClick={() => setEditing(event)} aria-label={`Edit ${event.name}`}>
+                  <IconEdit className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDelete(event.id)}
+                  aria-label={`Delete ${event.name}`}
+                >
+                  <IconTrash className="size-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 

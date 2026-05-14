@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { EntityCard } from "@/components/ui/entity-card"
+import { cn } from "@/lib/utils"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -167,87 +167,106 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
               )}
             </div>
             {entries.map((entry) => (
-              <EntityCard
+              /* Approval row — checkbox left, member name + title middle, inline ✓/✗ buttons on the right. Distinct from the member ledger row above. */
+              <div
                 key={entry.id}
-                tone="warning"
-                title={entry.title}
-                titleSize="sm"
-                metrics={
-                  <>
-                    <span>
-                      <span className="text-foreground/80">{Number(entry.totalHours).toFixed(1)}h</span>
-                    </span>
-                    <span>{entry.category.name}</span>
-                    <span>{entry.memberSeason.user.firstName} {entry.memberSeason.user.lastName}</span>
-                    {entry.proofUrl && (
-                      <a href={entry.proofUrl} target="_blank" rel="noopener noreferrer" className="text-azure-700 underline-offset-4 hover:underline">
-                        View proof
-                      </a>
-                    )}
-                  </>
-                }
-                trailing={
-                  <>
-                    <Checkbox
-                      checked={selectedIds.has(entry.id)}
-                      onCheckedChange={() => toggleSelected(entry.id)}
-                      aria-label={`Select ${entry.title}`}
-                    />
-                    <Button
-                      size="icon-sm"
-                      variant="outline"
-                      className="text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_75%)] hover:bg-[var(--success-soft)]"
-                      onClick={() => review([entry.id], "approve")}
-                      disabled={loading}
-                      aria-label={`Approve ${entry.title}`}
-                    >
-                      <IconCheck className="size-4" />
-                    </Button>
-                    <Button
-                      size="icon-sm"
-                      variant="outline"
-                      className="text-destructive border-destructive/30 hover:bg-destructive/5"
-                      onClick={() => setRejectingIds([entry.id])}
-                      disabled={loading}
-                      aria-label={`Reject ${entry.title}`}
-                    >
-                      <IconX className="size-4" />
-                    </Button>
-                  </>
-                }
-                alwaysShowTrailing
-              >
-                {entry.description && (
-                  <p className="text-xs text-muted-foreground">{entry.description.slice(0, 120)}</p>
+                className={cn(
+                  "group relative flex items-start gap-3 rounded-[var(--radius)] border bg-card px-3 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all",
+                  selectedIds.has(entry.id) ? "border-azure-300/60 bg-azure-50/30" : "border-border/80",
                 )}
-              </EntityCard>
+              >
+                <Checkbox
+                  className="mt-1"
+                  checked={selectedIds.has(entry.id)}
+                  onCheckedChange={() => toggleSelected(entry.id)}
+                  aria-label={`Select ${entry.title}`}
+                />
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-azure-700">
+                    {entry.memberSeason.user.firstName} {entry.memberSeason.user.lastName}
+                  </p>
+                  <p className="mt-0.5 font-medium text-sm truncate">{entry.title}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <span className="font-mono tabular-nums text-foreground/80">{Number(entry.totalHours).toFixed(1)}h</span>
+                    <span className="mx-1.5" aria-hidden>·</span>
+                    {entry.category.name}
+                  </p>
+                  {entry.description && (
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{entry.description}</p>
+                  )}
+                  {entry.proofUrl && (
+                    <a
+                      href={entry.proofUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-block text-[11px] text-azure-700 underline-offset-4 hover:underline"
+                    >
+                      View proof →
+                    </a>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_75%)] hover:bg-[var(--success-soft)]"
+                    onClick={() => review([entry.id], "approve")}
+                    disabled={loading}
+                    aria-label={`Approve ${entry.title}`}
+                  >
+                    <IconCheck className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/5"
+                    onClick={() => setRejectingIds([entry.id])}
+                    disabled={loading}
+                    aria-label={`Reject ${entry.title}`}
+                  >
+                    <IconX className="size-4" />
+                  </Button>
+                </div>
+              </div>
             ))}
           </>
         )}
       </TabsContent>
 
       <TabsContent value="categories" className="mt-4 space-y-2">
+        {/* Category tile — big "required hours" target on the right (gauge-style), name + auto-approve indicator on the left. */}
         {categories.map((cat) => (
-          <EntityCard
+          <div
             key={cat.id}
-            tone={cat.requiresApproval ? "brand" : "success"}
-            title={cat.name}
-            titleSize="sm"
-            description={cat.description ?? undefined}
-            status={!cat.requiresApproval ? <Badge variant="success" className="text-[10px]">Auto-approved</Badge> : undefined}
-            metrics={
-              <>
-                {cat.requiredHours && (
-                  <span>
-                    Required: <span className="text-foreground/80">{Number(cat.requiredHours)}h</span>
-                  </span>
-                )}
-                <span>
-                  <span className="text-foreground/80">{cat._count.hourEntries}</span> entries
+            className="group relative flex items-center gap-4 rounded-[var(--radius)] border border-border/80 bg-card px-4 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)]"
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-sm truncate">{cat.name}</p>
+                {!cat.requiresApproval && <Badge variant="success" className="text-[10px]">Auto-approve</Badge>}
+              </div>
+              {cat.description && (
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{cat.description}</p>
+              )}
+              <p className="mt-1 text-[11px] font-mono tabular-nums text-muted-foreground">
+                <span className="text-foreground/80">{cat._count.hourEntries}</span> entries logged
+              </p>
+            </div>
+            {/* Required-hours gauge on the right */}
+            {cat.requiredHours ? (
+              <div className="flex flex-col items-end justify-center shrink-0 text-right">
+                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Target</span>
+                <span className="font-serif text-2xl leading-none tabular-nums text-foreground">
+                  {Number(cat.requiredHours)}
+                  <span className="text-sm text-muted-foreground">h</span>
                 </span>
-              </>
-            }
-          />
+              </div>
+            ) : (
+              <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground shrink-0">No target</span>
+            )}
+          </div>
         ))}
 
         {canManageCategories && (

@@ -4,8 +4,8 @@ import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { EntityCard, type EntityCardTone } from "@/components/ui/entity-card"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { cn } from "@/lib/utils"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
@@ -43,10 +43,10 @@ interface Props {
 
 const EMPTY_FORM = { categoryId: "", title: "", description: "", totalHours: "", proofUrl: "" }
 
-function toneForEntry(status: string): EntityCardTone {
-  if (status === "APPROVED") return "success"
-  if (status === "REJECTED") return "danger"
-  return "warning"
+const STATUS_STRIPE: Record<string, string> = {
+  APPROVED: "bg-[var(--success)]",
+  REJECTED: "bg-[var(--danger)]",
+  PENDING: "bg-[var(--warning)]",
 }
 
 export function MemberHoursView({ entries: initial, categories, canSubmit }: Props) {
@@ -182,53 +182,61 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
             {statusFilter === "ALL" ? "No hour entries yet." : `No ${statusFilter.toLowerCase()} entries.`}
           </p>
         ) : (
+          /* Ledger row — status stripe on the left, title middle, hours number prominent on the right */
           visibleEntries.map((entry) => (
-            <EntityCard
+            <div
               key={entry.id}
-              tone={toneForEntry(entry.status)}
-              title={entry.title}
-              titleSize="sm"
-              status={<StatusBadge status={entry.status} withDot />}
-              metrics={
-                <>
-                  <span>
-                    <span className="text-foreground/80">{Number(entry.totalHours).toFixed(1)}h</span>
-                  </span>
-                  <span>{entry.category.name}</span>
-                  <span>{formatDateCompact(new Date(entry.submittedAt))}</span>
-                </>
-              }
-              trailing={
-                entry.status === "PENDING" && canSubmit ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => openEdit(entry)}
-                      disabled={loading}
-                      aria-label={`Edit ${entry.title}`}
-                    >
-                      <IconPencil className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDelete(entry.id)}
-                      disabled={loading}
-                      aria-label={`Withdraw ${entry.title}`}
-                    >
-                      <IconTrash className="size-4" />
-                    </Button>
-                  </>
-                ) : undefined
-              }
-              alwaysShowTrailing
+              className="group relative flex items-center gap-3 overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card pl-4 pr-3 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-shadow"
             >
-              {entry.rejectionReason && (
-                <p className="text-xs text-[var(--danger)]">{entry.rejectionReason}</p>
+              <span aria-hidden className={cn("absolute inset-y-2 left-0 w-[3px] rounded-r-sm", STATUS_STRIPE[entry.status])} />
+
+              <div className="flex-1 min-w-0 pl-2">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-sm truncate">{entry.title}</p>
+                  <StatusBadge status={entry.status} withDot />
+                </div>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {entry.category.name}
+                  <span className="mx-1.5" aria-hidden>·</span>
+                  <span className="font-mono tabular-nums">{formatDateCompact(new Date(entry.submittedAt))}</span>
+                </p>
+                {entry.rejectionReason && (
+                  <p className="mt-1 text-xs text-[var(--danger)]">{entry.rejectionReason}</p>
+                )}
+              </div>
+
+              {/* Hours number — the right-side stat */}
+              <div className="flex items-baseline gap-0.5 shrink-0">
+                <span className="font-serif text-2xl leading-none tabular-nums text-foreground">
+                  {Number(entry.totalHours).toFixed(1)}
+                </span>
+                <span className="text-xs text-muted-foreground">h</span>
+              </div>
+
+              {entry.status === "PENDING" && canSubmit && (
+                <div className="flex items-center gap-0.5 shrink-0 ml-1">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => openEdit(entry)}
+                    disabled={loading}
+                    aria-label={`Edit ${entry.title}`}
+                  >
+                    <IconPencil className="size-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDelete(entry.id)}
+                    disabled={loading}
+                    aria-label={`Withdraw ${entry.title}`}
+                  >
+                    <IconTrash className="size-3.5" />
+                  </Button>
+                </div>
               )}
-            </EntityCard>
+            </div>
           ))
         )}
       </div>

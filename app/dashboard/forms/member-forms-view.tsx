@@ -4,8 +4,6 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { IconUpload } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { EntityCard, type EntityCardTone } from "@/components/ui/entity-card"
 import { StatusBadge } from "@/components/ui/status-badge"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
@@ -14,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatDateCompact } from "@/lib/format"
 import { apiCall } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 
 interface Submission {
   id: string
@@ -37,12 +36,11 @@ interface Props {
   formTypes: FormType[]
 }
 
-function toneFor(sub: Submission | undefined, isRequired: boolean): EntityCardTone {
-  if (!sub) return isRequired ? "brand" : "neutral"
-  if (sub.status === "VERIFIED") return "success"
-  if (sub.status === "REJECTED") return "danger"
-  if (sub.status === "SUBMITTED") return "warning"
-  return "neutral"
+function borderFor(sub: Submission | undefined): string {
+  if (sub?.status === "VERIFIED") return "border-[color-mix(in_oklch,var(--success),transparent_70%)]"
+  if (sub?.status === "REJECTED") return "border-[color-mix(in_oklch,var(--danger),transparent_70%)]"
+  if (sub?.status === "SUBMITTED") return "border-[color-mix(in_oklch,var(--warning),transparent_70%)]"
+  return "border-border/80"
 }
 
 export function MemberFormsView({ formTypes: initial }: Props) {
@@ -75,50 +73,53 @@ export function MemberFormsView({ formTypes: initial }: Props) {
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Member form tile — checklist tile with required/optional badge bottom corner + action ribbon */}
       {formTypes.map((ft) => {
         const sub = ft.submissions[0]
         const needsAction = !sub || sub.status === "REJECTED"
         return (
-          <EntityCard
+          <div
             key={ft.id}
-            tone={toneFor(sub, ft.isRequired)}
-            kicker={
-              <>
-                {ft.isRequired ? "Required" : "Optional"}
-                <span className="text-border" aria-hidden>·</span>
-                <span className="text-muted-foreground">{ft.category.replace(/_/g, " ").toLowerCase()}</span>
-              </>
-            }
-            status={sub ? <StatusBadge status={sub.status} withDot /> : (
-              ft.isRequired
-                ? <Badge variant="outline" className="text-[10px] text-muted-foreground">Required</Badge>
-                : <Badge variant="outline" className="text-[10px] text-muted-foreground">Optional</Badge>
+            className={cn(
+              "group relative flex flex-col gap-3 rounded-[var(--radius)] border bg-card px-4 py-4 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)]",
+              borderFor(sub),
             )}
-            title={ft.name}
-            titleSize="sm"
-            description={ft.description ?? undefined}
-            metrics={
-              <>
-                {ft.dueAt && <span>Due {formatDateCompact(new Date(ft.dueAt))}</span>}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                {ft.category.replace(/_/g, " ")}
+              </span>
+              {sub ? <StatusBadge status={sub.status} withDot /> : (
+                <span className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em]",
+                  ft.isRequired ? "bg-azure-50 text-azure-700" : "bg-muted text-muted-foreground",
+                )}>
+                  {ft.isRequired ? "Required" : "Optional"}
+                </span>
+              )}
+            </div>
+
+            <h3 className="font-medium text-base leading-tight text-foreground">{ft.name}</h3>
+
+            {ft.description && (
+              <p className="text-xs text-muted-foreground line-clamp-2">{ft.description}</p>
+            )}
+
+            <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+              <p className="text-[11px] font-mono tabular-nums text-muted-foreground">
+                {ft.dueAt ? <>Due <span className="text-foreground/80">{formatDateCompact(new Date(ft.dueAt))}</span></> : null}
                 {sub?.status === "SUBMITTED" && sub.submittedAt && (
-                  <span>Submitted {formatDateCompact(new Date(sub.submittedAt))}</span>
+                  <>Submitted <span className="text-foreground/80">{formatDateCompact(new Date(sub.submittedAt))}</span></>
                 )}
-              </>
-            }
-            trailing={
-              needsAction ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSubmitting(ft.id)}
-                >
+              </p>
+              {needsAction && (
+                <Button size="sm" variant="outline" onClick={() => setSubmitting(ft.id)}>
                   <IconUpload className="size-3.5 mr-1.5" />
                   {sub?.status === "REJECTED" ? "Resubmit" : "Submit"}
                 </Button>
-              ) : undefined
-            }
-            alwaysShowTrailing
-          />
+              )}
+            </div>
+          </div>
         )
       })}
 
