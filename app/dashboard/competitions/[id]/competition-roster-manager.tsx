@@ -8,7 +8,6 @@ import {
   IconPlus,
   IconTrash,
   IconWand,
-  IconX,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -26,89 +25,16 @@ import {
   type CompetitionParticipantFormValues,
 } from "@/components/dialogs/competition-participant-dialog"
 import { apiCall } from "@/lib/api-client"
-
-type RosterMemberRole = "MEMBER" | "CAPTAIN" | "ALTERNATE"
-type CompetitionEntryStatus = "PLANNED" | "CONFIRMED" | "FINALIZED" | "DROPPED"
-type SciolyDivision = "B" | "C" | "OTHER"
-type AssessmentSlot = {
-  id: string
-  eventId: string | null
-  label: string
-  room: string | null
-}
-
-type CompetitionRosterRecord = {
-  id: string
-  label: string
-  division: SciolyDivision | null
-  notes: string | null
-  seasonRosterId: string | null
-  assignments: Array<{
-    id: string
-    room: string | null
-    block: string | null
-    entryLabel: string | null
-    status: CompetitionEntryStatus
-    notes: string | null
-    event: { id: string; name: string; code: string | null }
-    schedule: {
-      id: string
-      timeSlot: number
-      slotLabel: string | null
-      room: string | null
-      startsAt: string | Date | null
-      endsAt: string | Date | null
-    } | null
-    slot: {
-      id: string
-      label: string
-      room: string | null
-      startsAt: string | Date | null
-      endsAt: string | Date | null
-    } | null
-    participants: Array<{
-      id: string
-      role: RosterMemberRole
-      seatNumber: number | null
-      memberSeason: {
-        id: string
-        user: {
-          id: string
-          firstName: string
-          lastName: string
-          email: string
-        }
-      }
-    }>
-  }>
-}
-
-interface EventOption {
-  id: string
-  name: string
-  code: string | null
-}
-
-interface SeasonRosterOption {
-  id: string
-  name: string
-}
-
-interface MemberOption {
-  id: string
-  user: {
-    firstName: string
-    lastName: string
-    email: string
-  }
-}
-
-interface ScheduleOption {
-  id: string
-  timeSlot: number
-  startsAt: string | null
-  event: { id: string; name: string; code: string | null }
-}
+import {
+  type AssignmentRecord,
+  type CompetitionRosterRecord,
+  type EventOption,
+  type MemberOption,
+  type SeasonRosterOption,
+  type ScheduleOption,
+  type AssessmentSlot,
+} from "@/features/competitions/lib/roster-types"
+import { AssignmentCard } from "@/features/competitions/components/assignment-card"
 
 interface Props {
   competitionId: string
@@ -120,23 +46,6 @@ interface Props {
   schedules: ScheduleOption[]
   canManage: boolean
 }
-
-const STATUS_BADGE: Record<CompetitionEntryStatus, string> = {
-  PLANNED: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
-  CONFIRMED: "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  FINALIZED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  DROPPED: "bg-zinc-100 text-zinc-500 line-through dark:bg-zinc-800 dark:text-zinc-500",
-}
-
-function memberLabel(member: CompetitionRosterRecord["assignments"][number]["participants"][number]["memberSeason"]) {
-  return `${member.user.firstName} ${member.user.lastName}`
-}
-
-function getInitials(name: string): string {
-  return name.split(" ").map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase()
-}
-
-type AssignmentRecord = CompetitionRosterRecord["assignments"][number]
 
 export function CompetitionRosterManager({
   competitionId,
@@ -713,74 +622,18 @@ export function CompetitionRosterManager({
                             }
 
                             return (
-                              <div
+                              <AssignmentCard
                                 key={schedule.id}
-                                className="group/card relative w-52 space-y-2 rounded-xl border bg-card p-3"
-                              >
-                                <div className="flex items-start justify-between gap-1">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-semibold leading-tight">{eventName}</p>
-                                    <div className="mt-1 flex flex-wrap items-center gap-1">
-                                      <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide ${STATUS_BADGE[assignment.status]}`}>
-                                        {assignment.status}
-                                      </span>
-                                      {assignment.room && (
-                                        <span className="text-[10px] text-muted-foreground">Room {assignment.room}</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {canManage && (
-                                    <div className="-mr-1 -mt-1 flex shrink-0 items-center opacity-0 transition-opacity group-hover/card:opacity-100">
-                                      <Button variant="ghost" size="icon-xs" onClick={() => openEditAssignment(selectedRoster, assignment)}>
-                                        <IconEdit className="size-3" />
-                                      </Button>
-                                      <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-destructive" onClick={() => deleteAssignment(selectedRoster, assignment.id)}>
-                                        <IconTrash className="size-3" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="space-y-1.5">
-                                  {assignment.participants.map((participant) => (
-                                    <div
-                                      key={participant.id}
-                                      className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2 py-1"
-                                    >
-                                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
-                                        {getInitials(memberLabel(participant.memberSeason))}
-                                      </div>
-                                      <span className="flex-1 truncate text-xs font-medium">{memberLabel(participant.memberSeason)}</span>
-                                      {participant.role !== "MEMBER" && (
-                                        <span className="shrink-0 text-[9px] uppercase text-muted-foreground">{participant.role[0]}</span>
-                                      )}
-                                      {canManage && (
-                                        <button
-                                          type="button"
-                                          onClick={() => removeParticipant(selectedRoster.id, assignment.id, participant.id)}
-                                          className="shrink-0 text-muted-foreground hover:text-foreground"
-                                        >
-                                          <IconX className="size-3" />
-                                        </button>
-                                      )}
-                                    </div>
-                                  ))}
-
-                                  {canManage && (
-                                    <button
-                                      type="button"
-                                      onClick={() => openParticipantDialog(selectedRoster, assignment.id)}
-                                      className="flex h-7 w-full items-center justify-center rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                                    >
-                                      <IconPlus className="size-3" />
-                                    </button>
-                                  )}
-
-                                  {!canManage && assignment.participants.length === 0 && (
-                                    <p className="text-[10px] italic text-muted-foreground">No members assigned</p>
-                                  )}
-                                </div>
-                              </div>
+                                assignment={assignment}
+                                eventName={eventName}
+                                canManage={canManage}
+                                onEdit={() => openEditAssignment(selectedRoster, assignment)}
+                                onDelete={() => deleteAssignment(selectedRoster, assignment.id)}
+                                onAddParticipant={() => openParticipantDialog(selectedRoster, assignment.id)}
+                                onRemoveParticipant={(participantId) =>
+                                  removeParticipant(selectedRoster.id, assignment.id, participantId)
+                                }
+                              />
                             )
                           })}
                         </div>
@@ -793,63 +646,19 @@ export function CompetitionRosterManager({
                         <div className="pt-2 font-mono text-sm font-semibold text-muted-foreground">No time</div>
                         <div className="flex flex-wrap gap-2">
                           {unscheduledAssignments.map((assignment) => (
-                            <div
+                            <AssignmentCard
                               key={assignment.id}
-                              className="group/card relative w-52 space-y-2 rounded-xl border bg-card p-3"
-                            >
-                              <div className="flex items-start justify-between gap-1">
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-semibold leading-tight">{assignment.event.name}</p>
-                                  <div className="mt-1 flex flex-wrap items-center gap-1">
-                                    <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide ${STATUS_BADGE[assignment.status]}`}>
-                                      {assignment.status}
-                                    </span>
-                                  </div>
-                                </div>
-                                {canManage && (
-                                  <div className="-mr-1 -mt-1 flex shrink-0 items-center opacity-0 transition-opacity group-hover/card:opacity-100">
-                                    <Button variant="ghost" size="icon-xs" onClick={() => openEditAssignment(selectedRoster, assignment)}>
-                                      <IconEdit className="size-3" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon-xs" className="text-muted-foreground hover:text-destructive" onClick={() => deleteAssignment(selectedRoster, assignment.id)}>
-                                      <IconTrash className="size-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="space-y-1.5">
-                                {assignment.participants.map((participant) => (
-                                  <div
-                                    key={participant.id}
-                                    className="flex items-center gap-1.5 rounded-md bg-muted/60 px-2 py-1"
-                                  >
-                                    <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
-                                      {getInitials(memberLabel(participant.memberSeason))}
-                                    </div>
-                                    <span className="flex-1 truncate text-xs font-medium">{memberLabel(participant.memberSeason)}</span>
-                                    {canManage && (
-                                      <button
-                                        type="button"
-                                        onClick={() => removeParticipant(selectedRoster.id, assignment.id, participant.id)}
-                                        className="shrink-0 text-muted-foreground hover:text-foreground"
-                                      >
-                                        <IconX className="size-3" />
-                                      </button>
-                                    )}
-                                  </div>
-                                ))}
-                                {canManage && (
-                                  <button
-                                    type="button"
-                                    onClick={() => openParticipantDialog(selectedRoster, assignment.id)}
-                                    className="flex h-7 w-full items-center justify-center rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                                  >
-                                    <IconPlus className="size-3" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
+                              assignment={assignment}
+                              eventName={assignment.event.name}
+                              canManage={canManage}
+                              onEdit={() => openEditAssignment(selectedRoster, assignment)}
+                              onDelete={() => deleteAssignment(selectedRoster, assignment.id)}
+                              onAddParticipant={() => openParticipantDialog(selectedRoster, assignment.id)}
+                              onRemoveParticipant={(participantId) =>
+                                removeParticipant(selectedRoster.id, assignment.id, participantId)
+                              }
+                              showRoleHint={false}
+                            />
                           ))}
                         </div>
                       </div>
