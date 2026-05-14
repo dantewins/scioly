@@ -133,13 +133,23 @@ export function PracticeTestCard({ test, canManage, onEdit, onDelete, onSetAnswe
       </div>
 
       {canManage && (
-        <div className="flex items-center gap-1 self-end sm:self-center shrink-0 border-t border-border/40 pt-3 sm:border-0 sm:pt-0 w-full sm:w-auto justify-end">
-          <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => onSetAnswerKey(test)}>
-            <IconKey size={12} />
-            <span className="hidden sm:inline">{test.answerKey ? "Update key" : "Set key"}</span>
-            <span className="sm:hidden">{test.answerKey ? "Update" : "Set"}</span>
+        <div className="flex items-center gap-0.5 self-center shrink-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onSetAnswerKey(test)}
+            aria-label={test.answerKey ? `Update answer key for ${test.title}` : `Set answer key for ${test.title}`}
+            title={test.answerKey ? "Update answer key" : "Set answer key"}
+          >
+            <IconKey className="size-3.5" />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => onEdit(test)} aria-label={`Edit ${test.title}`}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onEdit(test)}
+            aria-label={`Edit ${test.title}`}
+            title="Edit"
+          >
             <IconPencil className="size-3.5" />
           </Button>
           <Button
@@ -148,6 +158,7 @@ export function PracticeTestCard({ test, canManage, onEdit, onDelete, onSetAnswe
             className="text-muted-foreground hover:text-destructive"
             onClick={() => onDelete(test.id)}
             aria-label={`Delete ${test.title}`}
+            title="Delete"
           >
             <IconTrash className="size-3.5" />
           </Button>
