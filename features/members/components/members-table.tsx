@@ -127,7 +127,53 @@ export function MembersTable({ members }: Props) {
         {filtered.length} of {members.length} {members.length === 1 ? "member" : "members"}
       </p>
 
-      <TableShell>
+      {/* Mobile: card list */}
+      <ul className="space-y-2 md:hidden">
+        {filtered.length === 0 ? (
+          <li className="py-8 text-center text-sm text-muted-foreground">
+            No members match the current filters.
+          </li>
+        ) : (
+          filtered.map((member) => (
+            <li
+              key={member.id}
+              className="rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)]"
+            >
+              <Link
+                href={`/dashboard/members/${member.user.id}`}
+                className="block px-3 py-3 transition-colors hover:bg-azure-50/40"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-serif text-base leading-tight tracking-tight">
+                      {member.user.firstName} {member.user.lastName}
+                    </p>
+                    <p className="text-[11px] font-mono text-muted-foreground mt-0.5 truncate">{member.user.email}</p>
+                  </div>
+                  <StatusBadge status={member.membershipStatus} withDot />
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <span className="font-mono tabular-nums">
+                    Grade {member.user.gradeLevel ?? "—"}
+                  </span>
+                  {member.roles.length > 0 && (
+                    <span className="flex flex-wrap gap-1">
+                      {member.roles.map((role) => (
+                        <Badge key={role.clubRole.id} variant="tonal" className="text-[10px] font-normal">
+                          {role.clubRole.name}
+                        </Badge>
+                      ))}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            </li>
+          ))
+        )}
+      </ul>
+
+      {/* Desktop: table */}
+      <TableShell className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>

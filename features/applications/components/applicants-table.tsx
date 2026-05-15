@@ -271,7 +271,86 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)]">
+      {/* Mobile: card list */}
+      <ul className="space-y-2 md:hidden">
+        {applicants.length === 0 ? (
+          <li className="py-8 text-center text-sm text-muted-foreground">No applicants.</li>
+        ) : (
+          applicants.map((a) => (
+            <li
+              key={a.id}
+              className={
+                selectedIds.has(a.id)
+                  ? "rounded-[var(--radius)] border border-azure-300/60 bg-azure-50/30 px-3 py-3"
+                  : "rounded-[var(--radius)] border border-border/80 bg-card px-3 py-3"
+              }
+            >
+              <div className="flex items-start gap-3">
+                {canManage && (
+                  <Checkbox
+                    checked={selectedIds.has(a.id)}
+                    onCheckedChange={() => toggleOne(a.id)}
+                    className="mt-1 shrink-0"
+                    aria-label={`Select ${a.user.firstName}`}
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{a.user.firstName} {a.user.lastName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{a.user.email}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground font-mono tabular-nums">
+                    <span>Grade {a.user.gradeLevel ?? "—"}</span>
+                    {a.applicationSubmittedAt && (
+                      <span>Applied {formatDateOnly(new Date(a.applicationSubmittedAt))}</span>
+                    )}
+                  </div>
+                  {a.eventChoices.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {a.eventChoices.slice(0, 4).map((e) => (
+                        <Badge key={e.event.id} variant="outline" className="text-[10px] font-normal">
+                          {e.event.code ?? e.event.name}
+                        </Badge>
+                      ))}
+                      {a.eventChoices.length > 4 && (
+                        <Badge variant="outline" className="text-[10px] font-normal">
+                          +{a.eventChoices.length - 4}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {canManage && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    className="text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_75%)] hover:bg-[var(--success-soft)]"
+                    onClick={() => handleApprove(a.id)}
+                    disabled={loading}
+                  >
+                    <IconCheck className="size-3.5 mr-1" />Approve
+                  </Button>
+                  <Button size="xs" variant="outline" onClick={() => handleWaitlist(a.id)} disabled={loading}>
+                    <IconClock className="size-3.5 mr-1" />Waitlist
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    className="text-destructive border-destructive/30 hover:bg-destructive/5"
+                    onClick={() => { setDenyTarget({ id: a.id }); setDenyReason("") }}
+                    disabled={loading}
+                  >
+                    <IconX className="size-3.5 mr-1" />Deny
+                  </Button>
+                </div>
+              )}
+            </li>
+          ))
+        )}
+      </ul>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)]">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
