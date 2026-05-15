@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
+import { sendFormReviewedEmail } from "@/lib/email"
 
 export const dynamic = "force-dynamic"
 
@@ -49,6 +50,13 @@ export const PATCH = withPermission(
 
     const sub = await prisma.formSubmission.findFirst({
       where: { id: submissionId, memberSeason: { season: { clubId: user.clubId } } },
+      select: {
+        id: true,
+        formType: { select: { name: true } },
+        memberSeason: {
+          select: { user: { select: { email: true, firstName: true } } },
+        },
+      },
     })
     if (!sub) return err("Submission not found.", 404)
 
@@ -59,6 +67,19 @@ export const PATCH = withPermission(
           ? { status: "VERIFIED", verifiedAt: new Date(), verifiedById: user.id, rejectionReason: null }
           : { status: "REJECTED", rejectionReason: rejectionReason ?? "No reason." },
     })
+
+    try {
+      await sendFormReviewedEmail(
+        sub.memberSeason.user.email,
+        sub.memberSeason.user.firstName,
+        sub.formType.name,
+        action === "verify" ? "VERIFIED" : "REJECTED",
+        action === "reject" ? rejectionReason ?? null : null,
+      )
+    } catch (e) {
+      console.error(`[forms:${action}] Email send failed:`, e)
+    }
+
     return ok(updated)
   },
 )

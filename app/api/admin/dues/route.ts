@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
+import { sendInvoiceIssuedEmail } from "@/lib/email"
 
 export const dynamic = "force-dynamic"
 
@@ -52,6 +53,10 @@ export const POST = withAnyPermission(["create_finances", "edit_finances"], asyn
   // Verify memberSeason belongs to this club
   const ms = await prisma.memberSeason.findFirst({
     where: { id: parsed.data.memberSeasonId, season: { clubId: user.clubId } },
+    select: {
+      id: true,
+      user: { select: { email: true, firstName: true } },
+    },
   })
   if (!ms) return err("Member season not found.", 404)
 
@@ -62,5 +67,18 @@ export const POST = withAnyPermission(["create_finances", "edit_finances"], asyn
       status: "OPEN",
     },
   })
+
+  try {
+    await sendInvoiceIssuedEmail(
+      ms.user.email,
+      ms.user.firstName,
+      invoice.title,
+      invoice.amountCents,
+      invoice.dueAt,
+    )
+  } catch (e) {
+    console.error("[dues:create] Email send failed:", e)
+  }
+
   return ok(invoice, 201)
 })

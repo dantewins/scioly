@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
+import { sendHoursReviewedEmail } from "@/lib/email"
 
 export const dynamic = "force-dynamic"
 
@@ -55,7 +56,14 @@ export const PATCH = withPermission("edit_hours", async (req, _ctx, user) => {
 
   const entries = await prisma.hourEntry.findMany({
     where: { id: { in: entryIds }, memberSeason: { season: { clubId: user.clubId } } },
-    select: { id: true },
+    select: {
+      id: true,
+      title: true,
+      totalHours: true,
+      memberSeason: {
+        select: { user: { select: { email: true, firstName: true } } },
+      },
+    },
   })
   if (entries.length !== entryIds.length) {
     return err("One or more hour entries not found.", 404)
@@ -68,5 +76,23 @@ export const PATCH = withPermission("edit_hours", async (req, _ctx, user) => {
         ? { status: "APPROVED", approvedAt: new Date(), approvedById: user.id, rejectionReason: null }
         : { status: "REJECTED", rejectionReason: rejectionReason ?? "No reason provided." },
   })
+
+  // Best-effort notification per entry; mutation already succeeded.
+  const status = action === "approve" ? "APPROVED" : "REJECTED"
+  await Promise.allSettled(
+    entries.map((entry) =>
+      sendHoursReviewedEmail(
+        entry.memberSeason.user.email,
+        entry.memberSeason.user.firstName,
+        entry.title,
+        Number(entry.totalHours),
+        status,
+        action === "reject" ? rejectionReason ?? null : null,
+      ).catch((e) => {
+        console.error(`[hours:${action}] Email send failed for ${entry.id}:`, e)
+      }),
+    ),
+  )
+
   return ok({ count: result.count })
 })
