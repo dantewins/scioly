@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { DialogFooter } from "@/components/ui/dialog"
+import { ResponsiveDialogFooter } from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -155,10 +155,10 @@ export function ClubEventForm({
           rows={2}
         />
       </div>
-      <DialogFooter>
+      <ResponsiveDialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={loading}>{submitLabel}</Button>
-      </DialogFooter>
+      </ResponsiveDialogFooter>
     </form>
   )
 }

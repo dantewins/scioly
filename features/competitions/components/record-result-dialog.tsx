@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle } from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -75,11 +75,11 @@ export function RecordResultDialog({
   )
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Record result — {eventName}</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Record result — {eventName}</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="placement">Placement</Label>
@@ -133,7 +133,7 @@ export function RecordResultDialog({
             />
           </div>
         </div>
-        <DialogFooter className="flex flex-wrap-reverse gap-2 sm:flex-nowrap">
+        <ResponsiveDialogFooter className="flex flex-wrap-reverse gap-2 sm:flex-nowrap">
           {hasRecord && onClear && (
             <Button
               variant="ghost"
@@ -150,8 +150,8 @@ export function RecordResultDialog({
           <Button onClick={handleSubmit} disabled={loading}>
             {loading ? "Saving…" : hasRecord ? "Update" : "Record"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

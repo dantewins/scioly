@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { DialogFooter } from "@/components/ui/dialog"
+import { ResponsiveDialogFooter } from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -61,10 +61,10 @@ export function HourCategoryForm({ onSubmit, loading, onCancel }: HourCategoryFo
         <Switch id="req-approval" checked={requiresApproval} onCheckedChange={setRequiresApproval} />
         <Label htmlFor="req-approval">Requires admin approval</Label>
       </div>
-      <DialogFooter>
+      <ResponsiveDialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={loading || !name}>{loading ? "Creating..." : "Create"}</Button>
-      </DialogFooter>
+      </ResponsiveDialogFooter>
     </form>
   )
 }

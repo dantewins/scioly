@@ -8,8 +8,8 @@ import { apiCall } from "@/lib/api-client"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -127,9 +127,9 @@ export function AdminFormsView({ formTypes: initial, canCreate }: Props) {
         )}
       </div>
 
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Form Type</DialogTitle></DialogHeader>
+      <ResponsiveDialog open={showCreate} onOpenChange={setShowCreate}>
+        <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader><ResponsiveDialogTitle>New Form Type</ResponsiveDialogTitle></ResponsiveDialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Name</Label>
@@ -163,12 +163,12 @@ export function AdminFormsView({ formTypes: initial, canCreate }: Props) {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
             <Button onClick={handleCreate} disabled={loading || !form.name}>{loading ? "Creating..." : "Create"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   )
 }

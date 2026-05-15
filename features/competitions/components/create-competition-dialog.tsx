@@ -6,8 +6,8 @@ import { toast } from "sonner"
 import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { CompetitionForm } from "@/features/competitions/components/competition-form"
 import { apiCall } from "@/lib/api-client"
 
@@ -43,16 +43,16 @@ export function CreateCompetitionDialog() {
         <IconPlus className="mr-1.5 size-[15px]" />
         New Competition
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Competition</DialogTitle></DialogHeader>
+      <ResponsiveDialog open={open} onOpenChange={setOpen}>
+        <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader><ResponsiveDialogTitle>New Competition</ResponsiveDialogTitle></ResponsiveDialogHeader>
           <CompetitionForm
             onSubmit={handleCreate}
             loading={loading}
             onCancel={() => setOpen(false)}
           />
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   )
 }

@@ -6,8 +6,8 @@ import { toast } from "sonner"
 import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -48,9 +48,9 @@ export function AnnouncementComposer() {
         <IconPlus className="mr-1.5 size-[15px]" />
         New
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>New Announcement</DialogTitle></DialogHeader>
+      <ResponsiveDialog open={open} onOpenChange={setOpen}>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader><ResponsiveDialogTitle>New Announcement</ResponsiveDialogTitle></ResponsiveDialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Title</Label>
@@ -65,12 +65,12 @@ export function AnnouncementComposer() {
               <Label htmlFor="pinned">Pin to top</Label>
             </div>
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={loading}>{loading ? "Posting…" : "Post"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { DialogFooter } from "@/components/ui/dialog"
+import { ResponsiveDialogFooter } from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -66,10 +66,10 @@ export function PaymentForm({ outstandingDollars, onSubmit, loading, onCancel }:
           placeholder="Check 1042 or Venmo transaction ID"
         />
       </div>
-      <DialogFooter>
+      <ResponsiveDialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={loading}>{loading ? "Recording..." : "Record Payment"}</Button>
-      </DialogFooter>
+      </ResponsiveDialogFooter>
     </form>
   )
 }

@@ -2,12 +2,12 @@
 
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -29,11 +29,11 @@ export function DenyApplicationDialog({
   onCancel,
 }: DenyApplicationDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel() }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Deny Application</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={(o) => { if (!o) onCancel() }}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Deny Application</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <div className="space-y-1.5">
           <Label>Reason (optional)</Label>
           <Input
@@ -42,7 +42,7 @@ export function DenyApplicationDialog({
             placeholder="Reason for denial"
           />
         </div>
-        <DialogFooter>
+        <ResponsiveDialogFooter>
           <Button variant="outline" onClick={onCancel}>Cancel</Button>
           <Button
             variant="destructive"
@@ -51,8 +51,8 @@ export function DenyApplicationDialog({
           >
             Deny Application
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

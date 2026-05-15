@@ -5,8 +5,8 @@ import { toast } from "sonner"
 import { IconPlus, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { EventForm } from "@/features/events/components/event-form"
 import { apiCall } from "@/lib/api-client"
@@ -167,24 +167,24 @@ export function EventsManager({ initialEvents, canManage, canCreate }: Props) {
         </Button>
       )}
 
-      {/* Create Dialog */}
-      <Dialog open={creating} onOpenChange={setCreating}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Event</DialogTitle></DialogHeader>
+      {/* Create ResponsiveDialog */}
+      <ResponsiveDialog open={creating} onOpenChange={setCreating}>
+        <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader><ResponsiveDialogTitle>New Event</ResponsiveDialogTitle></ResponsiveDialogHeader>
           <EventForm
             onSubmit={handleCreate}
             loading={loading}
             onCancel={() => setCreating(false)}
             submitLabel="Create"
           />
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
-      {/* Edit Dialog */}
+      {/* Edit ResponsiveDialog */}
       {editing && (
-        <Dialog open onOpenChange={() => setEditing(null)}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit Event</DialogTitle></DialogHeader>
+        <ResponsiveDialog open onOpenChange={() => setEditing(null)}>
+          <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto">
+            <ResponsiveDialogHeader><ResponsiveDialogTitle>Edit Event</ResponsiveDialogTitle></ResponsiveDialogHeader>
             <EventForm
               defaultValues={{
                 name: editing.name,
@@ -198,8 +198,8 @@ export function EventsManager({ initialEvents, canManage, canCreate }: Props) {
               onCancel={() => setEditing(null)}
               submitLabel="Save"
             />
-          </DialogContent>
-        </Dialog>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
       )}
 
       <ConfirmDialog

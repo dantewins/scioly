@@ -6,11 +6,11 @@ import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { apiCall } from "@/lib/api-client"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ClubEventCard, type ClubEventCardData } from "@/features/club-events/components/club-event-card"
 import { ClubEventForm } from "@/features/club-events/components/club-event-form"
@@ -274,11 +274,11 @@ export function ClubEventsManager({
       )}
 
       {/* Create dialog */}
-      <Dialog open={showCreate} onOpenChange={(open) => !open && closeDialogs()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>New Event</DialogTitle>
-          </DialogHeader>
+      <ResponsiveDialog open={showCreate} onOpenChange={(open) => !open && closeDialogs()}>
+        <ResponsiveDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>New Event</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
           <ClubEventForm
             categories={categories}
             defaultValues={EMPTY_FORM}
@@ -287,15 +287,15 @@ export function ClubEventsManager({
             onCancel={closeDialogs}
             submitLabel="Create"
           />
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       {/* Edit dialog */}
-      <Dialog open={!!editingEvent} onOpenChange={(open) => !open && closeDialogs()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Event</DialogTitle>
-          </DialogHeader>
+      <ResponsiveDialog open={!!editingEvent} onOpenChange={(open) => !open && closeDialogs()}>
+        <ResponsiveDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>Edit Event</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
           {editingEvent && (
             <ClubEventForm
               categories={categories}
@@ -306,8 +306,8 @@ export function ClubEventsManager({
               submitLabel="Save"
             />
           )}
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       <ConfirmDialog
         open={deletingEvent !== null}

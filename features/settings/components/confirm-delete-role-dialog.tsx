@@ -2,12 +2,12 @@
 
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import { IconTrash } from "@tabler/icons-react"
 
 interface Role {
@@ -32,21 +32,21 @@ export function ConfirmDeleteRoleDialog({
   onCancel,
 }: ConfirmDeleteRoleDialogProps) {
   return (
-    <Dialog
+    <ResponsiveDialog
       open={role !== null}
       onOpenChange={(open) => {
         if (!open) onCancel()
       }}
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete &ldquo;{role?.name}&rdquo;?</DialogTitle>
-        </DialogHeader>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Delete &ldquo;{role?.name}&rdquo;?</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <p className="text-sm text-muted-foreground">
           Members with this role will lose its permissions. This action cannot
           be undone.
         </p>
-        <DialogFooter>
+        <ResponsiveDialogFooter>
           <Button
             variant="outline"
             onClick={onCancel}
@@ -62,8 +62,8 @@ export function ConfirmDeleteRoleDialog({
             <IconTrash size={14} className="mr-1.5" />
             {deleting ? "Deleting\u2026" : "Delete Role"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

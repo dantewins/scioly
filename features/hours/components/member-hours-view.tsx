@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { cn } from "@/lib/utils"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -251,9 +251,9 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
         )}
       </div>
 
-      <Dialog open={showSubmit} onOpenChange={closeDialog}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{isEditing ? "Edit Hours" : "Log Hours"}</DialogTitle></DialogHeader>
+      <ResponsiveDialog open={showSubmit} onOpenChange={closeDialog}>
+        <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader><ResponsiveDialogTitle>{isEditing ? "Edit Hours" : "Log Hours"}</ResponsiveDialogTitle></ResponsiveDialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Category</Label>
@@ -286,14 +286,14 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
               </div>
             )}
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button variant="outline" onClick={() => closeDialog(false)}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={loading}>
               {loading ? (isEditing ? "Saving..." : "Submitting...") : (isEditing ? "Save" : "Submit")}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       <ConfirmDialog
         open={withdrawTarget !== null}

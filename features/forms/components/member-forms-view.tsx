@@ -6,8 +6,8 @@ import { IconUpload } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/status-badge"
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { Label } from "@/components/ui/label"
 import { FileUpload, type UploadedAsset } from "@/components/ui/file-upload"
 import { formatDateCompact } from "@/lib/format"
@@ -151,11 +151,11 @@ export function MemberFormsView({ formTypes: initial, seasonId }: Props) {
         )
       })}
 
-      <Dialog open={!!submitting} onOpenChange={(o) => { if (!o) resetDialog() }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Submit Form</DialogTitle>
-          </DialogHeader>
+      <ResponsiveDialog open={!!submitting} onOpenChange={(o) => { if (!o) resetDialog() }}>
+        <ResponsiveDialogContent>
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>Submit Form</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
           <div className="space-y-4">
             {requiresUpload ? (
               <div className="space-y-1.5">
@@ -176,7 +176,7 @@ export function MemberFormsView({ formTypes: initial, seasonId }: Props) {
               </p>
             )}
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button variant="outline" onClick={resetDialog}>Cancel</Button>
             <Button
               onClick={() => submitting && handleSubmit(submitting)}
@@ -184,9 +184,9 @@ export function MemberFormsView({ formTypes: initial, seasonId }: Props) {
             >
               {loading ? "Submitting…" : "Submit"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
     </div>
   )
 }

@@ -6,8 +6,8 @@ import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { apiCall } from "@/lib/api-client"
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader, ResponsiveDialogTitle,
+} from "@/components/ui/responsive-dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { InvoicesTable, type InvoiceRow } from "@/features/finances/components/invoices-table"
 import { InvoiceForm } from "@/features/finances/components/invoice-form"
@@ -146,33 +146,33 @@ export function FinancesView({ invoices: initial, members, canCreate, canEdit }:
         <p className="text-sm text-muted-foreground">No invoices yet.</p>
       )}
 
-      {/* Create Invoice Dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Invoice</DialogTitle></DialogHeader>
+      {/* Create Invoice ResponsiveDialog */}
+      <ResponsiveDialog open={showCreate} onOpenChange={setShowCreate}>
+        <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader><ResponsiveDialogTitle>New Invoice</ResponsiveDialogTitle></ResponsiveDialogHeader>
           <InvoiceForm
             members={members}
             onSubmit={handleCreateInvoice}
             loading={loading}
             onCancel={() => setShowCreate(false)}
           />
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
-      {/* Record Payment Dialog */}
-      <Dialog open={!!recordingFor} onOpenChange={(o) => { if (!o) setRecordingFor(null) }}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Record Payment — {recordingFor?.title}</DialogTitle>
-          </DialogHeader>
+      {/* Record Payment ResponsiveDialog */}
+      <ResponsiveDialog open={!!recordingFor} onOpenChange={(o) => { if (!o) setRecordingFor(null) }}>
+        <ResponsiveDialogContent className="max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>Record Payment — {recordingFor?.title}</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
           <PaymentForm
             outstandingDollars={recordingFor ? ((recordingFor.amountCents - recordingFor.amountPaidCents) / 100).toFixed(2) : undefined}
             onSubmit={handleRecordPayment}
             loading={loading}
             onCancel={() => setRecordingFor(null)}
           />
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       <ConfirmDialog
         open={voidingId !== null}

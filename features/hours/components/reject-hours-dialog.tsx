@@ -2,12 +2,12 @@
 
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -31,11 +31,11 @@ export function RejectHoursDialog({
   const trimmedReason = reason.trim()
   const isEmpty = trimmedReason.length === 0
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onCancel() }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Reject Hours</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog open={open} onOpenChange={(o) => { if (!o) onCancel() }}>
+      <ResponsiveDialogContent>
+        <ResponsiveDialogHeader>
+          <ResponsiveDialogTitle>Reject Hours</ResponsiveDialogTitle>
+        </ResponsiveDialogHeader>
         <div className="space-y-1.5">
           <Label htmlFor="reject-hours-reason">Reason</Label>
           <Input
@@ -57,7 +57,7 @@ export function RejectHoursDialog({
             {isEmpty ? "Reason is required" : "This will be shared with the member."}
           </p>
         </div>
-        <DialogFooter>
+        <ResponsiveDialogFooter>
           <Button variant="outline" onClick={onCancel}>Cancel</Button>
           <Button
             variant="destructive"
@@ -66,8 +66,8 @@ export function RejectHoursDialog({
           >
             Reject
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveDialogFooter>
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
   )
 }

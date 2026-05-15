@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { DialogFooter } from "@/components/ui/dialog"
+import { ResponsiveDialogFooter } from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -88,10 +88,10 @@ export function EventForm({
         <Switch id="trial" checked={isTrialEvent} onCheckedChange={setIsTrialEvent} />
         <Label htmlFor="trial">Trial event</Label>
       </div>
-      <DialogFooter>
+      <ResponsiveDialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={loading || !name.trim()}>{submitLabel}</Button>
-      </DialogFooter>
+      </ResponsiveDialogFooter>
     </form>
   )
 }

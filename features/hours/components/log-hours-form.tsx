@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { DialogFooter } from "@/components/ui/dialog"
+import { ResponsiveDialogFooter } from "@/components/ui/responsive-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -87,10 +87,10 @@ export function LogHoursForm({ categories, onSubmit, loading, onCancel }: LogHou
           placeholder="https://drive.google.com/file/d/..."
         />
       </div>
-      <DialogFooter>
+      <ResponsiveDialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
         <Button type="submit" disabled={loading}>{loading ? "Submitting..." : "Submit"}</Button>
-      </DialogFooter>
+      </ResponsiveDialogFooter>
     </form>
   )
 }

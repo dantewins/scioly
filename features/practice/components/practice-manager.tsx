@@ -6,12 +6,12 @@ import { IconPlus, IconCircleCheck } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { apiCall } from "@/lib/api-client"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+  ResponsiveDialog,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogFooter,
+} from "@/components/ui/responsive-dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { PracticeTestCard, type PracticeTestCardData } from "@/features/practice/components/practice-test-card"
@@ -258,9 +258,9 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
       ))}
 
       {/* Create dialog */}
-      <Dialog open={showCreate} onOpenChange={(open) => !open && closeDialogs()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Assessment</DialogTitle></DialogHeader>
+      <ResponsiveDialog open={showCreate} onOpenChange={(open) => !open && closeDialogs()}>
+        <ResponsiveDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader><ResponsiveDialogTitle>New Assessment</ResponsiveDialogTitle></ResponsiveDialogHeader>
           <PracticeTestForm
             events={events}
             onSubmit={handleCreate}
@@ -268,13 +268,13 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
             onCancel={closeDialogs}
             submitLabel="Create"
           />
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       {/* Edit dialog */}
-      <Dialog open={!!editingTest} onOpenChange={(open) => !open && closeDialogs()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Assessment</DialogTitle></DialogHeader>
+      <ResponsiveDialog open={!!editingTest} onOpenChange={(open) => !open && closeDialogs()}>
+        <ResponsiveDialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader><ResponsiveDialogTitle>Edit Assessment</ResponsiveDialogTitle></ResponsiveDialogHeader>
           {editingTest && (
             <PracticeTestForm
               events={events}
@@ -303,15 +303,15 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
               submitLabel="Save"
             />
           )}
-        </DialogContent>
-      </Dialog>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       {/* Answer key dialog */}
-      <Dialog open={!!answerKeyTest} onOpenChange={(open) => !open && closeDialogs()}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Answer Key — {answerKeyTest?.title}</DialogTitle>
-          </DialogHeader>
+      <ResponsiveDialog open={!!answerKeyTest} onOpenChange={(open) => !open && closeDialogs()}>
+        <ResponsiveDialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <ResponsiveDialogHeader>
+            <ResponsiveDialogTitle>Answer Key — {answerKeyTest?.title}</ResponsiveDialogTitle>
+          </ResponsiveDialogHeader>
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
               Enter one answer per line. The order must match the question order.
@@ -327,15 +327,15 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
               {answerKeyText.split("\n").filter((l) => l.trim()).length} answers entered
             </p>
           </div>
-          <DialogFooter>
+          <ResponsiveDialogFooter>
             <Button variant="outline" onClick={closeDialogs}>Cancel</Button>
             <Button onClick={handleSaveAnswerKey} disabled={loading}>
               <IconCircleCheck size={15} className="mr-1.5" />
               Save Key
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </ResponsiveDialogFooter>
+        </ResponsiveDialogContent>
+      </ResponsiveDialog>
 
       <ConfirmDialog
         open={deletingTest !== null}
