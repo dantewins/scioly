@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { toast } from "sonner"
 import {
   IconEdit,
   IconLoader2,
@@ -25,7 +24,6 @@ import {
   CompetitionParticipantDialog,
   type CompetitionParticipantFormValues,
 } from "@/features/competitions/components/competition-participant-dialog"
-import { apiCall } from "@/lib/api-client"
 import {
   type AssignmentRecord,
   type CompetitionRosterRecord,
@@ -36,6 +34,8 @@ import {
   type AssessmentSlot,
 } from "@/features/competitions/lib/roster-types"
 import { AssignmentCard } from "@/features/competitions/components/assignment-card"
+import { useRosterMutations } from "@/features/competitions/lib/use-roster-mutations"
+import { availableMembersFor } from "@/features/competitions/lib/conflict-detection"
 
 interface Props {
   competitionId: string
@@ -46,6 +46,37 @@ interface Props {
   slots: AssessmentSlot[]
   schedules: ScheduleOption[]
   canManage: boolean
+}
+
+type TimeRow = {
+  key: string
+  time: string
+  sortValue: number
+  schedules: ScheduleOption[]
+}
+
+function buildTimeRows(schedules: ScheduleOption[]): TimeRow[] {
+  const map = new Map<string, TimeRow>()
+  for (const s of schedules) {
+    let key: string
+    let time: string
+    let sortValue: number
+    if (!s.startsAt) {
+      key = "no-time"
+      time = "No time"
+      sortValue = Number.MAX_SAFE_INTEGER
+    } else {
+      const date = new Date(s.startsAt)
+      if (Number.isNaN(date.getTime())) continue
+      key = String(date.getTime())
+      time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+      sortValue = date.getTime()
+    }
+    const existing = map.get(key)
+    if (existing) existing.schedules.push(s)
+    else map.set(key, { key, time, sortValue, schedules: [s] })
+  }
+  return [...map.values()].sort((a, b) => a.sortValue - b.sortValue)
 }
 
 export function CompetitionRosterManager({
@@ -59,7 +90,9 @@ export function CompetitionRosterManager({
   canManage,
 }: Props) {
   const [rosters, setRosters] = useState(initialRosters)
-  const [loading, setLoading] = useState(false)
+  const mutations = useRosterMutations({ competitionId, setRosters, rosters })
+
+  // Dialog state
   const [showRosterDialog, setShowRosterDialog] = useState(false)
   const [editingRoster, setEditingRoster] = useState<CompetitionRosterRecord | null>(null)
   const [rosterInitial, setRosterInitial] = useState<CompetitionRosterFormValues | undefined>()
@@ -74,7 +107,22 @@ export function CompetitionRosterManager({
   } | null>(null)
   const [selectedRosterId, setSelectedRosterId] = useState<string | null>(initialRosters[0]?.id ?? null)
 
-  // Keep selectedRosterId valid when rosters change (e.g. delete, create)
+  // Confirm-dialog state
+  const [rosterToDelete, setRosterToDelete] = useState<CompetitionRosterRecord | null>(null)
+  const [rosterDeleting, setRosterDeleting] = useState(false)
+  const [assignmentToDelete, setAssignmentToDelete] = useState<{
+    roster: CompetitionRosterRecord
+    assignmentId: string
+  } | null>(null)
+  const [assignmentDeleting, setAssignmentDeleting] = useState(false)
+  const [participantToRemove, setParticipantToRemove] = useState<{
+    rosterId: string
+    assignmentId: string
+    participantId: string
+    memberName?: string
+  } | null>(null)
+  const [participantRemoving, setParticipantRemoving] = useState(false)
+
   useEffect(() => {
     if (rosters.length === 0) {
       if (selectedRosterId !== null) setSelectedRosterId(null)
@@ -98,8 +146,8 @@ export function CompetitionRosterManager({
   const activeAssignment = useMemo(() => {
     if (!participantDialog) return null
     return rosters
-      .find((roster) => roster.id === participantDialog.rosterId)
-      ?.assignments.find((assignment) => assignment.id === participantDialog.assignmentId) ?? null
+      .find((r) => r.id === participantDialog.rosterId)
+      ?.assignments.find((a) => a.id === participantDialog.assignmentId) ?? null
   }, [participantDialog, rosters])
 
   const activeRoster = useMemo(() => {
@@ -109,137 +157,22 @@ export function CompetitionRosterManager({
 
   const availableMembers = useMemo(() => {
     if (!activeAssignment || !activeRoster) return members
-    const inThisAssignment = new Set(
-      activeAssignment.participants.map((item) => item.memberSeason.id),
-    )
-    const activeTime = (() => {
-      if (activeAssignment.schedule?.startsAt) {
-        const t = new Date(activeAssignment.schedule.startsAt).getTime()
-        return Number.isNaN(t) ? null : t
-      }
-      if (activeAssignment.slot?.startsAt) {
-        const t = new Date(activeAssignment.slot.startsAt).getTime()
-        return Number.isNaN(t) ? null : t
-      }
-      return null
-    })()
-    const conflictingMembers = new Set<string>()
-    if (activeTime != null) {
-      for (const a of activeRoster.assignments) {
-        if (a.id === activeAssignment.id) continue
-        const aTime = a.schedule?.startsAt
-          ? new Date(a.schedule.startsAt).getTime()
-          : a.slot?.startsAt
-            ? new Date(a.slot.startsAt).getTime()
-            : null
-        if (aTime !== activeTime) continue
-        for (const p of a.participants) conflictingMembers.add(p.memberSeason.id)
-      }
-    }
-    return members.filter((m) => !inThisAssignment.has(m.id) && !conflictingMembers.has(m.id))
+    return availableMembersFor(activeAssignment, activeRoster, members)
   }, [activeAssignment, activeRoster, members])
 
-  const [autoAssigning, setAutoAssigning] = useState(false)
-  const [createForSchedule, setCreateForSchedule] = useState<string | null>(null)
-  const [rosterToDelete, setRosterToDelete] = useState<CompetitionRosterRecord | null>(null)
-  const [rosterDeleting, setRosterDeleting] = useState(false)
-  const [assignmentToDelete, setAssignmentToDelete] = useState<{
-    roster: CompetitionRosterRecord
-    assignmentId: string
-  } | null>(null)
-  const [assignmentDeleting, setAssignmentDeleting] = useState(false)
-  const [participantToRemove, setParticipantToRemove] = useState<{
-    rosterId: string
-    assignmentId: string
-    participantId: string
-    memberName?: string
-  } | null>(null)
-  const [participantRemoving, setParticipantRemoving] = useState(false)
+  const timeRows = useMemo<TimeRow[]>(() => buildTimeRows(schedules), [schedules])
 
-  // Build time rows from schedules — group events that share the same start time.
-  type TimeRow = {
-    key: string
-    time: string
-    sortValue: number
-    schedules: ScheduleOption[]
-  }
-  const timeRows = useMemo<TimeRow[]>(() => {
-    const map = new Map<string, TimeRow>()
-    for (const s of schedules) {
-      let key: string
-      let time: string
-      let sortValue: number
-      if (!s.startsAt) {
-        key = "no-time"
-        time = "No time"
-        sortValue = Number.MAX_SAFE_INTEGER
-      } else {
-        const date = new Date(s.startsAt)
-        if (Number.isNaN(date.getTime())) continue
-        key = String(date.getTime())
-        time = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-        sortValue = date.getTime()
-      }
-      const existing = map.get(key)
-      if (existing) {
-        existing.schedules.push(s)
-      } else {
-        map.set(key, { key, time, sortValue, schedules: [s] })
-      }
-    }
-    return [...map.values()].sort((a, b) => a.sortValue - b.sortValue)
-  }, [schedules])
-
-  // For the selected roster, look up assignment by scheduleId
   const assignmentByScheduleId = useMemo(() => {
     const map = new Map<string, AssignmentRecord>()
     if (!selectedRoster) return map
-    for (const a of selectedRoster.assignments) {
-      if (a.schedule) map.set(a.schedule.id, a)
-    }
+    for (const a of selectedRoster.assignments) if (a.schedule) map.set(a.schedule.id, a)
     return map
   }, [selectedRoster])
 
-  // Assignments that aren't tied to any schedule (legacy or orphaned)
-  const unscheduledAssignments = useMemo<AssignmentRecord[]>(() => {
-    if (!selectedRoster) return []
-    return selectedRoster.assignments.filter((a) => !a.schedule)
-  }, [selectedRoster])
-
-  function upsertRoster(nextRoster: CompetitionRosterRecord) {
-    setRosters((current) => {
-      const existing = current.some((item) => item.id === nextRoster.id)
-      const next = existing
-        ? current.map((item) => (item.id === nextRoster.id ? nextRoster : item))
-        : [...current, nextRoster]
-      return next.sort((left, right) => left.label.localeCompare(right.label))
-    })
-  }
-
-  function updateAssignment(rosterId: string, nextAssignment: CompetitionRosterRecord["assignments"][number]) {
-    setRosters((current) =>
-      current.map((roster) => {
-        if (roster.id !== rosterId) return roster
-        const assignments = roster.assignments.some((item) => item.id === nextAssignment.id)
-          ? roster.assignments.map((item) => (item.id === nextAssignment.id ? nextAssignment : item))
-          : [...roster.assignments, nextAssignment]
-        return {
-          ...roster,
-          assignments: assignments.sort((left, right) => left.event.name.localeCompare(right.event.name)),
-        }
-      }),
-    )
-  }
-
-  function removeAssignment(rosterId: string, assignmentId: string) {
-    setRosters((current) =>
-      current.map((roster) =>
-        roster.id === rosterId
-          ? { ...roster, assignments: roster.assignments.filter((item) => item.id !== assignmentId) }
-          : roster,
-      ),
-    )
-  }
+  const unscheduledAssignments = useMemo<AssignmentRecord[]>(
+    () => selectedRoster?.assignments.filter((a) => !a.schedule) ?? [],
+    [selectedRoster],
+  )
 
   function openCreateRoster() {
     setEditingRoster(null)
@@ -264,108 +197,28 @@ export function CompetitionRosterManager({
     setRosterInitial(undefined)
   }
 
-  async function submitRoster(values: CompetitionRosterFormValues) {
-    if (!values.label.trim()) {
-      toast.error("Roster label is required.")
-      return
-    }
-
-    setLoading(true)
-    try {
-      const body = {
-        label: values.label.trim(),
-        division: values.division === "__none" ? null : values.division,
-        seasonRosterId: values.seasonRosterId === "__none" ? null : values.seasonRosterId,
-        notes: values.notes.trim() || null,
-      }
-      const url = editingRoster
-        ? `/api/admin/competitions/${competitionId}/rosters/${editingRoster.id}`
-        : `/api/admin/competitions/${competitionId}/rosters`
-      const data = await apiCall<CompetitionRosterRecord>(url, {
-        method: editingRoster ? "PATCH" : "POST",
-        body: JSON.stringify(body),
-      })
-      upsertRoster(data)
-      toast.success(editingRoster ? "Roster updated." : "Roster created.")
-      closeRosterDialog()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save roster.")
-    } finally {
-      setLoading(false)
-    }
+  async function handleSubmitRoster(values: CompetitionRosterFormValues) {
+    const ok = await mutations.submitRoster(values, editingRoster?.id ?? null)
+    if (ok) closeRosterDialog()
   }
 
-  function deleteRoster(roster: CompetitionRosterRecord) {
-    setRosterToDelete(roster)
-  }
-
-  async function confirmDeleteRoster() {
+  async function handleConfirmDeleteRoster() {
     if (!rosterToDelete) return
     setRosterDeleting(true)
-    try {
-      await apiCall(`/api/admin/competitions/${competitionId}/rosters/${rosterToDelete.id}`, {
-        method: "DELETE",
-      })
-      setRosters((current) => current.filter((item) => item.id !== rosterToDelete.id))
-      toast.success("Roster deleted.")
-      setRosterToDelete(null)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete roster.")
-    } finally {
-      setRosterDeleting(false)
-    }
-  }
-
-  async function handleAutoAssign(roster: CompetitionRosterRecord) {
-    setAutoAssigning(true)
-    try {
-      const result = await apiCall<{ roster: CompetitionRosterRecord; added: number }>(
-        `/api/admin/competitions/${competitionId}/rosters/${roster.id}/auto-assign`,
-        { method: "POST" },
-      )
-      upsertRoster(result.roster)
-      if (result.added === 0) {
-        toast.info("No eligible members to assign — all slots are filled or no enrollment data found.")
-      } else {
-        toast.success(`Auto-assigned ${result.added} member${result.added === 1 ? "" : "s"}.`)
-      }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Auto-assign failed.")
-    } finally {
-      setAutoAssigning(false)
-    }
-  }
-
-  async function handleAddScheduledEvent(roster: CompetitionRosterRecord, scheduleId: string, eventId: string) {
-    setCreateForSchedule(scheduleId)
-    try {
-      const created = await apiCall<CompetitionRosterRecord["assignments"][number]>(
-        `/api/admin/competitions/${competitionId}/rosters/${roster.id}/assignments`,
-        {
-          method: "POST",
-          body: JSON.stringify({ eventId, scheduleId }),
-        },
-      )
-      updateAssignment(roster.id, created)
-      // Open participant dialog so the user can immediately add members
-      setParticipantDialog({ rosterId: roster.id, assignmentId: created.id })
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to add event to roster.")
-    } finally {
-      setCreateForSchedule(null)
-    }
+    const ok = await mutations.deleteRoster(rosterToDelete.id)
+    setRosterDeleting(false)
+    if (ok) setRosterToDelete(null)
   }
 
   function openCreateAssignment(roster: CompetitionRosterRecord) {
     setAssignmentDialog({ rosterId: roster.id, assignmentId: null })
     setAssignmentInitial(undefined)
   }
+  // currently the only caller is the inline auto-add flow; preserve the public-ish handle.
+  void openCreateAssignment
 
-  function openEditAssignment(roster: CompetitionRosterRecord, assignment: CompetitionRosterRecord["assignments"][number]) {
-    setAssignmentDialog({
-      rosterId: roster.id,
-      assignmentId: assignment.id,
-    })
+  function openEditAssignment(roster: CompetitionRosterRecord, assignment: AssignmentRecord) {
+    setAssignmentDialog({ rosterId: roster.id, assignmentId: assignment.id })
     setAssignmentInitial({
       eventId: assignment.event.id,
       slotId: assignment.slot?.id ?? "__none",
@@ -382,104 +235,38 @@ export function CompetitionRosterManager({
     setAssignmentInitial(undefined)
   }
 
-  async function submitAssignment(values: CompetitionAssignmentFormValues) {
+  async function handleSubmitAssignment(values: CompetitionAssignmentFormValues) {
     if (!assignmentDialog) return
-    if (!values.eventId) {
-      toast.error("Select an event.")
-      return
-    }
-
-    setLoading(true)
-    try {
-      const body = {
-        eventId: values.eventId,
-        slotId: values.slotId === "__none" ? null : values.slotId,
-        room: values.room.trim() || null,
-        block: values.block.trim() || null,
-        entryLabel: values.entryLabel.trim() || null,
-        status: values.status,
-        notes: values.notes.trim() || null,
-      }
-      const url = assignmentDialog.assignmentId
-        ? `/api/admin/competitions/${competitionId}/rosters/${assignmentDialog.rosterId}/assignments/${assignmentDialog.assignmentId}`
-        : `/api/admin/competitions/${competitionId}/rosters/${assignmentDialog.rosterId}/assignments`
-      const data = await apiCall<CompetitionRosterRecord["assignments"][number]>(url, {
-        method: assignmentDialog.assignmentId ? "PATCH" : "POST",
-        body: JSON.stringify(body),
-      })
-      updateAssignment(assignmentDialog.rosterId, data)
-      toast.success(assignmentDialog.assignmentId ? "Assignment updated." : "Assignment added.")
-      closeAssignmentDialog()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save assignment.")
-    } finally {
-      setLoading(false)
-    }
+    const ok = await mutations.submitAssignment(
+      values,
+      assignmentDialog.rosterId,
+      assignmentDialog.assignmentId,
+    )
+    if (ok) closeAssignmentDialog()
   }
 
-  function deleteAssignment(roster: CompetitionRosterRecord, assignmentId: string) {
-    setAssignmentToDelete({ roster, assignmentId })
-  }
-
-  async function confirmDeleteAssignment() {
+  async function handleConfirmDeleteAssignment() {
     if (!assignmentToDelete) return
     setAssignmentDeleting(true)
-    try {
-      await apiCall(
-        `/api/admin/competitions/${competitionId}/rosters/${assignmentToDelete.roster.id}/assignments/${assignmentToDelete.assignmentId}`,
-        { method: "DELETE" },
-      )
-      removeAssignment(assignmentToDelete.roster.id, assignmentToDelete.assignmentId)
-      toast.success("Assignment deleted.")
-      setAssignmentToDelete(null)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete assignment.")
-    } finally {
-      setAssignmentDeleting(false)
-    }
+    const ok = await mutations.deleteAssignment(
+      assignmentToDelete.roster.id,
+      assignmentToDelete.assignmentId,
+    )
+    setAssignmentDeleting(false)
+    if (ok) setAssignmentToDelete(null)
   }
 
   function openParticipantDialog(roster: CompetitionRosterRecord, assignmentId: string) {
-    setParticipantDialog({
-      rosterId: roster.id,
-      assignmentId,
-    })
+    setParticipantDialog({ rosterId: roster.id, assignmentId })
   }
 
-  function closeParticipantDialog() {
-    setParticipantDialog(null)
-  }
-
-  async function addParticipant(values: CompetitionParticipantFormValues) {
+  async function handleAddParticipant(values: CompetitionParticipantFormValues) {
     if (!participantDialog) return
-    if (!values.memberSeasonId) {
-      toast.error("Select a member.")
-      return
-    }
-    setLoading(true)
-    try {
-      const data = await apiCall<CompetitionRosterRecord["assignments"][number]>(
-        `/api/admin/competitions/${competitionId}/rosters/${participantDialog.rosterId}/assignments/${participantDialog.assignmentId}/participants`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            memberSeasonId: values.memberSeasonId,
-            role: values.role,
-            seatNumber: values.seatNumber ? parseInt(values.seatNumber, 10) : null,
-          }),
-        },
-      )
-      updateAssignment(participantDialog.rosterId, data)
-      toast.success("Member added.")
-      closeParticipantDialog()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to add member.")
-    } finally {
-      setLoading(false)
-    }
+    const ok = await mutations.addParticipant(values, participantDialog.rosterId, participantDialog.assignmentId)
+    if (ok) setParticipantDialog(null)
   }
 
-  function removeParticipant(rosterId: string, assignmentId: string, participantId: string) {
+  function flagParticipantRemoval(rosterId: string, assignmentId: string, participantId: string) {
     const roster = rosters.find((r) => r.id === rosterId)
     const assignment = roster?.assignments.find((a) => a.id === assignmentId)
     const participant = assignment?.participants.find((p) => p.id === participantId)
@@ -489,42 +276,25 @@ export function CompetitionRosterManager({
     setParticipantToRemove({ rosterId, assignmentId, participantId, memberName })
   }
 
-  async function confirmRemoveParticipant() {
+  async function handleConfirmRemoveParticipant() {
     if (!participantToRemove) return
-    const { rosterId, assignmentId, participantId } = participantToRemove
     setParticipantRemoving(true)
-    try {
-      await apiCall(
-        `/api/admin/competitions/${competitionId}/rosters/${rosterId}/assignments/${assignmentId}/participants`,
-        {
-          method: "DELETE",
-          body: JSON.stringify({ participantId }),
-        },
-      )
-      setRosters((current) =>
-        current.map((roster) =>
-          roster.id === rosterId
-            ? {
-                ...roster,
-                assignments: roster.assignments.map((assignment) =>
-                  assignment.id === assignmentId
-                    ? {
-                        ...assignment,
-                        participants: assignment.participants.filter((participant) => participant.id !== participantId),
-                      }
-                    : assignment,
-                ),
-              }
-            : roster,
-        ),
-      )
-      toast.success("Member removed.")
-      setParticipantToRemove(null)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to remove member.")
-    } finally {
-      setParticipantRemoving(false)
-    }
+    const ok = await mutations.removeParticipant(
+      participantToRemove.rosterId,
+      participantToRemove.assignmentId,
+      participantToRemove.participantId,
+    )
+    setParticipantRemoving(false)
+    if (ok) setParticipantToRemove(null)
+  }
+
+  async function handleAddScheduledEventInline(
+    roster: CompetitionRosterRecord,
+    scheduleId: string,
+    eventId: string,
+  ) {
+    const created = await mutations.handleAddScheduledEvent(roster, scheduleId, eventId)
+    if (created) setParticipantDialog({ rosterId: roster.id, assignmentId: created.id })
   }
 
   return (
@@ -532,20 +302,19 @@ export function CompetitionRosterManager({
       <SectionCard
         title="Canonical Rosters"
         description="Pick a roster to view its event calendar and assigned members."
-        action={canManage ? (
-          <Button size="sm" onClick={openCreateRoster}>
-            <IconPlus className="mr-1.5 size-[15px]" />
-            New Roster
-          </Button>
-        ) : undefined}
+        action={
+          canManage ? (
+            <Button size="sm" onClick={openCreateRoster}>
+              <IconPlus className="mr-1.5 size-[15px]" />
+              New Roster
+            </Button>
+          ) : undefined
+        }
       >
         {rosters.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No canonical competition rosters yet.
-          </p>
+          <p className="text-sm text-muted-foreground">No canonical competition rosters yet.</p>
         ) : (
           <div className="space-y-4">
-            {/* Roster selector tabs (squad-style) */}
             <div className="flex flex-wrap items-center gap-2">
               {rosters.map((roster) => {
                 const isActive = roster.id === selectedRosterId
@@ -573,7 +342,6 @@ export function CompetitionRosterManager({
 
             {selectedRoster && (
               <>
-                {/* Selected roster's meta + Auto Assign + Edit/Delete */}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -583,7 +351,8 @@ export function CompetitionRosterManager({
                         </Badge>
                       )}
                       <span>
-                        {selectedRoster.assignments.length} event{selectedRoster.assignments.length === 1 ? "" : "s"} assigned
+                        {selectedRoster.assignments.length} event
+                        {selectedRoster.assignments.length === 1 ? "" : "s"} assigned
                       </span>
                     </div>
                     {selectedRoster.notes && (
@@ -595,23 +364,31 @@ export function CompetitionRosterManager({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleAutoAssign(selectedRoster)}
-                        disabled={autoAssigning || selectedRoster.assignments.length === 0}
+                        onClick={() => mutations.handleAutoAssign(selectedRoster)}
+                        disabled={mutations.autoAssigning || selectedRoster.assignments.length === 0}
                       >
-                        {autoAssigning ? <IconLoader2 className="mr-1.5 size-4 animate-spin" /> : <IconWand className="mr-1.5 size-4" />}
+                        {mutations.autoAssigning ? (
+                          <IconLoader2 className="mr-1.5 size-4 animate-spin" />
+                        ) : (
+                          <IconWand className="mr-1.5 size-4" />
+                        )}
                         Auto Assign
                       </Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => openEditRoster(selectedRoster)}>
                         <IconEdit className="size-4" />
                       </Button>
-                      <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" onClick={() => deleteRoster(selectedRoster)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setRosterToDelete(selectedRoster)}
+                      >
                         <IconTrash className="size-4" />
                       </Button>
                     </div>
                   )}
                 </div>
 
-                {/* Vertical time-sidebar calendar */}
                 {timeRows.length === 0 && unscheduledAssignments.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     No events scheduled. Add events on the <strong>Schedule</strong> tab to populate this calendar.
@@ -623,26 +400,22 @@ export function CompetitionRosterManager({
                         key={row.key}
                         className={`grid grid-cols-[88px_1fr] gap-3 px-3 py-3 ${i > 0 ? "border-t border-border" : ""}`}
                       >
-                        {/* Time label column */}
                         <div className="font-mono text-sm font-semibold text-foreground pt-2">
                           {row.time}
                         </div>
-
-                        {/* Events at this time */}
                         <div className="flex flex-wrap gap-2">
                           {row.schedules.map((schedule) => {
                             const assignment = assignmentByScheduleId.get(schedule.id)
                             const eventName = schedule.event.name
-                            const isCreating = createForSchedule === schedule.id
+                            const isCreating = mutations.createForSchedule === schedule.id
 
-                            // Empty card — schedule exists but this roster has no assignment yet
                             if (!assignment) {
                               return (
                                 <button
                                   key={schedule.id}
                                   type="button"
                                   disabled={!canManage || isCreating}
-                                  onClick={() => handleAddScheduledEvent(selectedRoster, schedule.id, schedule.event.id)}
+                                  onClick={() => handleAddScheduledEventInline(selectedRoster, schedule.id, schedule.event.id)}
                                   className="group/card flex w-52 flex-col items-start gap-1 rounded-xl border border-dashed border-border bg-muted/20 p-3 text-left transition-colors enabled:hover:border-primary enabled:hover:bg-primary/5 disabled:opacity-60"
                                 >
                                   <p className="text-xs font-semibold leading-tight text-muted-foreground group-enabled/card:hover:text-foreground">
@@ -674,10 +447,12 @@ export function CompetitionRosterManager({
                                 eventName={eventName}
                                 canManage={canManage}
                                 onEdit={() => openEditAssignment(selectedRoster, assignment)}
-                                onDelete={() => deleteAssignment(selectedRoster, assignment.id)}
+                                onDelete={() =>
+                                  setAssignmentToDelete({ roster: selectedRoster, assignmentId: assignment.id })
+                                }
                                 onAddParticipant={() => openParticipantDialog(selectedRoster, assignment.id)}
                                 onRemoveParticipant={(participantId) =>
-                                  removeParticipant(selectedRoster.id, assignment.id, participantId)
+                                  flagParticipantRemoval(selectedRoster.id, assignment.id, participantId)
                                 }
                               />
                             )
@@ -686,7 +461,6 @@ export function CompetitionRosterManager({
                       </div>
                     ))}
 
-                    {/* Unscheduled assignments fallback row */}
                     {unscheduledAssignments.length > 0 && (
                       <div className="grid grid-cols-[88px_1fr] gap-3 border-t border-border bg-muted/20 px-3 py-3">
                         <div className="pt-2 font-mono text-sm font-semibold text-muted-foreground">No time</div>
@@ -698,10 +472,12 @@ export function CompetitionRosterManager({
                               eventName={assignment.event.name}
                               canManage={canManage}
                               onEdit={() => openEditAssignment(selectedRoster, assignment)}
-                              onDelete={() => deleteAssignment(selectedRoster, assignment.id)}
+                              onDelete={() =>
+                                setAssignmentToDelete({ roster: selectedRoster, assignmentId: assignment.id })
+                              }
                               onAddParticipant={() => openParticipantDialog(selectedRoster, assignment.id)}
                               onRemoveParticipant={(participantId) =>
-                                removeParticipant(selectedRoster.id, assignment.id, participantId)
+                                flagParticipantRemoval(selectedRoster.id, assignment.id, participantId)
                               }
                               showRoleHint={false}
                             />
@@ -719,31 +495,37 @@ export function CompetitionRosterManager({
 
       <CompetitionRosterDialog
         open={showRosterDialog}
-        onOpenChange={(open) => { if (!open) closeRosterDialog() }}
+        onOpenChange={(open) => {
+          if (!open) closeRosterDialog()
+        }}
         initial={rosterInitial}
         isEditing={!!editingRoster}
         seasonRosters={seasonRosters}
-        loading={loading}
-        onSubmit={submitRoster}
+        loading={mutations.loading}
+        onSubmit={handleSubmitRoster}
       />
 
       <CompetitionAssignmentDialog
         open={!!assignmentDialog}
-        onOpenChange={(open) => { if (!open) closeAssignmentDialog() }}
+        onOpenChange={(open) => {
+          if (!open) closeAssignmentDialog()
+        }}
         initial={assignmentInitial}
         isEditing={!!assignmentDialog?.assignmentId}
         events={events}
         slots={slots}
-        loading={loading}
-        onSubmit={submitAssignment}
+        loading={mutations.loading}
+        onSubmit={handleSubmitAssignment}
       />
 
       <CompetitionParticipantDialog
         open={!!participantDialog}
-        onOpenChange={(open) => { if (!open) closeParticipantDialog() }}
+        onOpenChange={(open) => {
+          if (!open) setParticipantDialog(null)
+        }}
         availableMembers={availableMembers}
-        loading={loading}
-        onSubmit={addParticipant}
+        loading={mutations.loading}
+        onSubmit={handleAddParticipant}
       />
 
       <ConfirmDialog
@@ -753,7 +535,7 @@ export function CompetitionRosterManager({
         confirmLabel="Delete Roster"
         destructive
         loading={rosterDeleting}
-        onConfirm={confirmDeleteRoster}
+        onConfirm={handleConfirmDeleteRoster}
         onCancel={() => setRosterToDelete(null)}
       />
 
@@ -764,7 +546,7 @@ export function CompetitionRosterManager({
         confirmLabel="Delete Assignment"
         destructive
         loading={assignmentDeleting}
-        onConfirm={confirmDeleteAssignment}
+        onConfirm={handleConfirmDeleteAssignment}
         onCancel={() => setAssignmentToDelete(null)}
       />
 
@@ -779,7 +561,7 @@ export function CompetitionRosterManager({
         confirmLabel="Remove"
         destructive
         loading={participantRemoving}
-        onConfirm={confirmRemoveParticipant}
+        onConfirm={handleConfirmRemoveParticipant}
         onCancel={() => setParticipantToRemove(null)}
       />
     </div>

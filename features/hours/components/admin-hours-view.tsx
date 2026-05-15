@@ -4,55 +4,37 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { IconCheck, IconX, IconPlus, IconClock } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
-import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { EmptyState } from "@/components/empty-state"
 import { RejectHoursDialog } from "@/features/hours/components/reject-hours-dialog"
+import { HoursPendingRow, type PendingEntry } from "@/features/hours/components/hours-pending-row"
+import { HourCategoryCard, type HourCategoryRecord } from "@/features/hours/components/hour-category-card"
+import { CreateCategoryDialog } from "@/features/hours/components/create-category-dialog"
 import { apiCall } from "@/lib/api-client"
 
-interface Entry {
-  id: string
-  title: string
-  totalHours: string | number
+interface Entry extends PendingEntry {
   status: string
   submittedAt: string
-  description: string | null
-  proofUrl: string | null
-  memberSeason: { user: { id: string; firstName: string; lastName: string } }
-  category: { id: string; name: string }
-}
-
-interface Category {
-  id: string
-  name: string
-  description: string | null
-  requiredHours: string | number | null
-  requiresApproval: boolean
-  _count: { hourEntries: number }
 }
 
 interface Props {
   pendingEntries: Entry[]
-  categories: Category[]
+  categories: HourCategoryRecord[]
   canManageCategories: boolean
 }
 
-export function AdminHoursView({ pendingEntries: initial, categories: initialCats, canManageCategories }: Props) {
+export function AdminHoursView({
+  pendingEntries: initial,
+  categories: initialCats,
+  canManageCategories,
+}: Props) {
   const [entries, setEntries] = useState<Entry[]>(initial)
-  const [categories, setCategories] = useState<Category[]>(initialCats)
+  const [categories, setCategories] = useState<HourCategoryRecord[]>(initialCats)
   const [rejectingIds, setRejectingIds] = useState<string[] | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showCreateCat, setShowCreateCat] = useState(false)
-  const [catForm, setCatForm] = useState({ name: "", description: "", requiredHours: "", requiresApproval: true })
   const [loading, setLoading] = useState(false)
 
   function toggleSelected(id: string) {
@@ -94,27 +76,38 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
       toast.success(count === 1 ? `Hours ${verb}.` : `${count} entries ${verb}.`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update.")
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
-  async function createCategory() {
-    if (!catForm.name) { toast.error("Name required."); return }
+  async function handleCreateCategory(form: {
+    name: string
+    description: string
+    requiredHours: string
+    requiresApproval: boolean
+  }) {
+    if (!form.name) {
+      toast.error("Name required.")
+      return
+    }
     setLoading(true)
     try {
-      const data = await apiCall<Category>("/api/admin/hour-categories", {
+      const data = await apiCall<HourCategoryRecord>("/api/admin/hour-categories", {
         method: "POST",
         body: JSON.stringify({
-          ...catForm,
-          requiredHours: catForm.requiredHours ? parseFloat(catForm.requiredHours) : undefined,
+          ...form,
+          requiredHours: form.requiredHours ? parseFloat(form.requiredHours) : undefined,
         }),
       })
       setCategories((c) => [...c, { ...data, _count: { hourEntries: 0 } }])
       setShowCreateCat(false)
-      setCatForm({ name: "", description: "", requiredHours: "", requiresApproval: true })
       toast.success("Category created.")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create category.")
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -172,106 +165,23 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
               )}
             </div>
             {entries.map((entry) => (
-              /* Approval row — checkbox left, member name + title middle, inline ✓/✗ buttons on the right. Distinct from the member ledger row above. */
-              <div
+              <HoursPendingRow
                 key={entry.id}
-                className={cn(
-                  "group relative flex items-start gap-3 rounded-[var(--radius)] border bg-card px-3 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)] transition-all",
-                  selectedIds.has(entry.id) ? "border-azure-300/60 bg-azure-50/30" : "border-border/80",
-                )}
-              >
-                <Checkbox
-                  className="mt-1"
-                  checked={selectedIds.has(entry.id)}
-                  onCheckedChange={() => toggleSelected(entry.id)}
-                  aria-label={`Select ${entry.title}`}
-                />
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-azure-700">
-                    {entry.memberSeason.user.firstName} {entry.memberSeason.user.lastName}
-                  </p>
-                  <p className="mt-0.5 font-medium text-sm truncate">{entry.title}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    <span className="font-mono tabular-nums text-foreground/80">{Number(entry.totalHours).toFixed(1)}h</span>
-                    <span className="mx-1.5" aria-hidden>·</span>
-                    {entry.category.name}
-                  </p>
-                  {entry.description && (
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{entry.description}</p>
-                  )}
-                  {entry.proofUrl && (
-                    <a
-                      href={entry.proofUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1 inline-block text-[11px] text-azure-700 underline-offset-4 hover:underline"
-                    >
-                      View proof →
-                    </a>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    size="icon-sm"
-                    variant="outline"
-                    className="text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_75%)] hover:bg-[var(--success-soft)]"
-                    onClick={() => review([entry.id], "approve")}
-                    disabled={loading}
-                    aria-label={`Approve ${entry.title}`}
-                  >
-                    <IconCheck className="size-4" />
-                  </Button>
-                  <Button
-                    size="icon-sm"
-                    variant="outline"
-                    className="text-destructive border-destructive/30 hover:bg-destructive/5"
-                    onClick={() => setRejectingIds([entry.id])}
-                    disabled={loading}
-                    aria-label={`Reject ${entry.title}`}
-                  >
-                    <IconX className="size-4" />
-                  </Button>
-                </div>
-              </div>
+                entry={entry}
+                selected={selectedIds.has(entry.id)}
+                loading={loading}
+                onToggleSelect={toggleSelected}
+                onApprove={(id) => review([id], "approve")}
+                onReject={(id) => setRejectingIds([id])}
+              />
             ))}
           </>
         )}
       </TabsContent>
 
       <TabsContent value="categories" className="mt-4 space-y-2">
-        {/* Category tile — big "required hours" target on the right (gauge-style), name + auto-approve indicator on the left. */}
         {categories.map((cat) => (
-          <div
-            key={cat.id}
-            className="group relative flex items-center gap-4 rounded-[var(--radius)] border border-border/80 bg-card px-4 py-3 shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)]"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-sm truncate">{cat.name}</p>
-                {!cat.requiresApproval && <Badge variant="success" className="text-[10px]">Auto-approve</Badge>}
-              </div>
-              {cat.description && (
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">{cat.description}</p>
-              )}
-              <p className="mt-1 text-[11px] font-mono tabular-nums text-muted-foreground">
-                <span className="text-foreground/80">{cat._count.hourEntries}</span> entries logged
-              </p>
-            </div>
-            {/* Required-hours gauge on the right */}
-            {cat.requiredHours ? (
-              <div className="flex flex-col items-end justify-center shrink-0 text-right">
-                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Target</span>
-                <span className="font-serif text-2xl leading-none tabular-nums text-foreground">
-                  {Number(cat.requiredHours)}
-                  <span className="text-sm text-muted-foreground">h</span>
-                </span>
-              </div>
-            ) : (
-              <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground shrink-0">No target</span>
-            )}
-          </div>
+          <HourCategoryCard key={cat.id} category={cat} />
         ))}
 
         {canManageCategories && (
@@ -282,44 +192,24 @@ export function AdminHoursView({ pendingEntries: initial, categories: initialCat
         )}
       </TabsContent>
 
-      {/* Reject dialog */}
       <RejectHoursDialog
         open={!!rejectingIds && rejectingIds.length > 0}
         reason={rejectReason}
         loading={loading}
         onReasonChange={setRejectReason}
         onConfirm={() => rejectingIds && review(rejectingIds, "reject", rejectReason)}
-        onCancel={() => { setRejectingIds(null); setRejectReason("") }}
+        onCancel={() => {
+          setRejectingIds(null)
+          setRejectReason("")
+        }}
       />
 
-      {/* Create category dialog */}
-      <Dialog open={showCreateCat} onOpenChange={setShowCreateCat}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>New Hour Category</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>Name</Label>
-              <Input value={catForm.name} onChange={(e) => setCatForm(f => ({ ...f, name: e.target.value }))} placeholder="Study Sessions" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Description (optional)</Label>
-              <Input value={catForm.description} onChange={(e) => setCatForm(f => ({ ...f, description: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Required Hours (optional)</Label>
-              <Input type="number" min={0} step={0.5} value={catForm.requiredHours} onChange={(e) => setCatForm(f => ({ ...f, requiredHours: e.target.value }))} placeholder="e.g. 20" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch id="req-approval" checked={catForm.requiresApproval} onCheckedChange={(v) => setCatForm(f => ({ ...f, requiresApproval: v }))} />
-              <Label htmlFor="req-approval">Requires admin approval</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateCat(false)}>Cancel</Button>
-            <Button onClick={createCategory} disabled={loading || !catForm.name}>{loading ? "Creating..." : "Create"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateCategoryDialog
+        open={showCreateCat}
+        onOpenChange={setShowCreateCat}
+        onCreate={handleCreateCategory}
+        loading={loading}
+      />
     </Tabs>
   )
 }
