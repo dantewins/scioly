@@ -61,7 +61,7 @@ export function AssignmentCard({
   const hasResult = placement !== null || scoreEarned !== null || scorePossible !== null || assignment.medalNotes !== null
 
   return (
-    <div className="group/card relative w-52 space-y-2 rounded-xl border bg-card p-3">
+    <div className="group/card relative w-full max-w-full space-y-2 rounded-xl border bg-card p-3 sm:w-52">
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold leading-tight">{eventName}</p>

@@ -403,9 +403,9 @@ export function CompetitionRosterManager({
                     {timeRows.map((row, i) => (
                       <div
                         key={row.key}
-                        className={`grid grid-cols-[88px_1fr] gap-3 px-3 py-3 ${i > 0 ? "border-t border-border" : ""}`}
+                        className={`grid grid-cols-1 gap-2 px-3 py-3 sm:grid-cols-[88px_1fr] sm:gap-3 ${i > 0 ? "border-t border-border" : ""}`}
                       >
-                        <div className="font-mono text-sm font-semibold text-foreground pt-2">
+                        <div className="font-mono text-sm font-semibold text-foreground sm:pt-2">
                           {row.time}
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -421,7 +421,7 @@ export function CompetitionRosterManager({
                                   type="button"
                                   disabled={!canManage || isCreating}
                                   onClick={() => handleAddScheduledEventInline(selectedRoster, schedule.id, schedule.event.id)}
-                                  className="group/card flex w-52 flex-col items-start gap-1 rounded-xl border border-dashed border-border bg-muted/20 p-3 text-left transition-colors enabled:hover:border-primary enabled:hover:bg-primary/5 disabled:opacity-60"
+                                  className="group/card flex w-full flex-col items-start gap-1 rounded-xl border border-dashed border-border bg-muted/20 p-3 text-left transition-colors enabled:hover:border-primary enabled:hover:bg-primary/5 disabled:opacity-60 sm:w-52"
                                 >
                                   <p className="text-xs font-semibold leading-tight text-muted-foreground group-enabled/card:hover:text-foreground">
                                     {eventName}
@@ -470,8 +470,8 @@ export function CompetitionRosterManager({
                     ))}
 
                     {unscheduledAssignments.length > 0 && (
-                      <div className="grid grid-cols-[88px_1fr] gap-3 border-t border-border bg-muted/20 px-3 py-3">
-                        <div className="pt-2 font-mono text-sm font-semibold text-muted-foreground">No time</div>
+                      <div className="grid grid-cols-1 gap-2 border-t border-border bg-muted/20 px-3 py-3 sm:grid-cols-[88px_1fr] sm:gap-3">
+                        <div className="font-mono text-sm font-semibold text-muted-foreground sm:pt-2">No time</div>
                         <div className="flex flex-wrap gap-2">
                           {unscheduledAssignments.map((assignment) => (
                             <AssignmentCard
