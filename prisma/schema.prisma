@@ -310,6 +310,7 @@ model User {
   reviewedApplications   MembershipApplication[] @relation("ApplicationReviewer")
   uploadedAssets         Asset[]                 @relation("UploadedAssets")
   recordedFinanceEntries FinanceEntry[]          @relation("FinanceRecorder")
+  recordedResults        CompetitionEventAssignment[] @relation("RecordedCompetitionResults")
 
   @@index([clubId, role])
   @@index([lastName, firstName])
@@ -637,6 +638,13 @@ model CompetitionEventAssignment {
   room                String?
   block               String?
   notes               String?
+  // Results (recorded after the event runs)
+  placement           Int?
+  scoreEarned         Decimal? @db.Decimal(8, 2)
+  scorePossible       Decimal? @db.Decimal(8, 2)
+  medalNotes          String?
+  resultRecordedAt    DateTime?
+  resultRecordedById  String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -644,6 +652,7 @@ model CompetitionEventAssignment {
   event             Event                              @relation(fields: [eventId], references: [id], onDelete: Cascade)
   schedule          EventSchedule?                     @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
   slot              CompetitionEventSlot?             @relation(fields: [slotId], references: [id], onDelete: SetNull)
+  resultRecordedBy  User?                              @relation("RecordedCompetitionResults", fields: [resultRecordedById], references: [id], onDelete: SetNull)
   participants      CompetitionAssignmentParticipant[]
 
   @@unique([competitionRosterId, eventId])

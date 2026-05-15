@@ -56,6 +56,19 @@ export interface RosterMutations {
     assignmentId: string,
     participantId: string,
   ) => Promise<boolean>
+
+  // Results
+  recordResult: (
+    rosterId: string,
+    assignmentId: string,
+    values: {
+      placement: number | null
+      scoreEarned: number | null
+      scorePossible: number | null
+      medalNotes: string | null
+    },
+  ) => Promise<boolean>
+  clearResult: (rosterId: string, assignmentId: string) => Promise<boolean>
 }
 
 export function useRosterMutations({
@@ -308,6 +321,51 @@ export function useRosterMutations({
     }
   }
 
+  async function recordResult(
+    rosterId: string,
+    assignmentId: string,
+    values: {
+      placement: number | null
+      scoreEarned: number | null
+      scorePossible: number | null
+      medalNotes: string | null
+    },
+  ) {
+    setLoading(true)
+    try {
+      const data = await apiCall<AssignmentRecord>(
+        `/api/admin/competitions/${competitionId}/rosters/${rosterId}/assignments/${assignmentId}/result`,
+        { method: "POST", body: JSON.stringify(values) },
+      )
+      updateAssignment(rosterId, data)
+      toast.success("Result recorded.")
+      return true
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to record result.")
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function clearResult(rosterId: string, assignmentId: string) {
+    setLoading(true)
+    try {
+      const data = await apiCall<AssignmentRecord>(
+        `/api/admin/competitions/${competitionId}/rosters/${rosterId}/assignments/${assignmentId}/result`,
+        { method: "DELETE" },
+      )
+      updateAssignment(rosterId, data)
+      toast.success("Result cleared.")
+      return true
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to clear result.")
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Lint reassurance: rosters is read by callers via setState closures, not directly here.
   void rosters
 
@@ -323,5 +381,7 @@ export function useRosterMutations({
     deleteAssignment,
     addParticipant,
     removeParticipant,
+    recordResult,
+    clearResult,
   }
 }

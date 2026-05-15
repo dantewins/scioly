@@ -71,6 +71,10 @@ export default async function CompetitionDetailPage({ params }: Props) {
               select: {
                 status: true,
                 room: true,
+                placement: true,
+                scoreEarned: true,
+                scorePossible: true,
+                medalNotes: true,
                 event: { select: { id: true, name: true, code: true } },
                 schedule: { select: { slotLabel: true, room: true, startsAt: true, endsAt: true } },
                 slot: { select: { label: true, room: true, startsAt: true, endsAt: true } },
@@ -110,6 +114,10 @@ export default async function CompetitionDetailPage({ params }: Props) {
         slotLabel: a.schedule?.slotLabel ?? a.slot?.label ?? null,
         startsAt: (a.schedule?.startsAt ?? a.slot?.startsAt)?.toISOString() ?? null,
         endsAt: (a.schedule?.endsAt ?? a.slot?.endsAt)?.toISOString() ?? null,
+        placement: a.placement,
+        scoreEarned: a.scoreEarned !== null ? Number(a.scoreEarned) : null,
+        scorePossible: a.scorePossible !== null ? Number(a.scorePossible) : null,
+        medalNotes: a.medalNotes,
         partners: a.participants.map((part) => ({
           id: part.id,
           firstName: part.memberSeason.user.firstName,
@@ -256,6 +264,9 @@ export default async function CompetitionDetailPage({ params }: Props) {
               ...roster,
               assignments: roster.assignments.map((assignment) => ({
                 ...assignment,
+                scoreEarned: assignment.scoreEarned !== null ? Number(assignment.scoreEarned) : null,
+                scorePossible: assignment.scorePossible !== null ? Number(assignment.scorePossible) : null,
+                resultRecordedAt: assignment.resultRecordedAt?.toISOString() ?? null,
                 schedule: assignment.schedule
                   ? {
                       ...assignment.schedule,

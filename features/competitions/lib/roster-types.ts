@@ -26,6 +26,11 @@ export type CompetitionRosterRecord = {
     entryLabel: string | null
     status: CompetitionEntryStatus
     notes: string | null
+    placement: number | null
+    scoreEarned: string | number | null
+    scorePossible: string | number | null
+    medalNotes: string | null
+    resultRecordedAt: string | Date | null
     event: { id: string; name: string; code: string | null }
     schedule: {
       id: string

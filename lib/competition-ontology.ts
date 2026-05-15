@@ -16,6 +16,11 @@ const competitionRosterSelect = {
       entryLabel: true,
       status: true,
       notes: true,
+      placement: true,
+      scoreEarned: true,
+      scorePossible: true,
+      medalNotes: true,
+      resultRecordedAt: true,
       event: { select: { id: true, name: true, code: true } },
       schedule: {
         select: {

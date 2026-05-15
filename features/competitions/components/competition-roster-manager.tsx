@@ -34,6 +34,7 @@ import {
   type AssessmentSlot,
 } from "@/features/competitions/lib/roster-types"
 import { AssignmentCard } from "@/features/competitions/components/assignment-card"
+import { RecordResultDialog } from "@/features/competitions/components/record-result-dialog"
 import { useRosterMutations } from "@/features/competitions/lib/use-roster-mutations"
 import { availableMembersFor } from "@/features/competitions/lib/conflict-detection"
 
@@ -122,6 +123,10 @@ export function CompetitionRosterManager({
     memberName?: string
   } | null>(null)
   const [participantRemoving, setParticipantRemoving] = useState(false)
+  const [resultTarget, setResultTarget] = useState<{
+    rosterId: string
+    assignment: AssignmentRecord
+  } | null>(null)
 
   useEffect(() => {
     if (rosters.length === 0) {
@@ -454,6 +459,9 @@ export function CompetitionRosterManager({
                                 onRemoveParticipant={(participantId) =>
                                   flagParticipantRemoval(selectedRoster.id, assignment.id, participantId)
                                 }
+                                onRecordResult={() =>
+                                  setResultTarget({ rosterId: selectedRoster.id, assignment })
+                                }
                               />
                             )
                           })}
@@ -478,6 +486,9 @@ export function CompetitionRosterManager({
                               onAddParticipant={() => openParticipantDialog(selectedRoster, assignment.id)}
                               onRemoveParticipant={(participantId) =>
                                 flagParticipantRemoval(selectedRoster.id, assignment.id, participantId)
+                              }
+                              onRecordResult={() =>
+                                setResultTarget({ rosterId: selectedRoster.id, assignment })
                               }
                               showRoleHint={false}
                             />
@@ -563,6 +574,43 @@ export function CompetitionRosterManager({
         loading={participantRemoving}
         onConfirm={handleConfirmRemoveParticipant}
         onCancel={() => setParticipantToRemove(null)}
+      />
+
+      <RecordResultDialog
+        open={resultTarget !== null}
+        onOpenChange={(open) => { if (!open) setResultTarget(null) }}
+        eventName={resultTarget?.assignment.event.name ?? ""}
+        initial={
+          resultTarget
+            ? {
+                placement: resultTarget.assignment.placement,
+                scoreEarned:
+                  resultTarget.assignment.scoreEarned !== null && resultTarget.assignment.scoreEarned !== undefined
+                    ? Number(resultTarget.assignment.scoreEarned)
+                    : null,
+                scorePossible:
+                  resultTarget.assignment.scorePossible !== null && resultTarget.assignment.scorePossible !== undefined
+                    ? Number(resultTarget.assignment.scorePossible)
+                    : null,
+                medalNotes: resultTarget.assignment.medalNotes,
+              }
+            : null
+        }
+        loading={mutations.loading}
+        onSubmit={async (values) => {
+          if (!resultTarget) return
+          const ok = await mutations.recordResult(
+            resultTarget.rosterId,
+            resultTarget.assignment.id,
+            values,
+          )
+          if (ok) setResultTarget(null)
+        }}
+        onClear={async () => {
+          if (!resultTarget) return
+          const ok = await mutations.clearResult(resultTarget.rosterId, resultTarget.assignment.id)
+          if (ok) setResultTarget(null)
+        }}
       />
     </div>
   )
