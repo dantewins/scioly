@@ -42,9 +42,11 @@ export async function POST(request: Request) {
 
       if (claimed.count !== 1) return "USED" as const
 
+      // Setting password via an emailed token doubles as email verification:
+      // the user proved control of the inbox to reach this point.
       await tx.user.update({
         where: { id: setupToken.userId },
-        data: { passwordHash },
+        data: { passwordHash, emailVerifiedAt: now },
       })
 
       return "OK" as const
