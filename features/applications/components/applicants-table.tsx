@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { toast } from "sonner"
 import {
-  IconCheck, IconX,
+  IconCheck, IconX, IconClock,
 } from "@tabler/icons-react"
 import {
   useReactTable, getCoreRowModel, flexRender,
@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
@@ -24,43 +25,116 @@ interface Props {
   canManage: boolean
 }
 
+type BulkAction = "approve" | "deny" | "waitlist"
+
+interface BulkResponse {
+  ok: number
+  failed: number
+  failures: Array<{ memberSeasonId: string; error?: string }>
+}
+
 export function ApplicantsTable({ initialApplicants, canManage }: Props) {
   const [applicants, setApplicants] = useState<ApplicantReviewRecord[]>(initialApplicants)
   const [loading, setLoading] = useState(false)
-  const [denyingId, setDenyingId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  // Single-target deny + bulk deny share the same dialog
+  const [denyTarget, setDenyTarget] = useState<"bulk" | { id: string } | null>(null)
   const [denyReason, setDenyReason] = useState("")
 
-  async function handleApprove(memberSeasonId: string) {
-    setLoading(true)
-    try {
-      await apiCall("/api/admin/applicants", {
-        method: "PATCH",
-        body: JSON.stringify({ memberSeasonId, action: "approve" }),
-      })
-      setApplicants((a) => a.filter((x) => x.id !== memberSeasonId))
-      toast.success("Applicant approved and welcome email sent.")
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to approve.")
-    } finally { setLoading(false) }
+  const allIds = useMemo(() => applicants.map((a) => a.id), [applicants])
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
-  async function handleDeny(memberSeasonId: string, reason: string) {
+  function toggleAll() {
+    setSelectedIds((prev) =>
+      prev.size === allIds.length && allIds.length > 0 ? new Set() : new Set(allIds),
+    )
+  }
+
+  async function runBulk(action: BulkAction, ids: string[], reason?: string) {
+    if (ids.length === 0) return
     setLoading(true)
     try {
-      await apiCall("/api/admin/applicants", {
+      const result = await apiCall<BulkResponse>("/api/admin/applicants", {
         method: "PATCH",
-        body: JSON.stringify({ memberSeasonId, action: "deny", reason }),
+        body: JSON.stringify({
+          memberSeasonIds: ids,
+          action,
+          ...(reason ? { reason } : {}),
+        }),
       })
-      setApplicants((a) => a.filter((x) => x.id !== memberSeasonId))
-      setDenyingId(null)
-      setDenyReason("")
-      toast.success("Application denied.")
+      const okSet = new Set(ids.filter((id) => !result.failures.some((f) => f.memberSeasonId === id)))
+      setApplicants((current) => current.filter((a) => !okSet.has(a.id)))
+      setSelectedIds((current) => {
+        const next = new Set(current)
+        for (const id of okSet) next.delete(id)
+        return next
+      })
+
+      const verbMap: Record<BulkAction, string> = {
+        approve: "approved",
+        deny: "denied",
+        waitlist: "waitlisted",
+      }
+      const verb = verbMap[action]
+      if (result.failed > 0) {
+        toast.warning(`${result.ok} ${verb}, ${result.failed} failed`)
+      } else if (result.ok === 1) {
+        toast.success(`Application ${verb}.`)
+      } else {
+        toast.success(`${result.ok} applications ${verb}.`)
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to deny.")
-    } finally { setLoading(false) }
+      toast.error(error instanceof Error ? error.message : "Failed.")
+    } finally {
+      setLoading(false)
+      setDenyTarget(null)
+      setDenyReason("")
+    }
+  }
+
+  function handleApprove(id: string) {
+    void runBulk("approve", [id])
+  }
+
+  function handleWaitlist(id: string) {
+    void runBulk("waitlist", [id])
+  }
+
+  function handleDenyConfirm() {
+    if (denyTarget === "bulk") {
+      void runBulk("deny", [...selectedIds], denyReason)
+    } else if (denyTarget && "id" in denyTarget) {
+      void runBulk("deny", [denyTarget.id], denyReason)
+    }
   }
 
   const columns: ColumnDef<ApplicantReviewRecord>[] = [
+    ...(canManage ? [{
+      id: "select",
+      header: () => (
+        <Checkbox
+          checked={selectedIds.size > 0 && selectedIds.size === allIds.length}
+          onCheckedChange={toggleAll}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }: { row: { original: ApplicantReviewRecord } }) => (
+        <Checkbox
+          checked={selectedIds.has(row.original.id)}
+          onCheckedChange={() => toggleOne(row.original.id)}
+          aria-label={`Select ${row.original.user.firstName}`}
+        />
+      ),
+    }] : []),
     {
       id: "name",
       header: "Name",
@@ -121,8 +195,17 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
           <Button
             size="xs"
             variant="outline"
+            className="text-muted-foreground"
+            onClick={() => handleWaitlist(row.original.id)}
+            disabled={loading}
+          >
+            <IconClock className="size-3.5 mr-1" />Waitlist
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
             className="text-destructive border-destructive/30 hover:bg-destructive/5"
-            onClick={() => { setDenyingId(row.original.id); setDenyReason("") }}
+            onClick={() => { setDenyTarget({ id: row.original.id }); setDenyReason("") }}
             disabled={loading}
           >
             <IconX className="size-3.5 mr-1" />Deny
@@ -140,6 +223,54 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* Bulk action bar */}
+      {canManage && selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius)] border border-azure-200/60 bg-azure-50/40 px-3 py-2">
+          <span className="text-xs text-muted-foreground">
+            {selectedIds.size} of {applicants.length} selected
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-[var(--success)] border-[color-mix(in_oklch,var(--success),transparent_75%)] hover:bg-[var(--success-soft)]"
+              onClick={() => runBulk("approve", [...selectedIds])}
+              disabled={loading}
+            >
+              <IconCheck className="mr-1.5 size-[15px]" />
+              Approve {selectedIds.size}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => runBulk("waitlist", [...selectedIds])}
+              disabled={loading}
+            >
+              <IconClock className="mr-1.5 size-[15px]" />
+              Waitlist {selectedIds.size}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive border-destructive/30 hover:bg-destructive/5"
+              onClick={() => { setDenyTarget("bulk"); setDenyReason("") }}
+              disabled={loading}
+            >
+              <IconX className="mr-1.5 size-[15px]" />
+              Deny {selectedIds.size}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedIds(new Set())}
+              disabled={loading}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-[var(--radius)] border border-border/80 bg-card shadow-[0_1px_2px_0_color-mix(in_oklch,var(--azure-300),transparent_88%)]">
         <Table>
           <TableHeader>
@@ -175,14 +306,14 @@ export function ApplicantsTable({ initialApplicants, canManage }: Props) {
         </Table>
       </div>
 
-      {/* Deny dialog */}
+      {/* Deny dialog (shared by single + bulk) */}
       <DenyApplicationDialog
-        open={!!denyingId}
+        open={denyTarget !== null}
         reason={denyReason}
         loading={loading}
         onReasonChange={setDenyReason}
-        onConfirm={() => denyingId && handleDeny(denyingId, denyReason)}
-        onCancel={() => { setDenyingId(null); setDenyReason("") }}
+        onConfirm={handleDenyConfirm}
+        onCancel={() => { setDenyTarget(null); setDenyReason("") }}
       />
     </div>
   )
