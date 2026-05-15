@@ -3,7 +3,11 @@ import { z } from "zod"
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
-import { sendPasswordSetupEmail } from "@/lib/email"
+import {
+  sendApplicationRejectedEmail,
+  sendApplicationWaitlistedEmail,
+  sendPasswordSetupEmail,
+} from "@/lib/email"
 import { clearSeasonLookupCaches, getActiveSeason } from "@/lib/db"
 import { listPendingApplicants } from "@/lib/applications"
 import { clearCurrentUserCache } from "@/lib/auth"
@@ -18,7 +22,7 @@ async function syncApplicationDecision(
   email: string,
   reviewedById: string,
   data: {
-    status: "APPROVED" | "DENIED"
+    status: "APPROVED" | "DENIED" | "WAITLISTED"
     reviewedAt: Date
     decisionNotes: string | null
   },
@@ -56,7 +60,7 @@ export const GET = withPermission("view_members", async (_req, _ctx, user) => {
 
 const patchSchema = z.object({
   memberSeasonId: z.string(),
-  action: z.enum(["approve", "deny"]),
+  action: z.enum(["approve", "deny", "waitlist"]),
   reason: z.string().optional(),
 })
 
@@ -73,13 +77,19 @@ export const PATCH = withPermission("edit_members", async (req, _ctx, user) => {
       id: memberSeasonId,
       season: { clubId: user.clubId },
     },
-    include: { user: { select: { id: true, email: true, firstName: true, role: true } } },
+    include: {
+      user: { select: { id: true, email: true, firstName: true, role: true } },
+      season: { select: { club: { select: { name: true } } } },
+    },
   })
   if (!ms) return err("Applicant not found.", 404)
   if (ms.membershipStatus !== "PENDING") return err("Applicant is not in pending status.", 400)
 
+  const clubName = ms.season.club.name
+
   if (action === "deny") {
     const reviewedAt = new Date()
+    const decisionNotes = reason ?? null
 
     await prisma.$transaction(async (tx) => {
       await tx.memberSeason.update({
@@ -101,12 +111,49 @@ export const PATCH = withPermission("edit_members", async (req, _ctx, user) => {
         {
           status: "DENIED",
           reviewedAt,
-          decisionNotes: reason ?? "Application denied.",
+          decisionNotes: decisionNotes ?? "Application denied.",
         },
       )
     })
     clearSeasonLookupCaches()
     clearCurrentUserCache(ms.user.id)
+
+    try {
+      await sendApplicationRejectedEmail(ms.user.email, ms.user.firstName, clubName, decisionNotes)
+    } catch (e) {
+      console.error("[applicants:deny] Email send failed:", e)
+    }
+
+    return ok({ ok: true })
+  }
+
+  if (action === "waitlist") {
+    const reviewedAt = new Date()
+    const decisionNotes = reason ?? null
+
+    await prisma.$transaction(async (tx) => {
+      // MemberSeason stays PENDING — they're still under consideration.
+      await syncApplicationDecision(
+        tx,
+        memberSeasonId,
+        ms.seasonId,
+        ms.user.id,
+        ms.user.email,
+        user.id,
+        {
+          status: "WAITLISTED",
+          reviewedAt,
+          decisionNotes,
+        },
+      )
+    })
+
+    try {
+      await sendApplicationWaitlistedEmail(ms.user.email, ms.user.firstName, clubName, decisionNotes)
+    } catch (e) {
+      console.error("[applicants:waitlist] Email send failed:", e)
+    }
+
     return ok({ ok: true })
   }
 

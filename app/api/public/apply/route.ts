@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { isEmailAllowedForDomains } from "@/lib/email-domains"
 import { getAllowedClubDomains } from "@/lib/db"
 import { buildRateLimitKey, rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
+import { sendApplicationReceivedEmail } from "@/lib/email"
 
 export const dynamic = "force-dynamic"
 
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
       where: { slug: clubSlug },
       select: {
         id: true,
+        name: true,
       },
     })
     if (!club) {
@@ -205,6 +207,13 @@ export async function POST(req: Request) {
         })
       }
     })
+
+    // Best-effort receipt email; failure must not undo the application.
+    try {
+      await sendApplicationReceivedEmail(email, fields.firstName, club.name)
+    } catch (emailErr) {
+      console.error("[apply] application-received email failed:", emailErr)
+    }
 
     return NextResponse.json({ ok: true }, { status: 201 })
   } catch (e) {
