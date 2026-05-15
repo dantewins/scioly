@@ -9,7 +9,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, kicker, children }: PageHeaderProps) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border/60 pb-3">
+    <div className="flex flex-col gap-3 border-b border-border/60 pb-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
       <div className="min-w-0 flex-1">
         {kicker && (
           <p className="label-caps mb-1 text-azure-700 truncate">{kicker}</p>
@@ -22,7 +22,7 @@ export function PageHeader({ title, description, kicker, children }: PageHeaderP
         )}
       </div>
       {children && (
-        <div className="control-row shrink-0 flex-wrap">{children}</div>
+        <div className="control-row flex-wrap sm:shrink-0">{children}</div>
       )}
     </div>
   )

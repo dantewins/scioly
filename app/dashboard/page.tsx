@@ -88,7 +88,7 @@ export default async function DashboardPage() {
         description={season ? "Here's what's moving across the club today." : "Create a season in Settings to begin."}
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label="Active Members"
           value={memberCount}
@@ -152,7 +152,23 @@ export default async function DashboardPage() {
 
       {upcomingEvents.length > 0 && (
         <SectionCard title="Upcoming Events" flush>
-          <Table>
+          {/* Mobile card list */}
+          <ul className="divide-y divide-border/60 md:hidden">
+            {upcomingEvents.map((e) => (
+              <li key={e.id} className="px-[var(--card-px)] py-3 space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="min-w-0 truncate font-serif text-base leading-tight tracking-tight">{e.name}</p>
+                  <StatusBadge status={e.type} tone="brand" />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono tabular-nums text-muted-foreground">
+                  <span>{formatDateCompact(e.startsAt)}</span>
+                  <span>{e._count.attendance} attending</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {/* Desktop table */}
+          <Table className="hidden md:table">
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
