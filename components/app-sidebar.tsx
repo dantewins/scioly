@@ -15,6 +15,7 @@ import {
   IconBooks,
   IconLayoutDashboard,
   IconSettings,
+  IconSpeakerphone,
   IconLogout,
   IconAtom,
   IconDots,
@@ -64,6 +65,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ] : []),
     ...(canView("events") ? [{ href: "/dashboard/events", label: "Events", icon: IconAtom }] : []),
     ...(canView("competitions") ? [{ href: "/dashboard/competitions", label: "Competitions", icon: IconTrophy }] : []),
+    ...(canView("club_settings") ? [{ href: "/dashboard/announcements", label: "Announcements", icon: IconSpeakerphone }] : []),
   ]
 
   const activityItems: NavItem[] = [

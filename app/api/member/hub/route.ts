@@ -81,6 +81,7 @@ export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
     memberSeasonRecord,
     rosterMemberships,
     competitionAssignments,
+    announcementRows,
   ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
@@ -339,6 +340,16 @@ export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
       },
       orderBy: { assignedAt: "desc" },
       take: 40,
+    }),
+    prisma.announcement.findMany({
+      where: {
+        seasonId: season.id,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        publishedAt: { not: null, lte: now },
+      },
+      select: { id: true, title: true, body: true, isPinned: true, publishedAt: true },
+      orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
+      take: 10,
     }),
   ])
 
@@ -628,7 +639,13 @@ export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
         status: assignment.status,
       })),
     },
-    announcements: [],
+    announcements: announcementRows.map((a) => ({
+      id: a.id,
+      title: a.title,
+      body: a.body,
+      isPinned: a.isPinned,
+      publishedAt: a.publishedAt?.toISOString() ?? null,
+    })),
     resources: [],
     meta: {
       generatedAt: now.toISOString(),

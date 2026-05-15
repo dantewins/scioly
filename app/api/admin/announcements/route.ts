@@ -3,20 +3,30 @@ import { prisma } from "@/lib/prisma"
 import { withActiveMemberAuth, withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
 import { logActivity } from "@/lib/activity"
+import { canEdit } from "@/lib/permissions"
 
 export const dynamic = "force-dynamic"
 
 // Members + admins read; only managers post.
-export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
+// Pass ?scope=all to fetch unpublished + expired too (admin only).
+export const GET = withActiveMemberAuth(async (req, _ctx, user) => {
   const season = await getActiveSeason(user.clubId)
   if (!season) return ok([])
+
+  const url = new URL(req.url)
+  const wantAll = url.searchParams.get("scope") === "all"
+  const isManager = canEdit(user.permissions, "club_settings")
 
   const now = new Date()
   const announcements = await prisma.announcement.findMany({
     where: {
       seasonId: season.id,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-      publishedAt: { not: null, lte: now },
+      ...(wantAll && isManager
+        ? {}
+        : {
+            OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            publishedAt: { not: null, lte: now },
+          }),
     },
     select: {
       id: true,
@@ -24,11 +34,12 @@ export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
       body: true,
       isPinned: true,
       publishedAt: true,
+      expiresAt: true,
       createdAt: true,
       createdById: true,
     },
-    orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
-    take: 25,
+    orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }, { createdAt: "desc" }],
+    take: 50,
   })
   return ok(announcements)
 })
