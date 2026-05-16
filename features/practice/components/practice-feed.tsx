@@ -5,6 +5,7 @@ import { IconPlayerPlay, IconTrophy, IconArrowRight } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { SectionCard } from "@/components/ui/section-card"
 import { AssessmentCard } from "@/features/practice/components/assessment-card"
+import { ScoreSparkline } from "@/features/practice/components/score-sparkline"
 import { cn } from "@/lib/utils"
 import { formatMonthDay } from "@/lib/format"
 import type { MemberPracticeFeed } from "@/lib/practice-assessments"
@@ -24,6 +25,8 @@ export function PracticeFeed({ feed }: Props) {
 
   return (
     <div className="space-y-6">
+      <ScoreSparkline recentAttempts={recentAttempts} />
+
       {/* Continue practice — progress-driven row: big circular ring on the right + Continue CTA */}
       {continueAttempts.length > 0 && (
         <SectionCard title="Continue Practice" flush>
