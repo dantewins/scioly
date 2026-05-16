@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { toast } from "sonner"
 import {
@@ -8,6 +8,8 @@ import {
   IconX,
   IconTrophy,
   IconDeviceFloppy,
+  IconClock,
+  IconFileText,
 } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -91,6 +93,35 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
     setShowSubmitConfirm(true)
   }
 
+  // Countdown timer: starts when the attempt has a timeLimitMinutes.
+  // Time runs from attempt.startedAt, capping at the limit. When 0,
+  // we surface the submit dialog and the timer halts at 0:00.
+  const timeLimitMinutes = attempt.assessment.timeLimitMinutes
+  const startedAtMs = useMemo(() => new Date(attempt.startedAt).getTime(), [attempt.startedAt])
+  const [, setNowTick] = useState(0)
+  useEffect(() => {
+    if (!timeLimitMinutes || attempt.status !== "IN_PROGRESS") return
+    const id = setInterval(() => setNowTick((t) => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [timeLimitMinutes, attempt.status])
+  const secondsRemaining = useMemo(() => {
+    if (!timeLimitMinutes) return null
+    const elapsed = Math.floor((Date.now() - startedAtMs) / 1000)
+    return Math.max(0, timeLimitMinutes * 60 - elapsed)
+  }, [timeLimitMinutes, startedAtMs])
+  const timeIsUp = secondsRemaining !== null && secondsRemaining === 0
+  useEffect(() => {
+    if (timeIsUp && attempt.status === "IN_PROGRESS" && !showSubmitConfirm) {
+      setShowSubmitConfirm(true)
+    }
+  }, [timeIsUp, attempt.status, showSubmitConfirm])
+
+  function formatTime(s: number): string {
+    const mm = Math.floor(s / 60)
+    const ss = s % 60
+    return `${mm}:${String(ss).padStart(2, "0")}`
+  }
+
   async function confirmSubmit() {
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
     setSubmitting(true)
@@ -153,64 +184,140 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
         description={assessment.event?.name ?? undefined}
       />
 
-      {/* Status bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <StatusBadge status={attempt.status} withDot />
-        {attempt.status === "SCORED" && attempt.score !== null && attempt.scorePossible !== null && (
-          <span className="flex items-center gap-1.5 text-sm font-mono tabular-nums font-medium text-[var(--success)]">
-            <IconTrophy className="size-4" />
-            {attempt.score} / {attempt.scorePossible}
-          </span>
+      <div className={assessment.sourcePdfUrl ? "md:grid md:grid-cols-[2fr_3fr] md:gap-4" : ""}>
+        {assessment.sourcePdfUrl && (
+          <aside className="hidden md:block md:sticky md:top-4 md:self-start">
+            <div className="overflow-hidden rounded-[var(--radius)] border border-border/60 bg-card">
+              <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground">
+                <IconFileText className="size-3.5" aria-hidden />
+                Source packet
+              </div>
+              <iframe
+                src={assessment.sourcePdfUrl}
+                title="Source packet"
+                className="block w-full"
+                style={{ height: "calc(100vh - 12rem)" }}
+              />
+            </div>
+          </aside>
         )}
-        {canEdit && attempt.promptCount > 0 && (
-          <span className="text-sm text-muted-foreground">
-            {attempt.answeredCount}/{attempt.promptCount} answered
-          </span>
-        )}
-        {canEdit && (
-          <span className="text-xs text-muted-foreground ml-auto">
-            {saveStatus === "saving" ? "Saving…" :
-             saveStatus === "saved" ? "Saved" :
-             saveStatus === "error" ? "Save failed — will retry" :
-             "Unsaved changes"}
-          </span>
-        )}
-      </div>
 
-      {/* Prompt list */}
-      {prompts.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No answer sheet for this assessment.</p>
-      ) : (
-        <div className="space-y-4">
-          {parts.length > 0 ? (
-            <>
-              {parts.map((part) => (
-                <div key={part.id} className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-sm font-medium">{part.title}</h2>
-                    {part.timeLimitMinutes && (
-                      <span className="text-xs text-muted-foreground">{part.timeLimitMinutes} min</span>
-                    )}
-                  </div>
-                  {part.instructions && (
-                    <p className="text-xs text-muted-foreground">{part.instructions}</p>
+        <div className="space-y-4 min-w-0">
+          {/* Sticky status bar */}
+          <div className="sticky top-0 z-10 -mx-[var(--page-px)] flex flex-wrap items-center gap-2 border-b border-border/60 bg-background/85 px-[var(--page-px)] py-2 backdrop-blur supports-[backdrop-filter]:bg-background/75 md:mx-0 md:rounded-[var(--radius)] md:border md:px-3">
+            <StatusBadge status={attempt.status} withDot />
+            {attempt.status === "SCORED" && attempt.score !== null && attempt.scorePossible !== null && (
+              <span className="flex items-center gap-1.5 text-sm font-mono tabular-nums font-medium text-[var(--success)]">
+                <IconTrophy className="size-4" />
+                {attempt.score} / {attempt.scorePossible}
+              </span>
+            )}
+            {canEdit && attempt.promptCount > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {attempt.answeredCount}/{attempt.promptCount} answered
+              </span>
+            )}
+            {secondsRemaining !== null && attempt.status === "IN_PROGRESS" && (
+              <span
+                className={
+                  secondsRemaining <= 60
+                    ? "ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--danger-soft)] px-2 py-0.5 text-xs font-mono tabular-nums font-medium text-[var(--danger)]"
+                    : secondsRemaining <= 300
+                      ? "ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-xs font-mono tabular-nums font-medium text-[var(--warning)]"
+                      : "ml-auto inline-flex items-center gap-1 text-xs font-mono tabular-nums text-muted-foreground"
+                }
+              >
+                <IconClock className="size-3.5" aria-hidden />
+                {formatTime(secondsRemaining)}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto md:ml-2">
+              {canEdit ? (
+                saveStatus === "saving" ? "Saving…" :
+                saveStatus === "saved" ? "Saved" :
+                saveStatus === "error" ? "Save failed — will retry" :
+                "Unsaved changes"
+              ) : null}
+            </span>
+            {canEdit && (
+              <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleManualSave}
+                  disabled={saveStatus === "saving" || saveStatus === "saved"}
+                >
+                  <IconDeviceFloppy className="size-4 mr-1.5" />
+                  Save
+                </Button>
+                <Button size="sm" onClick={handleSubmit} disabled={submitting}>
+                  {submitting ? "Submitting…" : "Submit"}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile-only Packet link (hidden when PDF pane is shown at md+) */}
+          {assessment.sourcePdfUrl && (
+            <a
+              href={assessment.sourcePdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="md:hidden inline-flex items-center gap-1.5 text-sm text-azure-700 hover:underline"
+            >
+              <IconFileText className="size-4" />
+              Open source packet
+            </a>
+          )}
+
+          {/* Prompt list */}
+          {prompts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No answer sheet for this assessment.</p>
+          ) : (
+            <div className="space-y-4">
+              {parts.length > 0 ? (
+                <>
+                  {parts.map((part) => (
+                    <div key={part.id} className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-sm font-medium">{part.title}</h2>
+                        {part.timeLimitMinutes && (
+                          <span className="text-xs text-muted-foreground">{part.timeLimitMinutes} min</span>
+                        )}
+                      </div>
+                      {part.instructions && (
+                        <p className="text-xs text-muted-foreground">{part.instructions}</p>
+                      )}
+                      <div className="space-y-2">
+                        {(promptsByPart[part.id] ?? []).map((prompt) => (
+                          <PromptRow
+                            key={prompt.id}
+                            prompt={prompt}
+                            response={responses[prompt.id] ?? ""}
+                            canEdit={canEdit}
+                            onChange={(val) => updateResponse(prompt.id, val)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {unpartedPrompts.length > 0 && (
+                    <div className="space-y-2">
+                      {unpartedPrompts.map((prompt) => (
+                        <PromptRow
+                          key={prompt.id}
+                          prompt={prompt}
+                          response={responses[prompt.id] ?? ""}
+                          canEdit={canEdit}
+                          onChange={(val) => updateResponse(prompt.id, val)}
+                        />
+                      ))}
+                    </div>
                   )}
-                  <div className="space-y-2">
-                    {(promptsByPart[part.id] ?? []).map((prompt) => (
-                      <PromptRow
-                        key={prompt.id}
-                        prompt={prompt}
-                        response={responses[prompt.id] ?? ""}
-                        canEdit={canEdit}
-                        onChange={(val) => updateResponse(prompt.id, val)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-              {unpartedPrompts.length > 0 && (
+                </>
+              ) : (
                 <div className="space-y-2">
-                  {unpartedPrompts.map((prompt) => (
+                  {prompts.map((prompt) => (
                     <PromptRow
                       key={prompt.id}
                       prompt={prompt}
@@ -221,39 +328,10 @@ export function AttemptWorkspace({ initialAttempt }: Props) {
                   ))}
                 </div>
               )}
-            </>
-          ) : (
-            <div className="space-y-2">
-              {prompts.map((prompt) => (
-                <PromptRow
-                  key={prompt.id}
-                  prompt={prompt}
-                  response={responses[prompt.id] ?? ""}
-                  canEdit={canEdit}
-                  onChange={(val) => updateResponse(prompt.id, val)}
-                />
-              ))}
             </div>
           )}
         </div>
-      )}
-
-      {canEdit && (
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManualSave}
-            disabled={saveStatus === "saving" || saveStatus === "saved"}
-          >
-            <IconDeviceFloppy className="size-4 mr-1.5" />
-            Save
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Submitting…" : "Submit Attempt"}
-          </Button>
-        </div>
-      )}
+      </div>
 
       <ConfirmDialog
         open={showSubmitConfirm}
