@@ -16,6 +16,7 @@ import {
   IconLayoutDashboard,
   IconSettings,
   IconSpeakerphone,
+  IconLink,
   IconLogout,
   IconAtom,
   IconDots,
@@ -75,6 +76,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ...(canView("forms") ? [{ href: "/dashboard/forms", label: "Forms", icon: IconFileCheck }] : []),
     ...(canView("club_events") ? [{ href: "/dashboard/club-events", label: "Club Events", icon: IconCalendarEvent }] : []),
     ...(canView("practice") ? [{ href: "/dashboard/practice", label: "Assessments", icon: IconBooks }] : []),
+    ...(canView("practice") ? [{ href: "/dashboard/resources", label: "Resources", icon: IconLink }] : []),
   ]
 
   const initials = user
