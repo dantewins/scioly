@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { IconPlus, IconCircleCheck } from "@tabler/icons-react"
+import { IconPlus } from "@tabler/icons-react"
 import { Button } from "@/components/ui/button"
 import { apiCall } from "@/lib/api-client"
 import {
@@ -13,9 +13,9 @@ import {
   ResponsiveDialogFooter,
 } from "@/components/ui/responsive-dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { Textarea } from "@/components/ui/textarea"
 import { PracticeTestCard, type PracticeTestCardData } from "@/features/practice/components/practice-test-card"
 import { PracticeTestForm } from "@/features/practice/components/practice-test-form"
+import { PromptEditor } from "@/features/practice/components/prompt-editor"
 
 type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID" | "GENERATED"
 type AssessmentPartType = "SECTION" | "STATION"
@@ -58,12 +58,32 @@ interface FormState {
   }>
 }
 
+interface ServerPromptDTO {
+  id: string
+  promptNumber: number
+  label: string | null
+  responseType: string
+  pointsPossible: number | null
+  answerKeyText: string | null
+  choiceOptions: string[] | null
+  correctChoiceIndex: number | null
+  difficulty: "EASY" | "MEDIUM" | "HARD" | null
+  subtopics: string[]
+  instructions: string | null
+}
+
+async function loadPrompts(assessmentId: string): Promise<{ prompts: ServerPromptDTO[] }> {
+  return apiCall<{ prompts: ServerPromptDTO[] }>(`/api/admin/practice/${assessmentId}/prompts`, {
+    method: "GET",
+  })
+}
+
 export function PracticeManager({ initialTests, events, canManage, canCreate }: Props) {
   const [tests, setTests] = useState<PracticeTest[]>(initialTests)
   const [showCreate, setShowCreate] = useState(false)
   const [editingTest, setEditingTest] = useState<PracticeTest | null>(null)
   const [answerKeyTest, setAnswerKeyTest] = useState<PracticeTest | null>(null)
-  const [answerKeyText, setAnswerKeyText] = useState("")
+  const [editorPrompts, setEditorPrompts] = useState<Awaited<ReturnType<typeof loadPrompts>> | null>(null)
   const [deletingTest, setDeletingTest] = useState<PracticeTest | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -76,7 +96,7 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
   function openAnswerKey(test: PracticeTestCardData) {
     const full = tests.find((t) => t.id === test.id)
     if (full) {
-      setAnswerKeyText("")
+      setEditorPrompts(null)
       setAnswerKeyTest(full)
     }
   }
@@ -85,8 +105,19 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
     setShowCreate(false)
     setEditingTest(null)
     setAnswerKeyTest(null)
-    setAnswerKeyText("")
+    setEditorPrompts(null)
   }
+
+  useEffect(() => {
+    if (!answerKeyTest) return
+    let cancelled = false
+    loadPrompts(answerKeyTest.id).then((res) => {
+      if (!cancelled) setEditorPrompts(res)
+    }).catch((err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to load questions.")
+    })
+    return () => { cancelled = true }
+  }, [answerKeyTest])
 
   async function handleCreate(form: FormState) {
     if (!form.title.trim()) { toast.error("Title is required."); return }
@@ -206,31 +237,14 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
     }
   }
 
-  async function handleSaveAnswerKey() {
+  function handleEditorSaved() {
     if (!answerKeyTest) return
-    const answers = answerKeyText
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean)
-    if (answers.length === 0) { toast.error("Enter at least one answer."); return }
-    setLoading(true)
-    try {
-      await apiCall(`/api/admin/practice/${answerKeyTest.id}/answer-key`, {
-        method: "PUT",
-        body: JSON.stringify({ answers }),
-      })
-      setTests((t) =>
-        t.map((x) =>
-          x.id === answerKeyTest.id ? { ...x, answerKey: { id: "set" } } : x
-        )
+    setTests((t) =>
+      t.map((x) =>
+        x.id === answerKeyTest.id ? { ...x, answerKey: { id: "set" } } : x
       )
-      closeDialogs()
-      toast.success(`Answer key saved (${answers.length} answers).`)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save answer key.")
-    } finally {
-      setLoading(false)
-    }
+    )
+    closeDialogs()
   }
 
   return (
@@ -306,33 +320,24 @@ export function PracticeManager({ initialTests, events, canManage, canCreate }: 
         </ResponsiveDialogContent>
       </ResponsiveDialog>
 
-      {/* Answer key dialog */}
+      {/* Questions editor (MCQ + difficulty + subtopics) */}
       <ResponsiveDialog open={!!answerKeyTest} onOpenChange={(open) => !open && closeDialogs()}>
-        <ResponsiveDialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <ResponsiveDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <ResponsiveDialogHeader>
-            <ResponsiveDialogTitle>Answer Key — {answerKeyTest?.title}</ResponsiveDialogTitle>
+            <ResponsiveDialogTitle>Questions — {answerKeyTest?.title}</ResponsiveDialogTitle>
           </ResponsiveDialogHeader>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Enter one answer per line. The order must match the question order.
-            </p>
-            <Textarea
-              value={answerKeyText}
-              onChange={(e) => setAnswerKeyText(e.target.value)}
-              placeholder={"A\nB\nC2H6\nTrue\n..."}
-              rows={6}
-              className="font-mono text-sm"
+          {answerKeyTest && editorPrompts ? (
+            <PromptEditor
+              assessmentId={answerKeyTest.id}
+              assessmentTitle={answerKeyTest.title}
+              initial={editorPrompts.prompts}
+              onSaved={handleEditorSaved}
             />
-            <p className="text-xs text-muted-foreground">
-              {answerKeyText.split("\n").filter((l) => l.trim()).length} answers entered
-            </p>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-8 text-center">Loading questions…</p>
+          )}
           <ResponsiveDialogFooter>
-            <Button variant="outline" onClick={closeDialogs}>Cancel</Button>
-            <Button onClick={handleSaveAnswerKey} disabled={loading}>
-              <IconCircleCheck size={15} className="mr-1.5" />
-              Save Key
-            </Button>
+            <Button variant="outline" onClick={closeDialogs}>Close</Button>
           </ResponsiveDialogFooter>
         </ResponsiveDialogContent>
       </ResponsiveDialog>
