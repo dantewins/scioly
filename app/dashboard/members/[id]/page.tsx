@@ -18,6 +18,8 @@ import { MemberEventsTable } from "@/features/members/components/member-events-t
 import { MemberHoursTable } from "@/features/members/components/member-hours-table"
 import { MemberInvoicesTable } from "@/features/members/components/member-invoices-table"
 import { MemberFormsTable } from "@/features/members/components/member-forms-table"
+import { ResendSetupButton } from "@/features/members/components/resend-setup-button"
+import { canEdit } from "@/lib/permissions"
 import { formatDateOnly } from "@/lib/format"
 
 
@@ -40,6 +42,7 @@ export default async function MemberDetailPage({ params }: Props) {
         id: true, firstName: true, lastName: true, email: true,
         phone: true, gradeLevel: true, graduationYear: true,
         role: true,
+        passwordHash: true,
       },
     }),
     season
@@ -153,11 +156,12 @@ export default async function MemberDetailPage({ params }: Props) {
             </h1>
             <p className="mt-1 text-sm text-muted-foreground break-all">{targetUser.email}</p>
           </div>
-          {ms && (
-            <div className="shrink-0">
-              <StatusBadge status={ms.membershipStatus} withDot />
-            </div>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            {ms && <StatusBadge status={ms.membershipStatus} withDot />}
+            {!targetUser.passwordHash && canEdit(user.permissions, "members") && (
+              <ResendSetupButton userId={targetUser.id} />
+            )}
+          </div>
         </div>
       </div>
 
