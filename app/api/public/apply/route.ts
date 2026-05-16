@@ -14,7 +14,14 @@ const schema = z.object({
   firstName: z.string().min(1).max(60),
   lastName: z.string().min(1).max(60),
   email: z.email(),
-  phone: z.string().max(20).optional(),
+  // Loose phone validation: digits, spaces, dashes, parens, plus. 7–20 chars.
+  // Strict format/E.164 is out of scope; this just blocks "abc123" style input.
+  phone: z
+    .string()
+    .max(20)
+    .regex(/^[\d\s\-()+ ]{7,20}$/, "Phone must contain 7–20 digits, spaces, dashes, parens, or +.")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   gradeLevel: z.coerce.number().int().min(9).max(12).optional(),
   graduationYear: z.coerce.number().int().optional(),
   shirtSize: z.string().optional(),

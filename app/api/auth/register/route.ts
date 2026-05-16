@@ -48,7 +48,9 @@ export async function POST(req: Request) {
     const body = await req.json()
     const parsed = schema.safeParse(body)
     if (!parsed.success) {
-      return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+      const issue = parsed.error.issues[0]
+      const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
+      return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
     }
 
     const { clubName, schoolName, schoolDomain, firstName, lastName, password } =

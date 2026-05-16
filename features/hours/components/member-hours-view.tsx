@@ -162,7 +162,17 @@ export function MemberHoursView({ entries: initial, categories, canSubmit }: Pro
 
   return (
     <div className="space-y-4">
-      {canSubmit && (
+      {canSubmit && categories.length === 0 && (
+        <div className="rounded-[var(--radius)] border border-amber-200/60 bg-amber-50/40 px-4 py-3 text-sm">
+          <p className="font-medium text-amber-900">No hour categories yet</p>
+          <p className="mt-1 text-amber-800/80">
+            Your admin needs to set up hour categories before you can log hours.
+            Reach out to them if this has been a while.
+          </p>
+        </div>
+      )}
+
+      {canSubmit && categories.length > 0 && (
         <Button size="sm" onClick={() => setShowSubmit(true)}>
           <IconPlus className="mr-1.5 size-[15px]" />
           Log Hours

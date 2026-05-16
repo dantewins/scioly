@@ -29,6 +29,11 @@ const submitSchema = z.object({
   proofUrl: z.string().url().optional(),
 })
 
+function formatIssue(issue: z.ZodIssue): string {
+  const path = issue.path.length > 0 ? issue.path.join(".") + ": " : ""
+  return `${path}${issue.message}`
+}
+
 // POST — submit a new hour entry (requires create_hours permission)
 export const POST = withActiveMemberAuth(async (req, _ctx, user) => {
   if (!hasPermission(user.permissions, "create_hours")) {
@@ -37,7 +42,9 @@ export const POST = withActiveMemberAuth(async (req, _ctx, user) => {
 
   const body = await req.json()
   const parsed = submitSchema.safeParse(body)
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+  if (!parsed.success) {
+    return err(parsed.error.issues[0] ? formatIssue(parsed.error.issues[0]) : "Invalid input.", 400)
+  }
 
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)
@@ -50,6 +57,12 @@ export const POST = withActiveMemberAuth(async (req, _ctx, user) => {
     where: { id: parsed.data.categoryId, seasonId: season.id },
   })
   if (!category) return err("Category not found.", 404)
+
+  // Per-category upper bound (falls back to the schema's max of 24).
+  const maxPerEntry = category.maxHoursPerEntry !== null ? Number(category.maxHoursPerEntry) : null
+  if (maxPerEntry !== null && parsed.data.totalHours > maxPerEntry) {
+    return err(`This category caps entries at ${maxPerEntry} hours.`, 400)
+  }
 
   const entry = await prisma.hourEntry.create({
     data: {

@@ -73,7 +73,11 @@ export const GET = withMemberAuth(async (_req, _ctx, user) => {
 export const PATCH = withMemberAuth(async (req, _ctx, user) => {
   const body = await readJsonBody(req)
   const parsed = profileSchema.safeParse(body)
-  if (!parsed.success) return err("Invalid input.", 400)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]
+    const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
+    return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
+  }
 
   const data: { firstName?: string; lastName?: string; displayName?: string | null } = {}
   if (parsed.data.firstName !== undefined) data.firstName = parsed.data.firstName.trim()
@@ -122,7 +126,9 @@ export const POST = withMemberAuth(async (req, _ctx, user) => {
     ) {
       return err("New password must be at least 8 characters.", 400)
     }
-    return err("Invalid input.", 400)
+    const issue = parsed.error.issues[0]
+    const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
+    return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
   }
 
   const record = await prisma.user.findUnique({

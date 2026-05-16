@@ -99,6 +99,17 @@ export function MemberFormsView({ formTypes: initial, seasonId }: Props) {
     }
   }
 
+  if (formTypes.length === 0) {
+    return (
+      <div className="rounded-[var(--radius)] border border-border/60 bg-muted/20 p-6 text-center">
+        <p className="font-medium text-foreground">No forms required</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Your admin hasn&apos;t set up any forms for this season yet. You&apos;ll see them here when they do.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {/* Member form tile — checklist tile with required/optional badge bottom corner + action ribbon */}
