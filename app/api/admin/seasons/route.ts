@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -28,7 +29,7 @@ const createSchema = z.object({
 export const POST = withPermission("edit_club_settings", async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+  if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
   const existing = await prisma.season.findUnique({
     where: { clubId_schoolYear: { clubId: user.clubId, schoolYear: parsed.data.schoolYear } },

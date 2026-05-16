@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { getClubDomainConfig, syncPrimaryClubDomain } from "@/lib/db"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -19,7 +20,7 @@ const schema = z.object({
 export const PATCH = withPermission("edit_club_settings", async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = schema.safeParse(body)
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+  if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
   const club = await prisma.club.update({
     where: { id: user.clubId },

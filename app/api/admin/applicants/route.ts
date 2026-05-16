@@ -11,6 +11,7 @@ import {
 import { clearSeasonLookupCaches, getActiveSeason } from "@/lib/db"
 import { listPendingApplicants } from "@/lib/applications"
 import { clearCurrentUserCache } from "@/lib/auth"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -198,7 +199,7 @@ async function processOne(
 export const PATCH = withPermission("edit_members", async (req, _ctx, user) => {
   const body = await req.json().catch(() => null)
   const parsed = patchSchema.safeParse(body)
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+  if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
   const { memberSeasonId, memberSeasonIds, action, reason } = parsed.data
   const ids = memberSeasonIds ?? [memberSeasonId as string]

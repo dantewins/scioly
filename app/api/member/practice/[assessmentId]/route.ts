@@ -2,6 +2,7 @@ import { z } from "zod"
 import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { getMemberSeason } from "@/lib/db"
 import { rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
+import { formatZodError } from "@/lib/zod-errors"
 import {
   getMemberPracticeAssessmentDetail,
   getMemberPracticeAttemptDetail,
@@ -38,7 +39,7 @@ export const POST = withActiveMemberAuth(
 
     const body = await req.json().catch(() => ({}))
     const parsed = startSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const limiter = await takeRateLimit(`member:practice:start:${user.id}`, 30, 60_000)
     if (!limiter.allowed) return rateLimitError("start", limiter.retryAfterMs)

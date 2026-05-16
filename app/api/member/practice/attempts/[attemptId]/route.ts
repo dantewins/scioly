@@ -2,6 +2,7 @@ import { z } from "zod"
 import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { getMemberSeason } from "@/lib/db"
 import { rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
+import { formatZodError } from "@/lib/zod-errors"
 import {
   getMemberPracticeAttemptDetail,
   submitPracticeAssessmentAttempt,
@@ -48,7 +49,7 @@ export const PATCH = withActiveMemberAuth(
 
     const body = await req.json()
     const parsed = saveSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const limiter = await takeRateLimit(`member:practice:save:${user.id}:${attemptId}`, 120, 60_000)
     if (!limiter.allowed) return rateLimitError("autosave", limiter.retryAfterMs)
@@ -79,7 +80,7 @@ export const POST = withActiveMemberAuth(
 
     const body = await req.json().catch(() => ({}))
     const parsed = submitSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const limiter = await takeRateLimit(`member:practice:submit:${user.id}:${attemptId}`, 10, 300_000)
     if (!limiter.allowed) return rateLimitError("submit", limiter.retryAfterMs)

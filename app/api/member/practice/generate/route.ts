@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import { rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -31,9 +32,7 @@ export const POST = withActiveMemberAuth(async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = generateSchema.safeParse(body)
   if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-    const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
-    return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
+    return err(formatZodError(parsed.error), 400)
   }
 
   const { eventId, count, timeLimitMinutes, types, difficulties, subtopics } = parsed.data

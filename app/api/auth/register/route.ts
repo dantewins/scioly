@@ -13,6 +13,7 @@ import {
   memberPermissions,
 } from "@/lib/permissions"
 import { buildRateLimitKey, rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -48,9 +49,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => null)
     const parsed = schema.safeParse(body)
     if (!parsed.success) {
-      const issue = parsed.error.issues[0]
-      const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
-      return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
+      return err(formatZodError(parsed.error), 400)
     }
 
     const { clubName, schoolName, schoolDomain, firstName, lastName, password } =

@@ -3,6 +3,7 @@ import { ResourceType } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { logActivity } from "@/lib/activity"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -28,9 +29,7 @@ export const PATCH = withPermission(
     const body = await req.json()
     const parsed = patchSchema.safeParse(body)
     if (!parsed.success) {
-      const issue = parsed.error.issues[0]
-      const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
-      return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
+      return err(formatZodError(parsed.error), 400)
     }
 
     const data: Record<string, unknown> = {}

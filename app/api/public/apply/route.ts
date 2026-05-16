@@ -6,6 +6,7 @@ import { isEmailAllowedForDomains } from "@/lib/email-domains"
 import { getAllowedClubDomains } from "@/lib/db"
 import { buildRateLimitKey, rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
 import { sendApplicationReceivedEmail } from "@/lib/email"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
     const parsed = schema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Invalid input." },
+        { error: formatZodError(parsed.error) },
         { status: 400 },
       )
     }
@@ -99,21 +100,19 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check not already registered
+    // Look up an existing user with this email. We allow re-apply if their
+    // previous outcome was DENIED, WITHDRAWN, or their MemberSeason is REMOVED.
+    // We block re-apply if they're already PENDING, ACTIVE, or have a passwordHash
+    // (real account).
     const existing = await prisma.user.findFirst({
-      where: {
-        email: {
-          equals: email,
-          mode: "insensitive",
-        },
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: {
+        id: true,
+        role: true,
+        passwordHash: true,
+        clubId: true,
       },
     })
-    if (existing) {
-      return NextResponse.json(
-        { error: "An account with this email already exists." },
-        { status: 409 },
-      )
-    }
 
     // Active season required
     const season = await prisma.season.findFirst({
@@ -121,6 +120,27 @@ export async function POST(req: Request) {
     })
     if (!season) {
       return NextResponse.json({ error: "No active season." }, { status: 400 })
+    }
+
+    if (existing) {
+      // Block if they have a real account (set their password) or belong to a different club.
+      if (existing.passwordHash || existing.role !== "APPLICANT" || existing.clubId !== club.id) {
+        return NextResponse.json(
+          { error: "An account with this email already exists." },
+          { status: 409 },
+        )
+      }
+      // Block if they have an open application this season.
+      const openMs = await prisma.memberSeason.findUnique({
+        where: { userId_seasonId: { userId: existing.id, seasonId: season.id } },
+        select: { membershipStatus: true },
+      })
+      if (openMs && openMs.membershipStatus === "PENDING") {
+        return NextResponse.json(
+          { error: "You already have a pending application this season." },
+          { status: 409 },
+        )
+      }
     }
 
     if (eventChoices?.length) {
@@ -133,23 +153,39 @@ export async function POST(req: Request) {
       }
     }
 
-    // Create user + member season + event enrollments
+    // Create or reuse user, create member season + application + enrollments.
     await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          clubId: club.id,
-          email,
-          role: "APPLICANT",
-          firstName: fields.firstName,
-          lastName: fields.lastName,
-          phone: fields.phone,
-          gradeLevel: fields.gradeLevel,
-          graduationYear: fields.graduationYear,
-        },
-      })
+      // Reuse the existing applicant User if we have one (re-apply case).
+      const user = existing
+        ? await tx.user.update({
+            where: { id: existing.id },
+            data: {
+              firstName: fields.firstName,
+              lastName: fields.lastName,
+              phone: fields.phone,
+              gradeLevel: fields.gradeLevel,
+              graduationYear: fields.graduationYear,
+              // Role stays APPLICANT; resets to APPLICANT if it had drifted.
+              role: "APPLICANT",
+            },
+          })
+        : await tx.user.create({
+            data: {
+              clubId: club.id,
+              email,
+              role: "APPLICANT",
+              firstName: fields.firstName,
+              lastName: fields.lastName,
+              phone: fields.phone,
+              gradeLevel: fields.gradeLevel,
+              graduationYear: fields.graduationYear,
+            },
+          })
 
-      const ms = await tx.memberSeason.create({
-        data: {
+      // Upsert the MemberSeason — re-applies replace the previous row.
+      const ms = await tx.memberSeason.upsert({
+        where: { userId_seasonId: { userId: user.id, seasonId: season.id } },
+        create: {
           userId: user.id,
           seasonId: season.id,
           membershipStatus: "PENDING",
@@ -165,6 +201,31 @@ export async function POST(req: Request) {
           questions: fields.questions,
           applicationSubmittedAt: new Date(),
         },
+        update: {
+          membershipStatus: "PENDING",
+          statusChangedAt: new Date(),
+          statusReason: "Re-applied.",
+          isReturning: fields.isReturning ?? false,
+          canTravel: fields.canTravel ?? false,
+          shirtSize,
+          whyJoin: fields.whyJoin,
+          contributionIdeas: fields.contributionIdeas,
+          awards: fields.awards,
+          previousEvents: fields.previousEvents,
+          scienceClasses: fields.scienceClasses,
+          mathClasses: fields.mathClasses,
+          questions: fields.questions,
+          applicationSubmittedAt: new Date(),
+        },
+      })
+
+      // Drop any prior application + event choices for this member-season so
+      // the new application starts clean.
+      await tx.membershipApplication.deleteMany({
+        where: { memberSeasonId: ms.id },
+      })
+      await tx.eventEnrollment.deleteMany({
+        where: { memberSeasonId: ms.id },
       })
 
       await tx.membershipApplication.create({

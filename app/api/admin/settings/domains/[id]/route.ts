@@ -7,6 +7,7 @@ import {
 } from "@/lib/db"
 import { normalizeDomain } from "@/lib/email-domains"
 import { z } from "zod"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -26,7 +27,7 @@ export const PATCH = withPermission(
     const body = await req.json().catch(() => ({}))
     const parsed = patchSchema.safeParse(body)
     if (!parsed.success) {
-      return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+      return err(formatZodError(parsed.error), 400)
     }
 
     try {

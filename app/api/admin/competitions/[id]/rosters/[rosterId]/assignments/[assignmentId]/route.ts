@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { getCanonicalCompetitionRoster } from "@/lib/competition-ontology"
 import { getCanonicalCompetitionEventPlacement } from "@/lib/competition-event-sync"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -52,7 +53,7 @@ export const PATCH = withPermission(
     const { id: competitionId, rosterId, assignmentId } = await ctx.params
     const body = await req.json()
     const parsed = patchSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const assignment = await resolveAssignment(assignmentId, rosterId, competitionId, user.clubId)
     if (!assignment) return err("Assignment not found.", 404)

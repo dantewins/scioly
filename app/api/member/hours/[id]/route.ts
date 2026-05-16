@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withActiveMemberAuth, ok, err } from "@/lib/api"
 import { hasPermission } from "@/lib/permissions"
 import { getActiveSeason, getMemberSeason } from "@/lib/db"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -36,7 +37,7 @@ export const PATCH = withActiveMemberAuth(
     const { id } = await ctx.params
     const body = await req.json()
     const parsed = patchSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const season = await getActiveSeason(user.clubId)
     if (!season) return err("No active season.", 400)

@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { clearCurrentUserCache } from "@/lib/auth"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -18,7 +19,7 @@ export const PATCH = withPermission(
     const { roleId } = await ctx.params
     const body = await req.json()
     const parsed = patchSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const existing = await prisma.clubRole.findFirst({
       where: { id: roleId, clubId: user.clubId },

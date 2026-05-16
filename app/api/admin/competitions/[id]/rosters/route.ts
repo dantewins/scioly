@@ -2,6 +2,7 @@ import { z } from "zod"
 import { SciolyDivision } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { formatZodError } from "@/lib/zod-errors"
 import {
   getCanonicalCompetitionRoster,
   listCanonicalCompetitionRosters,
@@ -41,7 +42,7 @@ export const POST = withPermission(
     const { id: competitionId } = await ctx.params
     const body = await req.json()
     const parsed = createSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const competition = await resolveCompetition(competitionId, user.clubId)
     if (!competition) return err("Competition not found.", 404)

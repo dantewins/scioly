@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { clearCurrentUserCache } from "@/lib/auth"
 import { withMemberAuth, ok, err, readJsonBody } from "@/lib/api"
 import { buildRateLimitKey, rateLimitErrorMessage, takeRateLimit } from "@/lib/rate-limit"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -74,9 +75,7 @@ export const PATCH = withMemberAuth(async (req, _ctx, user) => {
   const body = await readJsonBody(req)
   const parsed = profileSchema.safeParse(body)
   if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-    const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
-    return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
+    return err(formatZodError(parsed.error), 400)
   }
 
   const data: { firstName?: string; lastName?: string; displayName?: string | null } = {}
@@ -126,9 +125,7 @@ export const POST = withMemberAuth(async (req, _ctx, user) => {
     ) {
       return err("New password must be at least 8 characters.", 400)
     }
-    const issue = parsed.error.issues[0]
-    const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
-    return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
+    return err(formatZodError(parsed.error), 400)
   }
 
   const record = await prisma.user.findUnique({

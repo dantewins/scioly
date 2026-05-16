@@ -2,6 +2,7 @@ import { z } from "zod"
 import { AssessmentDifficulty, AssessmentResponseType, Prisma } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -82,9 +83,7 @@ export const PUT = withPermission(
     const body = await req.json()
     const parsed = putSchema.safeParse(body)
     if (!parsed.success) {
-      const issue = parsed.error.issues[0]
-      const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
-      return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
+      return err(formatZodError(parsed.error), 400)
     }
 
     await prisma.$transaction(async (tx) => {

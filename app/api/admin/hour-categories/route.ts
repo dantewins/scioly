@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -29,7 +30,7 @@ const createSchema = z.object({
 export const POST = withPermission("edit_hours", async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+  if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
 import { logActivity } from "@/lib/activity"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -62,9 +63,7 @@ export const POST = withPermission("edit_practice", async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) {
-    const issue = parsed.error.issues[0]
-    const fieldPath = issue?.path && issue.path.length > 0 ? issue.path.join(".") + ": " : ""
-    return err(`${fieldPath}${issue?.message ?? "Invalid input."}`, 400)
+    return err(formatZodError(parsed.error), 400)
   }
 
   // Verify event/competition belong to this club + season.

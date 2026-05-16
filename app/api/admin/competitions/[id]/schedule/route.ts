@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { formatZodError } from "@/lib/zod-errors"
 import {
   resetCompetitionEventSchedule,
   syncCompetitionEventsForCompetition,
@@ -21,7 +22,7 @@ export const POST = withPermission(
     const { id: competitionId } = await ctx.params
     const body = await req.json()
     const parsed = addSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     // Verify competition belongs to this club
     const comp = await prisma.competition.findFirst({

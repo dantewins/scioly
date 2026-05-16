@@ -2,6 +2,7 @@
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -20,7 +21,7 @@ export const PATCH = withPermission(
     const { id } = await ctx.params
     const body = await req.json()
     const parsed = patchSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const form = await prisma.formType.findFirst({
       where: { id, season: { clubId: user.clubId } },

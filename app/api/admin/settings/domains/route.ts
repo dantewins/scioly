@@ -2,6 +2,7 @@ import { z } from "zod"
 import { err, ok, withPermission } from "@/lib/api"
 import { createClubEmailDomain, listActiveClubEmailDomains } from "@/lib/db"
 import { normalizeDomain } from "@/lib/email-domains"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -21,7 +22,7 @@ export const GET = withPermission("view_club_settings", async (_req, _ctx, user)
 export const POST = withPermission("edit_club_settings", async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = createSchema.safeParse(body)
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+  if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
   try {
     await createClubEmailDomain(user.clubId, parsed.data.domain, {

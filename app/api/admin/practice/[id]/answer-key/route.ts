@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { withPermission, ok, err } from "@/lib/api"
+import { formatZodError } from "@/lib/zod-errors"
 import {
   getPracticeAssessmentAnswerKey,
   upsertPracticeAssessmentAnswerKey,
@@ -27,7 +28,7 @@ export const PUT = withPermission(
     const { id } = await ctx.params
     const body = await req.json()
     const parsed = putSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const key = await upsertPracticeAssessmentAnswerKey(id, user.clubId, parsed.data.answers)
     if (!key) return err("Test not found.", 404)

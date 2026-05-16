@@ -2,6 +2,7 @@ import { z } from "zod"
 import { AssessmentFormat, AssessmentPartType } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
+import { formatZodError } from "@/lib/zod-errors"
 import {
   deletePracticeAssessment,
   getPracticeAssessmentForAdmin,
@@ -54,7 +55,7 @@ export const PATCH = withPermission(
     const { id } = await ctx.params
     const body = await req.json()
     const parsed = patchSchema.safeParse(body)
-    if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const test = await resolveAssessment(id, user.clubId)
     if (!test) return err("Test not found.", 404)

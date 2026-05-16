@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { getActiveSeason } from "@/lib/db"
 import { sendHoursReviewedEmail } from "@/lib/email"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -50,7 +51,7 @@ const reviewSchema = z.object({
 export const PATCH = withPermission("edit_hours", async (req, _ctx, user) => {
   const body = await req.json()
   const parsed = reviewSchema.safeParse(body)
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
+  if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
   const { entryIds, action, rejectionReason } = parsed.data
 
