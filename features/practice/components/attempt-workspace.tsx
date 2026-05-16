@@ -296,31 +296,83 @@ interface PromptRowProps {
   onChange: (val: string) => void
 }
 
+const DIFFICULTY_CHIP: Record<"EASY" | "MEDIUM" | "HARD", string> = {
+  EASY: "bg-[var(--success-soft)] text-[var(--success)]",
+  MEDIUM: "bg-[var(--warning-soft)] text-[var(--warning)]",
+  HARD: "bg-[var(--danger-soft)] text-[var(--danger)]",
+}
+
 function PromptRow({ prompt, response, canEdit, onChange }: PromptRowProps) {
+  const isMCQ = prompt.responseType === "MULTIPLE_CHOICE"
+  const options = Array.isArray(prompt.choiceOptions) ? prompt.choiceOptions : null
+
   return (
     <div className="rounded-[var(--radius)] border border-border/60 px-[var(--card-px)] py-[var(--card-py)]">
       <div className="flex items-start gap-3">
         <span className="text-xs text-muted-foreground font-mono w-6 shrink-0 pt-0.5">
           {prompt.promptNumber}.
         </span>
-        <div className="flex-1 space-y-1.5">
-          {prompt.label && (
-            <p className="text-sm font-medium">{prompt.label}</p>
-          )}
+        <div className="flex-1 space-y-1.5 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            {prompt.label && (
+              <p className="text-sm font-medium">{prompt.label}</p>
+            )}
+            {prompt.difficulty && (
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${DIFFICULTY_CHIP[prompt.difficulty]}`}>
+                {prompt.difficulty.toLowerCase()}
+              </span>
+            )}
+            {prompt.subtopics?.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
           {prompt.instructions && (
             <p className="text-xs text-muted-foreground">{prompt.instructions}</p>
           )}
           {canEdit ? (
-            <Input
-              value={response}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder="Your answer"
-              className="text-sm"
-            />
+            isMCQ && options && options.length > 0 ? (
+              <div className="space-y-1">
+                {options.map((option, idx) => {
+                  const id = `${prompt.id}-opt-${idx}`
+                  return (
+                    <label
+                      key={id}
+                      htmlFor={id}
+                      className="flex cursor-pointer items-start gap-2 rounded-md border border-border/60 px-3 py-2 hover:bg-azure-50/40"
+                    >
+                      <input
+                        id={id}
+                        type="radio"
+                        name={prompt.id}
+                        value={idx}
+                        checked={response === String(idx)}
+                        onChange={() => onChange(String(idx))}
+                        className="mt-0.5 size-4 accent-azure-600"
+                      />
+                      <span className="text-sm">{option}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            ) : (
+              <Input
+                value={response}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="Your answer"
+                className="text-sm"
+              />
+            )
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                {prompt.responseText ?? <em className="text-xs">No answer</em>}
+                {isMCQ && options && prompt.responseText !== null
+                  ? options[Number(prompt.responseText)] ?? prompt.responseText
+                  : prompt.responseText ?? <em className="text-xs">No answer</em>}
               </span>
               {prompt.isCorrect === true && (
                 <span className="flex items-center gap-1 text-xs text-[var(--success)]">

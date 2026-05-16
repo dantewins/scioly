@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
+type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID" | "GENERATED"
 type AssessmentPartType = "SECTION" | "STATION"
 
 interface SciEvent {

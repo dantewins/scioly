@@ -1,4 +1,6 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
+import { IconSparkles } from "@tabler/icons-react"
 import { getCurrentUser } from "@/lib/auth"
 import { canView, canEdit, canCreate } from "@/lib/permissions"
 import { prisma } from "@/lib/prisma"
@@ -6,6 +8,7 @@ import { getActiveSeason, getMemberSeason } from "@/lib/db"
 import { PracticeManager } from "@/features/practice/components/practice-manager"
 import { PracticeFeed } from "@/features/practice/components/practice-feed"
 import { PageHeader } from "@/components/ui/page-header"
+import { Button } from "@/components/ui/button"
 import {
   listPracticeAssessmentsForAdmin,
   getMemberPracticeFeed,
@@ -57,7 +60,14 @@ export default async function PracticePage() {
       <PageHeader
         title="Assessments"
         description={`${feed.assessments.length} available assessment${feed.assessments.length !== 1 ? "s" : ""}`}
-      />
+      >
+        <Button asChild size="sm">
+          <Link href="/dashboard/practice/generate">
+            <IconSparkles className="size-4 mr-1.5" />
+            Generate test
+          </Link>
+        </Button>
+      </PageHeader>
       <PracticeFeed feed={feed} />
     </div>
   )

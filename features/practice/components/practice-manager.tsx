@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { PracticeTestCard, type PracticeTestCardData } from "@/features/practice/components/practice-test-card"
 import { PracticeTestForm } from "@/features/practice/components/practice-test-form"
 
-type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
+type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID" | "GENERATED"
 type AssessmentPartType = "SECTION" | "STATION"
 
 interface SciEvent {

@@ -168,6 +168,13 @@ enum AssessmentFormat {
   TEST
   STATIONS
   HYBRID
+  GENERATED
+}
+
+enum AssessmentDifficulty {
+  EASY
+  MEDIUM
+  HARD
 }
 
 enum AssessmentAssetKind {
@@ -1130,20 +1137,23 @@ model AssessmentPart {
 }
 
 model AssessmentPrompt {
-  id             String                 @id @default(cuid())
-  assessmentId   String
-  partId         String?
-  promptNumber   Int
-  label          String?
-  responseType   AssessmentResponseType @default(SHORT_TEXT)
-  pointsPossible Decimal?               @db.Decimal(6, 2)
-  answerKeyText  String?
-  choiceOptions  Json?
-  pageRef        String?
-  instructions   String?
-  isRequired     Boolean                @default(true)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  id              String                 @id @default(cuid())
+  assessmentId    String
+  partId          String?
+  promptNumber    Int
+  label           String?
+  responseType    AssessmentResponseType @default(SHORT_TEXT)
+  pointsPossible  Decimal?               @db.Decimal(6, 2)
+  answerKeyText   String?
+  choiceOptions   Json?
+  correctChoiceIndex Int?
+  difficulty      AssessmentDifficulty?
+  subtopics       String[]               @default([])
+  pageRef         String?
+  instructions    String?
+  isRequired      Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 
   assessment Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   part       AssessmentPart?      @relation(fields: [partId], references: [id], onDelete: SetNull)
@@ -1151,20 +1161,24 @@ model AssessmentPrompt {
 
   @@unique([assessmentId, promptNumber])
   @@index([partId])
+  @@index([difficulty])
 }
 
 model AssessmentAttempt {
-  id             String                  @id @default(cuid())
-  assessmentId   String
-  memberSeasonId String
-  status         AssessmentAttemptStatus @default(IN_PROGRESS)
-  scoreEarned    Decimal?                @db.Decimal(6, 2)
-  scorePossible  Decimal?                @db.Decimal(6, 2)
-  startedAt      DateTime                @default(now())
-  submittedAt    DateTime?
-  gradedAt       DateTime?
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
+  id                   String                  @id @default(cuid())
+  assessmentId         String
+  memberSeasonId       String
+  status               AssessmentAttemptStatus @default(IN_PROGRESS)
+  scoreEarned          Decimal?                @db.Decimal(6, 2)
+  scorePossible        Decimal?                @db.Decimal(6, 2)
+  startedAt            DateTime                @default(now())
+  submittedAt          DateTime?
+  gradedAt             DateTime?
+  // For dynamically generated tests: which filter combination produced
+  // this attempt? Lets us re-generate similar tests later.
+  generatedFromFilters Json?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
 
   assessment   Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   memberSeason MemberSeason         @relation(fields: [memberSeasonId], references: [id], onDelete: Cascade)

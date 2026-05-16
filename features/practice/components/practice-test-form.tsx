@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select"
 import { AssessmentPartEditor, type AssessmentPartEditorValue } from "./assessment-part-editor"
 
-type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
+type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID" | "GENERATED"
 
 interface FormState {
   title: string

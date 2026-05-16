@@ -77,12 +77,18 @@ export async function getMemberPracticeAttemptDetail(
       })),
       prompts: attempt.assessment.prompts.map((prompt) => {
         const response = responseMap.get(prompt.id)
+        const choiceOptions = Array.isArray(prompt.choiceOptions)
+          ? (prompt.choiceOptions as unknown[]).filter((c): c is string => typeof c === "string")
+          : null
         return {
           id: prompt.id,
           partId: prompt.partId ?? null,
           promptNumber: prompt.promptNumber,
           label: prompt.label ?? null,
           responseType: prompt.responseType,
+          choiceOptions,
+          difficulty: prompt.difficulty,
+          subtopics: prompt.subtopics ?? [],
           pointsPossible: prompt.pointsPossible === null ? null : Number(prompt.pointsPossible),
           pageRef: prompt.pageRef ?? null,
           instructions: prompt.instructions ?? null,
@@ -232,7 +238,10 @@ export async function submitPracticeAssessmentAttempt(
             select: {
               id: true,
               promptNumber: true,
+              responseType: true,
               answerKeyText: true,
+              choiceOptions: true,
+              correctChoiceIndex: true,
               pointsPossible: true,
             },
             orderBy: { promptNumber: "asc" },
@@ -263,13 +272,24 @@ export async function submitPracticeAssessmentAttempt(
     for (const prompt of prompts) {
       const rawAnswer = normalizedAnswers[prompt.promptNumber - 1] ?? ""
       const responseText = rawAnswer.trim() || null
-      const expected = prompt.answerKeyText?.trim() ?? null
-      const isCorrect = expected
-        ? rawAnswer.trim().toLowerCase() === expected.toLowerCase()
-        : null
+
+      // Grading branches by responseType.
+      // MCQ: responseText is the chosen option index (as string). Compare to correctChoiceIndex.
+      // SHORT_TEXT/other: case-insensitive trim match against answerKeyText.
+      let isCorrect: boolean | null = null
+      let hasKey = false
+      if (prompt.responseType === "MULTIPLE_CHOICE" && prompt.correctChoiceIndex !== null) {
+        hasKey = true
+        const chosen = Number.parseInt(rawAnswer.trim(), 10)
+        isCorrect = Number.isFinite(chosen) && chosen === prompt.correctChoiceIndex
+      } else if (prompt.answerKeyText) {
+        hasKey = true
+        const expected = prompt.answerKeyText.trim()
+        isCorrect = rawAnswer.trim().toLowerCase() === expected.toLowerCase()
+      }
 
       let pointsAwarded: Prisma.Decimal | null = null
-      if (expected) {
+      if (hasKey) {
         const promptPoints = prompt.pointsPossible ?? new Prisma.Decimal(1)
         scorePossible = scorePossible.plus(promptPoints)
         if (isCorrect) {
@@ -302,7 +322,11 @@ export async function submitPracticeAssessmentAttempt(
       })
     }
 
-    const hasAnswerKey = prompts.some((prompt) => prompt.answerKeyText)
+    const hasAnswerKey = prompts.some(
+      (prompt) =>
+        prompt.answerKeyText ||
+        (prompt.responseType === "MULTIPLE_CHOICE" && prompt.correctChoiceIndex !== null),
+    )
     await db.assessmentAttempt.update({
       where: { id: attempt.id },
       data: {

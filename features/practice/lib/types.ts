@@ -207,6 +207,9 @@ export interface MemberPracticeAttemptDetail {
       promptNumber: number
       label: string | null
       responseType: string
+      choiceOptions: string[] | null
+      difficulty: "EASY" | "MEDIUM" | "HARD" | null
+      subtopics: string[]
       pointsPossible: number | null
       pageRef: string | null
       instructions: string | null

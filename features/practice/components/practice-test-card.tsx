@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 // pill cluster up top, title middle, inline stat chips bottom-left, and
 // always-visible action buttons on the right. More utility, less editorial.
 
-type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID"
+type AssessmentFormat = "TEST" | "STATIONS" | "HYBRID" | "GENERATED"
 type AssessmentPartType = "SECTION" | "STATION"
 
 interface SciEvent { id: string; name: string }
@@ -59,6 +59,7 @@ const FORMAT_LABEL: Record<AssessmentFormat, string> = {
   TEST: "Test",
   STATIONS: "Stations",
   HYBRID: "Hybrid",
+  GENERATED: "Generated",
 }
 
 export function PracticeTestCard({ test, canManage, onEdit, onDelete, onSetAnswerKey }: Props) {
