@@ -80,7 +80,7 @@ const statusSchema = z.object({
 // PATCH — update member status
 export const PATCH = withPermission("edit_members", async (req, ctx: { params: Promise<{ id: string }> }, user) => {
   const { id: targetUserId } = await ctx.params
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = statusSchema.safeParse(body)
   if (!parsed.success) return err(formatZodError(parsed.error), 400)
 

@@ -80,7 +80,7 @@ export const PUT = withPermission(
     })
     if (!assessment) return err("Test not found.", 404)
 
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = putSchema.safeParse(body)
     if (!parsed.success) {
       return err(formatZodError(parsed.error), 400)

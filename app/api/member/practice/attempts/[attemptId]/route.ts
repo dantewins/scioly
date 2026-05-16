@@ -47,7 +47,7 @@ export const PATCH = withActiveMemberAuth(
     const ms = await getMemberSeason(user.id, user.clubId)
     if (!ms) return err("Not a member this season.", 403)
 
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = saveSchema.safeParse(body)
     if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
@@ -78,7 +78,7 @@ export const POST = withActiveMemberAuth(
     const ms = await getMemberSeason(user.id, user.clubId)
     if (!ms) return err("Not a member this season.", 403)
 
-    const body = await req.json().catch(() => ({}))
+    const body = await req.json().catch(() => null).catch(() => ({}))
     const parsed = submitSchema.safeParse(body)
     if (!parsed.success) return err(formatZodError(parsed.error), 400)
 

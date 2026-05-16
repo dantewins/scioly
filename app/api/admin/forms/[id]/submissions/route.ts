@@ -42,7 +42,7 @@ const reviewSchema = z.object({
 export const PATCH = withPermission(
   "edit_forms",
   async (req, _ctx, user) => {
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = reviewSchema.safeParse(body)
     if (!parsed.success) return err("Invalid.", 400)
 

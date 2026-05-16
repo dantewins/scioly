@@ -26,7 +26,7 @@ export const PATCH = withPermission(
     })
     if (!existing) return err("Resource not found.", 404)
 
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = patchSchema.safeParse(body)
     if (!parsed.success) {
       return err(formatZodError(parsed.error), 400)

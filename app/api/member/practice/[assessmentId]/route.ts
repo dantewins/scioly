@@ -37,7 +37,7 @@ export const POST = withActiveMemberAuth(
     const ms = await getMemberSeason(user.id, user.clubId)
     if (!ms) return err("Not a member this season.", 403)
 
-    const body = await req.json().catch(() => ({}))
+    const body = await req.json().catch(() => null).catch(() => ({}))
     const parsed = startSchema.safeParse(body)
     if (!parsed.success) return err(formatZodError(parsed.error), 400)
 

@@ -60,7 +60,7 @@ export const POST = withPermission("edit_practice", async (req, _ctx, user) => {
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) {
     return err(formatZodError(parsed.error), 400)

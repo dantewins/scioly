@@ -16,7 +16,7 @@ const schema = z.object({
 })
 
 export const POST = withPermission("edit_members", async (req, _ctx, user) => {
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
     return err(formatZodError(parsed.error), 400)

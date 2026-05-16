@@ -17,7 +17,7 @@ export const PATCH = withPermission(
   "edit_roles",
   async (req, ctx: { params: Promise<{ roleId: string }> }, user) => {
     const { roleId } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = patchSchema.safeParse(body)
     if (!parsed.success) return err(formatZodError(parsed.error), 400)
 

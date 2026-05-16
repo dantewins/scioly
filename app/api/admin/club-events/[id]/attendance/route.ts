@@ -45,7 +45,7 @@ export const POST = withPermission(
   "edit_club_events",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id: clubEventId } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = memberSeasonSchema.safeParse(body)
     if (!parsed.success) return err("Invalid.", 400)
 
@@ -143,7 +143,7 @@ export const DELETE = withPermission(
   "edit_club_events",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id: clubEventId } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = memberSeasonSchema.safeParse(body)
     if (!parsed.success) return err("Invalid.", 400)
 

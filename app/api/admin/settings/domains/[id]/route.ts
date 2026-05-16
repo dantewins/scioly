@@ -24,7 +24,7 @@ export const PATCH = withPermission(
   "edit_club_settings",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id } = await ctx.params
-    const body = await req.json().catch(() => ({}))
+    const body = await req.json().catch(() => null).catch(() => ({}))
     const parsed = patchSchema.safeParse(body)
     if (!parsed.success) {
       return err(formatZodError(parsed.error), 400)

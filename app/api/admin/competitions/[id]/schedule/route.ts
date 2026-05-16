@@ -20,7 +20,7 @@ export const POST = withPermission(
   "edit_competitions",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id: competitionId } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = addSchema.safeParse(body)
     if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
@@ -92,7 +92,7 @@ export const DELETE = withPermission(
   "edit_competitions",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id: competitionId } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const { eventId } = body as { eventId: string }
 
     const comp = await prisma.competition.findFirst({

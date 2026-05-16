@@ -16,7 +16,7 @@ export const POST = withPermission(
   "edit_roles",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id: targetUserId } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = assignSchema.safeParse(body)
     if (!parsed.success) return err("Invalid input.", 400)
 
@@ -49,7 +49,7 @@ export const DELETE = withPermission(
   "edit_roles",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id: targetUserId } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = assignSchema.safeParse(body)
     if (!parsed.success) return err("Invalid input.", 400)
 

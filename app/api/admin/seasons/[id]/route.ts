@@ -11,7 +11,7 @@ export const PATCH = withPermission(
   "edit_club_settings",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const { isActive } = body as { isActive: boolean }
 
     const season = await prisma.season.findFirst({

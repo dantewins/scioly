@@ -29,7 +29,7 @@ export const POST = withActiveMemberAuth(async (req, _ctx, user) => {
     return err(rateLimitErrorMessage("test generation", limiter.retryAfterMs), 429)
   }
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = generateSchema.safeParse(body)
   if (!parsed.success) {
     return err(formatZodError(parsed.error), 400)

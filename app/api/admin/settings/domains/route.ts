@@ -20,7 +20,7 @@ export const GET = withPermission("view_club_settings", async (_req, _ctx, user)
 })
 
 export const POST = withPermission("edit_club_settings", async (req, _ctx, user) => {
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return err(formatZodError(parsed.error), 400)
 

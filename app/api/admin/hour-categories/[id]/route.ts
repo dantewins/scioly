@@ -18,7 +18,7 @@ export const PATCH = withPermission(
   "edit_hours",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id } = await ctx.params
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = patchSchema.safeParse(body)
     if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
