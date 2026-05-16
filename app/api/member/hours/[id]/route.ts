@@ -16,10 +16,15 @@ const patchSchema = z.object({
 })
 
 async function resolveOwnedPendingEntry(entryId: string, memberSeasonId: string) {
-  return prisma.hourEntry.findFirst({
-    where: { id: entryId, memberSeasonId, status: "PENDING" },
-    select: { id: true },
+  // Two-step lookup so we can distinguish "not yours / doesn't exist" (404)
+  // from "yours but already reviewed" (403).
+  const entry = await prisma.hourEntry.findFirst({
+    where: { id: entryId, memberSeasonId },
+    select: { id: true, status: true },
   })
+  if (!entry) return { state: "NOT_FOUND" as const }
+  if (entry.status !== "PENDING") return { state: "ALREADY_REVIEWED" as const, status: entry.status }
+  return { state: "OK" as const, id: entry.id }
 }
 
 export const PATCH = withActiveMemberAuth(
@@ -39,8 +44,11 @@ export const PATCH = withActiveMemberAuth(
     const ms = await getMemberSeason(user.id, user.clubId)
     if (!ms) return err("Not a member this season.", 403)
 
-    const entry = await resolveOwnedPendingEntry(id, ms.id)
-    if (!entry) return err("Entry not found or already reviewed.", 404)
+    const found = await resolveOwnedPendingEntry(id, ms.id)
+    if (found.state === "NOT_FOUND") return err("Hour entry not found.", 404)
+    if (found.state === "ALREADY_REVIEWED") {
+      return err(`Can't edit a ${found.status.toLowerCase()} hour entry.`, 403)
+    }
 
     if (parsed.data.categoryId) {
       const category = await prisma.hourCategory.findFirst({
@@ -65,8 +73,11 @@ export const DELETE = withActiveMemberAuth(
     const ms = await getMemberSeason(user.id, user.clubId)
     if (!ms) return err("Not a member this season.", 403)
 
-    const entry = await resolveOwnedPendingEntry(id, ms.id)
-    if (!entry) return err("Entry not found or already reviewed.", 404)
+    const found = await resolveOwnedPendingEntry(id, ms.id)
+    if (found.state === "NOT_FOUND") return err("Hour entry not found.", 404)
+    if (found.state === "ALREADY_REVIEWED") {
+      return err(`Can't withdraw a ${found.status.toLowerCase()} hour entry.`, 403)
+    }
 
     await prisma.hourEntry.delete({ where: { id } })
     return ok({ ok: true })

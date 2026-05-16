@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     const ipLimiter = await takeRateLimit(buildRateLimitKey("auth:login:ip", req), 40, 60_000)
     if (!ipLimiter.allowed) return err(rateLimitErrorMessage("login", ipLimiter.retryAfterMs), 429)
 
-    const body = await req.json()
+    const body = await req.json().catch(() => null)
     const parsed = schema.safeParse(body)
     if (!parsed.success) return err("Invalid email or password.", 400)
 

@@ -6,12 +6,32 @@ import { logActivity } from "@/lib/activity"
 
 export const dynamic = "force-dynamic"
 
-const resultSchema = z.object({
-  placement: z.number().int().min(1).max(999).nullable().optional(),
-  scoreEarned: z.number().min(0).max(99999.99).nullable().optional(),
-  scorePossible: z.number().min(0).max(99999.99).nullable().optional(),
-  medalNotes: z.string().max(500).nullable().optional(),
-})
+const resultSchema = z
+  .object({
+    placement: z.number().int().min(1).max(999).nullable().optional(),
+    scoreEarned: z.number().min(0).max(99999.99).nullable().optional(),
+    scorePossible: z.number().min(0).max(99999.99).nullable().optional(),
+    medalNotes: z.string().max(500).nullable().optional(),
+  })
+  // Sanity: scoreEarned can't exceed scorePossible.
+  .refine(
+    (d) =>
+      d.scoreEarned === null ||
+      d.scoreEarned === undefined ||
+      d.scorePossible === null ||
+      d.scorePossible === undefined ||
+      d.scoreEarned <= d.scorePossible,
+    { message: "scoreEarned can't exceed scorePossible", path: ["scoreEarned"] },
+  )
+  // Reject {}: at least one result field must be non-null/non-undefined.
+  .refine(
+    (d) =>
+      d.placement !== undefined ||
+      d.scoreEarned !== undefined ||
+      d.scorePossible !== undefined ||
+      (d.medalNotes !== undefined && d.medalNotes !== null && d.medalNotes !== ""),
+    { message: "Provide at least one result field (placement, score, or notes)." },
+  )
 
 async function resolveAssignment(
   assignmentId: string,

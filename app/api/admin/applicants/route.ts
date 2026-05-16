@@ -196,7 +196,7 @@ async function processOne(
 
 // PATCH — approve/deny/waitlist single OR bulk
 export const PATCH = withPermission("edit_members", async (req, _ctx, user) => {
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = patchSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
 

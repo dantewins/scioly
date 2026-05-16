@@ -40,7 +40,7 @@ export const POST = withActiveMemberAuth(async (req, _ctx, user) => {
     return err("Forbidden.", 403)
   }
 
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = submitSchema.safeParse(body)
   if (!parsed.success) {
     return err(parsed.error.issues[0] ? formatIssue(parsed.error.issues[0]) : "Invalid input.", 400)

@@ -125,32 +125,52 @@ export async function startOrResumePracticeAssessmentAttempt(
   })
   if (!assessment) return null
 
-  if (!options?.forceNew) {
-    const inProgressAttempt = await prisma.assessmentAttempt.findFirst({
-      where: {
+  // Atomic check-and-create. Two parallel POSTs (e.g. double-click on
+  // "Start") would both pass the find-first and both create — wrap the
+  // check + abandon + create in a transaction so only one attempt is
+  // ever IN_PROGRESS for this (assessment, member) pair.
+  return prisma.$transaction(async (tx) => {
+    if (!options?.forceNew) {
+      const inProgressAttempt = await tx.assessmentAttempt.findFirst({
+        where: {
+          assessmentId: assessment.id,
+          memberSeasonId,
+          status: "IN_PROGRESS",
+          submittedAt: null,
+        },
+        select: { id: true },
+        orderBy: { startedAt: "desc" },
+      })
+      if (inProgressAttempt) {
+        return { attemptId: inProgressAttempt.id, resumed: true }
+      }
+    } else {
+      // ForceNew: abandon any existing IN_PROGRESS attempts. If two
+      // parallel forceNew calls race, the second will see the first's
+      // new attempt as already IN_PROGRESS and resume it instead of
+      // creating a third.
+      await tx.assessmentAttempt.updateMany({
+        where: {
+          assessmentId: assessment.id,
+          memberSeasonId,
+          status: "IN_PROGRESS",
+          submittedAt: null,
+        },
+        data: { status: "ABANDONED" },
+      })
+    }
+
+    const attempt = await tx.assessmentAttempt.create({
+      data: {
         assessmentId: assessment.id,
         memberSeasonId,
         status: "IN_PROGRESS",
-        submittedAt: null,
       },
       select: { id: true },
-      orderBy: { startedAt: "desc" },
     })
-    if (inProgressAttempt) {
-      return { attemptId: inProgressAttempt.id, resumed: true }
-    }
-  }
 
-  const attempt = await prisma.assessmentAttempt.create({
-    data: {
-      assessmentId: assessment.id,
-      memberSeasonId,
-      status: "IN_PROGRESS",
-    },
-    select: { id: true },
+    return { attemptId: attempt.id, resumed: false }
   })
-
-  return { attemptId: attempt.id, resumed: false }
 }
 
 export async function upsertMemberPracticeAttemptResponses(

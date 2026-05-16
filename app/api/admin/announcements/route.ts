@@ -48,16 +48,25 @@ const createSchema = z.object({
   title: z.string().min(1).max(200),
   body: z.string().min(1).max(4000),
   isPinned: z.boolean().optional(),
+  // null = save as draft (no publishedAt). Omitted = publish now. ISO = schedule.
+  publishedAt: z.string().datetime().nullable().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
 })
 
 export const POST = withPermission("edit_club_settings", async (req, _ctx, user) => {
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
   const parsed = createSchema.safeParse(body)
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? "Invalid input.", 400)
 
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)
+
+  const publishedAt =
+    parsed.data.publishedAt === null
+      ? null
+      : parsed.data.publishedAt
+        ? new Date(parsed.data.publishedAt)
+        : new Date()
 
   const announcement = await prisma.announcement.create({
     data: {
@@ -65,7 +74,7 @@ export const POST = withPermission("edit_club_settings", async (req, _ctx, user)
       title: parsed.data.title,
       body: parsed.data.body,
       isPinned: parsed.data.isPinned ?? false,
-      publishedAt: new Date(),
+      publishedAt,
       expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
       createdById: user.id,
     },
