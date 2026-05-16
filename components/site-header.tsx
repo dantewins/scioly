@@ -5,6 +5,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { DensityToggle } from "@/components/ui/density-toggle"
+import { NotificationBell } from "@/features/notifications/components/notification-bell"
+import { useAuth } from "@/context/AuthContext"
 
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
@@ -33,6 +35,11 @@ function resolveTitle(pathname: string): string {
 export function SiteHeader() {
   const pathname = usePathname()
   const title = resolveTitle(pathname)
+  const { user } = useAuth()
+  // Show the bell only for users who can fetch their notification feed.
+  // Owner has full permissions; active members fall into withActiveMemberAuth.
+  // Applicants don't get the bell.
+  const showBell = user?.role !== "APPLICANT"
 
   return (
     <header
@@ -47,6 +54,7 @@ export function SiteHeader() {
       <Separator orientation="vertical" className="h-4 mx-1" />
       <span className="text-sm font-medium text-foreground flex-1 tracking-tight">{title}</span>
       <div className="flex items-center gap-0.5">
+        {showBell && <NotificationBell />}
         <DensityToggle />
         <ThemeToggle />
       </div>
