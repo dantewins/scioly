@@ -81,6 +81,24 @@ export async function sendPasswordSetupEmail(
   return sendOrLog({ to, subject: "Welcome! Set up your account", html })
 }
 
+export async function sendPasswordResetEmail(
+  to: string,
+  token: string,
+  firstName: string,
+) {
+  const url = `${getAppUrl()}/set-password?token=${encodeURIComponent(token)}`
+  const safeName = escapeHtml(firstName)
+  const html = renderEmail({
+    heading: "Reset your password",
+    intro: `Hi ${safeName}, we got a request to reset your password.`,
+    body:
+      "Click the button below to choose a new password. This link expires in <strong>1 hour</strong>. If you didn't request this, you can safely ignore this email.",
+    ctaLabel: "Set a new password",
+    ctaUrl: url,
+  })
+  return sendOrLog({ to, subject: "Reset your password", html })
+}
+
 export async function sendApplicationReceivedEmail(
   to: string,
   firstName: string,
