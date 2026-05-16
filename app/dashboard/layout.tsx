@@ -10,6 +10,8 @@ import NextTopLoader from "nextjs-toploader"
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser()
   if (!user) redirect("/login")
+  // Applicants don't have a member dashboard; show them their application status.
+  if (user.role === "APPLICANT") redirect("/applicant")
 
   return (
     <AuthProvider initialUser={user}>
