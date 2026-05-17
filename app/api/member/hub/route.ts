@@ -82,6 +82,7 @@ export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
     rosterMemberships,
     competitionAssignments,
     announcementRows,
+    resourceRows,
   ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
@@ -350,6 +351,41 @@ export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
       select: { id: true, title: true, body: true, isPinned: true, publishedAt: true },
       orderBy: [{ isPinned: "desc" }, { publishedAt: "desc" }],
       take: 10,
+    }),
+    prisma.resource.findMany({
+      where: {
+        seasonId: season.id,
+        OR: [
+          {
+            AND: [
+              { eventId: null },
+              { competitionId: null },
+              { seasonRosterId: null },
+              { competitionRosterId: null },
+            ],
+          },
+          // Event-scoped resources for events this member is enrolled in.
+          {
+            eventId: {
+              in: (
+                await prisma.eventEnrollment.findMany({
+                  where: { memberSeasonId: memberSeason.id },
+                  select: { eventId: true },
+                })
+              ).map((e) => e.eventId),
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        url: true,
+        event: { select: { name: true, code: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 6,
     }),
   ])
 
@@ -646,7 +682,14 @@ export const GET = withActiveMemberAuth(async (_req, _ctx, user) => {
       isPinned: a.isPinned,
       publishedAt: a.publishedAt?.toISOString() ?? null,
     })),
-    resources: [],
+    resources: resourceRows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      type: r.type,
+      url: r.url,
+      eventName: r.event?.name ?? null,
+      eventCode: r.event?.code ?? null,
+    })),
     meta: {
       generatedAt: now.toISOString(),
     },
