@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { motion, useReducedMotion } from "motion/react"
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from "motion/react"
 import {
   IconAtom, IconArrowRight, IconSun, IconMoon,
   IconCreditCard,
@@ -138,15 +138,6 @@ function HeroBackdrop({ isDark }: { isDark: boolean }) {
         ))}
       </div>
 
-      {/* bottom fade so the hero text reads cleanly (light mode only — in dark mode it bled over the showcase image) */}
-      {!isDark && (
-        <div
-          className="absolute inset-x-0 bottom-0 h-32"
-          style={{
-            background: "linear-gradient(to bottom, transparent, white)",
-          }}
-        />
-      )}
     </div>
   )
 }
@@ -186,6 +177,25 @@ export default function Page() {
   const [isDark, setIsDark] = useState(true)
   const { user } = useAuth()
   const reduce = useReducedMotion()
+
+  // Pointer-tracked 3D tilt for the dashboard preview.
+  // Motion values are normalized to [-0.5, 0.5] from the element center,
+  // then mapped to rotation via spring-smoothed transforms.
+  const tiltX = useMotionValue(0)
+  const tiltY = useMotionValue(0)
+  const previewRotateY = useSpring(useTransform(tiltX, [-0.5, 0.5], [-7, 7]), { stiffness: 160, damping: 22 })
+  const previewRotateX = useSpring(useTransform(tiltY, [-0.5, 0.5], [6, -6]), { stiffness: 160, damping: 22 })
+
+  function handlePreviewMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (reduce) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    tiltX.set((e.clientX - rect.left) / rect.width - 0.5)
+    tiltY.set((e.clientY - rect.top) / rect.height - 0.5)
+  }
+  function handlePreviewLeave() {
+    tiltX.set(0)
+    tiltY.set(0)
+  }
 
   return (
     <div
@@ -369,17 +379,20 @@ export default function Page() {
             }}
           />
           <motion.div
-            className={`relative mx-auto max-w-[1120px] overflow-hidden rounded-t-2xl border-x border-t border-border/70 bg-card`}
+            className="group relative mx-auto max-w-[1120px] overflow-hidden rounded-2xl border border-border/70 bg-card"
             style={{
-              transform: "perspective(2000px) rotateX(8deg)",
-              transformOrigin: "center bottom",
+              rotateX: previewRotateX,
+              rotateY: previewRotateY,
+              transformPerspective: 2000,
               boxShadow: isDark
-                ? "0 40px 120px -30px rgba(0,0,0,0.45)"
-                : "0 40px 120px -30px rgba(0,0,0,0.18)",
+                ? "0 40px 120px -30px rgba(0,0,0,0.55)"
+                : "0 40px 120px -30px rgba(0,0,0,0.22)",
             }}
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            onMouseMove={handlePreviewMove}
+            onMouseLeave={handlePreviewLeave}
           >
             <div
               className="absolute inset-x-0 top-0 z-50 h-px pointer-events-none"
@@ -387,12 +400,12 @@ export default function Page() {
             />
             <div className="relative aspect-[1920/958]">
               <Image
-                src="/showcase.png"
+                src={isDark ? "/showcase-dark.png" : "/showcase-light.png"}
                 alt="Scioly dashboard preview"
                 fill
                 className="object-cover object-top"
                 priority
-                quality={95}
+                unoptimized
                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1120px"
               />
             </div>

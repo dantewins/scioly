@@ -55,3 +55,5 @@ next-env.d.ts
 !/.claude/agents/
 /.docs
 /scioly-drive
+
+/.backup/
