@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { clearCurrentUserCache } from "@/lib/auth"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
 
@@ -18,7 +19,7 @@ export const POST = withPermission(
     const { id: targetUserId } = await ctx.params
     const body = await req.json().catch(() => null)
     const parsed = assignSchema.safeParse(body)
-    if (!parsed.success) return err("Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const { roleId, seasonId } = parsed.data
 
@@ -51,7 +52,7 @@ export const DELETE = withPermission(
     const { id: targetUserId } = await ctx.params
     const body = await req.json().catch(() => null)
     const parsed = assignSchema.safeParse(body)
-    if (!parsed.success) return err("Invalid input.", 400)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
 
     const { roleId, seasonId } = parsed.data
 
