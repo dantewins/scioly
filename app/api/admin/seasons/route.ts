@@ -19,12 +19,17 @@ export const GET = withPermission("view_club_settings", async (_req, _ctx, user)
   return ok(seasons)
 })
 
-const createSchema = z.object({
-  name: z.string().min(1).max(100),
-  schoolYear: z.string().regex(/^\d{4}-\d{4}$/, "Use format YYYY-YYYY"),
-  startsAt: z.string().datetime(),
-  endsAt: z.string().datetime(),
-})
+const createSchema = z
+  .object({
+    name: z.string().min(1).max(100),
+    schoolYear: z.string().regex(/^\d{4}-\d{4}$/, "Use format YYYY-YYYY"),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+  })
+  .refine(
+    (d) => new Date(d.startsAt).getTime() < new Date(d.endsAt).getTime(),
+    { message: "Season must end after it starts", path: ["endsAt"] },
+  )
 
 export const POST = withPermission("edit_club_settings", async (req, _ctx, user) => {
   const body = await req.json().catch(() => null)

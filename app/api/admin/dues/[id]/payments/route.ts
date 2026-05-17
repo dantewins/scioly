@@ -30,10 +30,31 @@ export const POST = withPermission(
           memberSeasonId: true,
           title: true,
           paidAt: true,
+          status: true,
+          amountCents: true,
+          amountPaidCents: true,
           season: { select: { clubId: true } },
         },
       })
-      if (!invoice) return null
+      if (!invoice) return { error: "NOT_FOUND" as const }
+
+      // Reject payments on closed-state invoices.
+      if (invoice.status === "VOID") {
+        return { error: "VOID" as const }
+      }
+      if (invoice.status === "PAID") {
+        return { error: "ALREADY_PAID" as const }
+      }
+
+      // Cap payment at the outstanding balance — overpayments silently
+      // ballooning amountPaidCents past amountCents was confusing.
+      const outstanding = invoice.amountCents - invoice.amountPaidCents
+      if (outstanding <= 0) {
+        return { error: "NOTHING_OWED" as const }
+      }
+      if (parsed.data.amountCents > outstanding) {
+        return { error: "OVERPAYMENT" as const, outstanding }
+      }
 
       const payment = await tx.paymentRecord.create({
         data: {
@@ -95,7 +116,19 @@ export const POST = withPermission(
       return { paymentId: payment.id, status: newStatus }
     })
 
-    if (!result) return err("Invoice not found.", 404)
+    if ("error" in result) {
+      if (result.error === "NOT_FOUND") return err("Invoice not found.", 404)
+      if (result.error === "VOID") return err("Can't record a payment on a voided invoice.", 400)
+      if (result.error === "ALREADY_PAID") return err("This invoice is already paid in full.", 400)
+      if (result.error === "NOTHING_OWED") return err("This invoice has no outstanding balance.", 400)
+      if (result.error === "OVERPAYMENT") {
+        return err(
+          `Payment exceeds outstanding balance. Maximum: $${(result.outstanding / 100).toFixed(2)}.`,
+          400,
+        )
+      }
+      return err("Could not record payment.", 400)
+    }
 
     return ok({ ok: true, ...result })
   },

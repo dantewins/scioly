@@ -1,10 +1,14 @@
 // app/api/admin/seasons/[id]/route.ts
+import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { clearCurrentUserCache } from "@/lib/auth"
 import { clearSeasonLookupCaches } from "@/lib/db"
+import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
+
+const patchSchema = z.object({ isActive: z.boolean() })
 
 // PATCH: activate or deactivate a season (only one can be active at a time)
 export const PATCH = withPermission(
@@ -12,7 +16,9 @@ export const PATCH = withPermission(
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id } = await ctx.params
     const body = await req.json().catch(() => null)
-    const { isActive } = body as { isActive: boolean }
+    const parsed = patchSchema.safeParse(body)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
+    const { isActive } = parsed.data
 
     const season = await prisma.season.findFirst({
       where: { id, clubId: user.clubId },

@@ -88,12 +88,16 @@ export const POST = withPermission(
   },
 )
 
+const deleteSchema = z.object({ eventId: z.string().min(1) })
+
 export const DELETE = withPermission(
   "edit_competitions",
   async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id: competitionId } = await ctx.params
     const body = await req.json().catch(() => null)
-    const { eventId } = body as { eventId: string }
+    const parsed = deleteSchema.safeParse(body)
+    if (!parsed.success) return err(formatZodError(parsed.error), 400)
+    const { eventId } = parsed.data
 
     const comp = await prisma.competition.findFirst({
       where: { id: competitionId, season: { clubId: user.clubId } },
