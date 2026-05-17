@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withAnyPermission, withPermission, ok, err } from "@/lib/api"
 import { clearCurrentUserCache } from "@/lib/auth"
+import { sanitizePermissionMap } from "@/lib/permissions"
 import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
@@ -31,8 +32,14 @@ export const POST = withAnyPermission(["create_roles", "edit_roles"], async (req
   })
   if (existing) return err("A role with this name already exists.", 409)
 
+  // Drop any unknown keys before persisting. Was accepting arbitrary
+  // `{"hack_everything": true}` etc. — inert today but a footgun.
   const role = await prisma.clubRole.create({
-    data: { clubId: user.clubId, ...parsed.data },
+    data: {
+      clubId: user.clubId,
+      ...parsed.data,
+      permissions: sanitizePermissionMap(parsed.data.permissions),
+    },
   })
   clearCurrentUserCache()
   return ok(role, 201)

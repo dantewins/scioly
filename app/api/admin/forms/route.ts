@@ -38,6 +38,12 @@ export const POST = withAnyPermission(["create_forms", "edit_forms"], async (req
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)
 
+  // Pre-check unique seasonId+name so P2002 doesn't bubble to a 500.
+  const existing = await prisma.formType.findUnique({
+    where: { seasonId_name: { seasonId: season.id, name: parsed.data.name } },
+  })
+  if (existing) return err("A form type with this name already exists.", 409)
+
   const form = await prisma.formType.create({
     data: { seasonId: season.id, ...parsed.data },
   })

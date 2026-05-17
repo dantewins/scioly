@@ -3,6 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 import { withPermission, ok, err } from "@/lib/api"
 import { clearCurrentUserCache } from "@/lib/auth"
+import { sanitizePermissionMap } from "@/lib/permissions"
 import { formatZodError } from "@/lib/zod-errors"
 
 export const dynamic = "force-dynamic"
@@ -28,7 +29,12 @@ export const PATCH = withPermission(
 
     const role = await prisma.clubRole.update({
       where: { id: roleId },
-      data: parsed.data,
+      data: {
+        ...parsed.data,
+        ...(parsed.data.permissions !== undefined
+          ? { permissions: sanitizePermissionMap(parsed.data.permissions) }
+          : {}),
+      },
     })
     clearCurrentUserCache()
     return ok(role)

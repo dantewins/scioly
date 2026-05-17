@@ -45,7 +45,13 @@ export const GET = withPermission("view_hours", async (req, _ctx, user) => {
 const reviewSchema = z.object({
   entryIds: z.array(z.string().min(1)).min(1).max(200),
   action: z.enum(["approve", "reject"]),
-  rejectionReason: z.string().max(500).optional(),
+  // Require a non-empty trimmed reason when rejecting. Schema-level
+  // min(1) lets "   " through; refine handles whitespace.
+  rejectionReason: z
+    .string()
+    .max(500)
+    .refine((s) => s.trim().length > 0, { message: "Reason can't be blank." })
+    .optional(),
 })
 
 export const PATCH = withPermission("edit_hours", async (req, _ctx, user) => {
@@ -55,12 +61,22 @@ export const PATCH = withPermission("edit_hours", async (req, _ctx, user) => {
 
   const { entryIds, action, rejectionReason } = parsed.data
 
+  // Only act on entries currently in PENDING (or REJECTED→approve /
+  // APPROVED→reject reversals — both meaningful). Skipping already-in-
+  // target-state entries keeps approvedAt + approvedById from being
+  // overwritten on repeated clicks.
+  const targetStatus = action === "approve" ? "APPROVED" : "REJECTED"
+
   const entries = await prisma.hourEntry.findMany({
-    where: { id: { in: entryIds }, memberSeason: { season: { clubId: user.clubId } } },
+    where: {
+      id: { in: entryIds },
+      memberSeason: { season: { clubId: user.clubId } },
+    },
     select: {
       id: true,
       title: true,
       totalHours: true,
+      status: true,
       memberSeason: {
         select: { user: { select: { email: true, firstName: true } } },
       },
@@ -70,24 +86,28 @@ export const PATCH = withPermission("edit_hours", async (req, _ctx, user) => {
     return err("One or more hour entries not found.", 404)
   }
 
-  const result = await prisma.hourEntry.updateMany({
-    where: { id: { in: entryIds } },
-    data:
-      action === "approve"
-        ? { status: "APPROVED", approvedAt: new Date(), approvedById: user.id, rejectionReason: null }
-        : { status: "REJECTED", rejectionReason: rejectionReason ?? "No reason provided." },
-  })
+  // Skip entries that are already in the target state — idempotent.
+  const toChange = entries.filter((e) => e.status !== targetStatus)
+  const result =
+    toChange.length === 0
+      ? { count: 0 }
+      : await prisma.hourEntry.updateMany({
+          where: { id: { in: toChange.map((e) => e.id) } },
+          data:
+            action === "approve"
+              ? { status: "APPROVED", approvedAt: new Date(), approvedById: user.id, rejectionReason: null }
+              : { status: "REJECTED", rejectionReason: rejectionReason ?? "No reason provided." },
+        })
 
-  // Best-effort notification per entry; mutation already succeeded.
-  const status = action === "approve" ? "APPROVED" : "REJECTED"
+  // Best-effort notification per entry that actually changed.
   await Promise.allSettled(
-    entries.map((entry) =>
+    toChange.map((entry) =>
       sendHoursReviewedEmail(
         entry.memberSeason.user.email,
         entry.memberSeason.user.firstName,
         entry.title,
         Number(entry.totalHours),
-        status,
+        targetStatus,
         action === "reject" ? rejectionReason ?? null : null,
       ).catch((e) => {
         console.error(`[hours:${action}] Email send failed for ${entry.id}:`, e)
@@ -95,5 +115,5 @@ export const PATCH = withPermission("edit_hours", async (req, _ctx, user) => {
     ),
   )
 
-  return ok({ count: result.count })
+  return ok({ count: result.count, skipped: entries.length - toChange.length })
 })

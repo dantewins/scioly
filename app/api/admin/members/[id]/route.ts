@@ -72,10 +72,21 @@ export const GET = withPermission("view_members", async (_req, ctx: { params: Pr
   return ok({ user: targetUser, memberSeason: ms })
 })
 
-const statusSchema = z.object({
-  membershipStatus: z.enum(["ACTIVE", "INACTIVE", "ALUMNI", "REMOVED"]).optional(),
-  statusReason: z.string().max(500).optional(),
-})
+const statusSchema = z
+  .object({
+    membershipStatus: z.enum(["ACTIVE", "INACTIVE", "ALUMNI", "REMOVED"]).optional(),
+    statusReason: z.string().max(500).optional(),
+  })
+  // Refuse a noop / standalone statusReason patch — it would silently
+  // succeed but write nothing (the previous code's `if(status)` guard
+  // skipped over statusReason on its own).
+  .refine(
+    (d) => d.membershipStatus !== undefined || d.statusReason === undefined,
+    {
+      message: "statusReason can't be set without membershipStatus.",
+      path: ["statusReason"],
+    },
+  )
 
 // PATCH — update member status
 export const PATCH = withPermission("edit_members", async (req, ctx: { params: Promise<{ id: string }> }, user) => {
@@ -92,14 +103,16 @@ export const PATCH = withPermission("edit_members", async (req, ctx: { params: P
   })
   if (!ms) return err("Member not found.", 404)
 
+  if (!parsed.data.membershipStatus) {
+    return err("Nothing to update.", 400)
+  }
+
   const updated = await prisma.memberSeason.update({
     where: { id: ms.id },
     data: {
-      ...(parsed.data.membershipStatus && {
-        membershipStatus: parsed.data.membershipStatus,
-        statusChangedAt: new Date(),
-        statusReason: parsed.data.statusReason,
-      }),
+      membershipStatus: parsed.data.membershipStatus,
+      statusChangedAt: new Date(),
+      statusReason: parsed.data.statusReason ?? null,
     },
   })
 

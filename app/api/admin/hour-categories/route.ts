@@ -23,6 +23,8 @@ const createSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   requiredHours: z.number().min(0).max(999).optional(),
+  // Per-entry cap (the schema column exists; expose it via the API).
+  maxHoursPerEntry: z.number().min(0.25).max(24).optional(),
   requiresApproval: z.boolean().default(true),
   proofInstructions: z.string().max(500).optional(),
 })

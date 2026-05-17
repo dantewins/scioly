@@ -39,6 +39,32 @@ export function allPermissions(): PermissionMap {
   return map
 }
 
+// Full list of every valid permission flag — useful for sanitising
+// inputs from the role editor (drop unknown keys, prevent footguns).
+export function allPermissionFlags(): readonly PermissionFlag[] {
+  const flags: PermissionFlag[] = []
+  for (const area of PERMISSION_AREAS) {
+    flags.push(`view_${area}`, `create_${area}`, `edit_${area}`, `delete_${area}`)
+  }
+  return flags
+}
+
+const ALL_PERMISSION_FLAG_SET: Set<string> = new Set(allPermissionFlags())
+
+// Strip any unknown / made-up keys from a permissions map. Boolean-coerce
+// values too (so `1`/`"true"` and other JS truthiness can't sneak in).
+export function sanitizePermissionMap(input: unknown): PermissionMap {
+  if (!input || typeof input !== "object") return {}
+  const out: PermissionMap = {}
+  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+    if (!ALL_PERMISSION_FLAG_SET.has(key)) continue
+    if (value === true) {
+      ;(out as Record<string, boolean>)[key] = true
+    }
+  }
+  return out
+}
+
 // Default role permission sets — used in seed and club registration
 
 export function adminPermissions(): PermissionMap {
