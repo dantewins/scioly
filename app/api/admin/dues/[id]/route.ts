@@ -7,10 +7,22 @@ import { formatZodError } from "@/lib/zod-errors"
 export const dynamic = "force-dynamic"
 
 const patchSchema = z.object({
-  status: z.enum(["DRAFT", "OPEN", "PARTIALLY_PAID", "PAID", "VOID", "OVERDUE"]).optional(),
+  // Admin-driven transitions only. PAID/PARTIALLY_PAID are derived from
+  // PaymentRecords and can't be flipped via PATCH; OVERDUE is set by a
+  // (future) scheduled task that compares dueAt to now.
+  status: z.enum(["OPEN", "VOID"]).optional(),
   notes: z.string().max(500).optional(),
   dueAt: z.string().datetime().nullable().optional(),
 })
+
+const ALLOWED_TRANSITIONS: Record<string, readonly string[]> = {
+  DRAFT: ["OPEN", "VOID"],
+  OPEN: ["VOID"],
+  PARTIALLY_PAID: ["VOID"],
+  PAID: [],
+  VOID: ["OPEN"],
+  OVERDUE: ["VOID"],
+}
 
 export const PATCH = withPermission(
   "edit_finances",
@@ -24,6 +36,16 @@ export const PATCH = withPermission(
       where: { id, season: { clubId: user.clubId } },
     })
     if (!invoice) return err("Invoice not found.", 404)
+
+    if (parsed.data.status && parsed.data.status !== invoice.status) {
+      const allowed = ALLOWED_TRANSITIONS[invoice.status] ?? []
+      if (!allowed.includes(parsed.data.status)) {
+        return err(
+          `Can't change status from ${invoice.status} to ${parsed.data.status}.`,
+          400,
+        )
+      }
+    }
 
     const updated = await prisma.duesInvoice.update({ where: { id }, data: parsed.data })
     return ok(updated)

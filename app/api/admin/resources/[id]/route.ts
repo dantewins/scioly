@@ -11,7 +11,14 @@ const patchSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).nullable().optional(),
   type: z.nativeEnum(ResourceType).optional(),
-  url: z.string().url().max(2000).optional(),
+  url: z
+    .string()
+    .url()
+    .max(2000)
+    .refine((u) => /^https?:\/\//i.test(u), {
+      message: "URL must start with http:// or https://",
+    })
+    .optional(),
   eventId: z.string().nullable().optional(),
   competitionId: z.string().nullable().optional(),
 })

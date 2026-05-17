@@ -20,7 +20,7 @@ const patchSchema = z.object({
   minParticipants: z.number().int().min(1).optional(),
   maxParticipants: z.number().int().min(1).optional(),
   isTrialEvent: z.boolean().optional(),
-  sortOrder: z.number().int().optional(),
+  sortOrder: z.number().int().min(0).optional(),
 })
 
 export const PATCH = withPermission(
@@ -34,14 +34,27 @@ export const PATCH = withPermission(
     const event = await resolveEvent(id, user.clubId)
     if (!event) return err("Event not found.", 404)
 
-    const updated = await prisma.$transaction(async (tx) => {
-      const nextEvent = await tx.event.update({
-        where: { id },
-        data: parsed.data,
+    if (parsed.data.code !== undefined && parsed.data.code !== event.code) {
+      const dupCode = await prisma.event.findFirst({
+        where: {
+          seasonId: event.seasonId,
+          code: parsed.data.code,
+          id: { not: id },
+        },
+        select: { id: true },
       })
-      await syncCompetitionEventsForSeason(event.seasonId, tx)
-      return nextEvent
+      if (dupCode) return err(`Another event in this season already uses code "${parsed.data.code}".`, 409)
+    }
+
+    const updated = await prisma.event.update({
+      where: { id },
+      data: parsed.data,
     })
+    try {
+      await syncCompetitionEventsForSeason(event.seasonId)
+    } catch (e) {
+      console.error("[events:PATCH] schedule sync failed (event was updated):", e)
+    }
     return ok(updated)
   },
 )
@@ -53,10 +66,12 @@ export const DELETE = withPermission(
     const event = await resolveEvent(id, user.clubId)
     if (!event) return err("Event not found.", 404)
 
-    await prisma.$transaction(async (tx) => {
-      await tx.event.delete({ where: { id } })
-      await syncCompetitionEventsForSeason(event.seasonId, tx)
-    })
+    await prisma.event.delete({ where: { id } })
+    try {
+      await syncCompetitionEventsForSeason(event.seasonId)
+    } catch (e) {
+      console.error("[events:DELETE] schedule sync failed (event was deleted):", e)
+    }
 
     return ok({ ok: true })
   },

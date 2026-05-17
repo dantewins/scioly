@@ -35,12 +35,25 @@ export const PATCH = withPermission(
 
 export const DELETE = withPermission(
   "delete_forms",
-  async (_req, ctx: { params: Promise<{ id: string }> }, user) => {
+  async (req, ctx: { params: Promise<{ id: string }> }, user) => {
     const { id } = await ctx.params
     const form = await prisma.formType.findFirst({
       where: { id, season: { clubId: user.clubId } },
+      include: { _count: { select: { submissions: true } } },
     })
     if (!form) return err("Form type not found.", 404)
+
+    // Block accidental deletes of forms that members have already submitted
+    // to (medical waivers, code-of-conduct, etc. would cascade-delete to
+    // empty). Admins can force-delete with ?force=1.
+    const url = new URL(req.url)
+    const force = url.searchParams.get("force") === "1"
+    if (form._count.submissions > 0 && !force) {
+      return err(
+        `${form._count.submissions} member submission${form._count.submissions === 1 ? "" : "s"} would be deleted. Pass ?force=1 to confirm.`,
+        409,
+      )
+    }
 
     await prisma.formType.delete({ where: { id } })
     return ok({ ok: true })

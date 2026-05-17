@@ -22,15 +22,21 @@ export const GET = withPermission("view_competitions", async (_req, _ctx, user) 
   return ok(competitions)
 })
 
-const createSchema = z.object({
-  name: z.string().min(1).max(100),
-  type: z.enum(["PRACTICE", "INVITATIONAL", "REGIONAL", "STATE", "NATIONAL", "OTHER"]).default("OTHER"),
-  location: z.string().max(200).optional(),
-  startsAt: z.string().datetime(),
-  endsAt: z.string().datetime().optional(),
-  notes: z.string().max(1000).optional(),
-  isPublished: z.boolean().default(false),
-})
+const createSchema = z
+  .object({
+    name: z.string().min(1).max(100),
+    type: z.enum(["PRACTICE", "INVITATIONAL", "REGIONAL", "STATE", "NATIONAL", "OTHER"]).default("OTHER"),
+    location: z.string().max(200).optional(),
+    division: z.enum(["B", "C", "OTHER"]).nullable().optional(),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime().optional(),
+    notes: z.string().max(1000).optional(),
+    isPublished: z.boolean().default(false),
+  })
+  .refine(
+    (d) => !d.endsAt || new Date(d.startsAt).getTime() <= new Date(d.endsAt).getTime(),
+    { message: "Competition must end on or after it starts", path: ["endsAt"] },
+  )
 
 export const POST = withAnyPermission(["create_competitions", "edit_competitions"], async (req, _ctx, user) => {
   const body = await req.json().catch(() => null)
@@ -40,14 +46,24 @@ export const POST = withAnyPermission(["create_competitions", "edit_competitions
   const season = await getActiveSeason(user.clubId)
   if (!season) return err("No active season.", 400)
 
-  const competition = await prisma.$transaction(async (tx) => {
-    const created = await tx.competition.create({
-      data: { seasonId: season.id, ...parsed.data },
-    })
+  // Pre-check duplicate name so P2002 doesn't bubble to a 500.
+  const existing = await prisma.competition.findFirst({
+    where: { seasonId: season.id, name: parsed.data.name },
+    select: { id: true },
+  })
+  if (existing) return err("A competition with this name already exists this season.", 409)
 
-    await syncCompetitionEventsForCompetition(created.id, tx)
-    return created
+  const created = await prisma.competition.create({
+    data: { seasonId: season.id, ...parsed.data },
   })
 
-  return ok(competition, 201)
+  // Out-of-transaction sync (same reason as events): avoids the 5s
+  // interactive-transaction budget on populated seasons.
+  try {
+    await syncCompetitionEventsForCompetition(created.id)
+  } catch (e) {
+    console.error("[competitions:POST] schedule sync failed (competition was created):", e)
+  }
+
+  return ok(created, 201)
 })

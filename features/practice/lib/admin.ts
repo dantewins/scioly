@@ -15,7 +15,10 @@ export async function listPracticeAssessmentsForAdmin(
   seasonId: string,
 ): Promise<PracticeAssessmentRecord[]> {
   const assessments = await prisma.assessment.findMany({
-    where: { seasonId, isArchived: false },
+    // GENERATED assessments are ephemeral, one-per-attempt artifacts created
+    // by the dynamic test generator. They shouldn't show up in the admin
+    // list (one per generated test would drown the real curated content).
+    where: { seasonId, isArchived: false, format: { not: "GENERATED" } },
     include: buildPracticeAssessmentInclude(),
     orderBy: { createdAt: "desc" },
   })

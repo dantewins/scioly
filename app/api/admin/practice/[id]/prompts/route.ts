@@ -86,6 +86,20 @@ export const PUT = withPermission(
       return err(formatZodError(parsed.error), 400)
     }
 
+    // If any member has an IN_PROGRESS attempt against this assessment,
+    // refuse to edit prompts — re-numbering or deleting prompts would
+    // corrupt their in-flight responses (cascade-delete on
+    // AssessmentPrompt drops the response rows).
+    const inflightCount = await prisma.assessmentAttempt.count({
+      where: { assessmentId: assessment.id, status: "IN_PROGRESS" },
+    })
+    if (inflightCount > 0) {
+      return err(
+        `${inflightCount} member${inflightCount === 1 ? " has" : "s have"} this assessment open right now. Wait for them to submit before editing questions.`,
+        409,
+      )
+    }
+
     await prisma.$transaction(async (tx) => {
       // Upsert each prompt by promptNumber.
       for (const [index, p] of parsed.data.prompts.entries()) {
