@@ -1,3 +1,5 @@
+used ai to handle creating core features; initially scaled and built tweaked the ui/backend manually
+
 # Scioly
 
 A full-stack club management platform for Science Olympiad teams. One dashboard for the whole season that includes applications, hours, dues, forms, competitions, rosters, practice tests, results, resources, announcements, and email.
